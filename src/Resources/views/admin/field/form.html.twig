@@ -1,0 +1,99 @@
+{% extends '@NowoContactFormBundle/admin/layout.html.twig' %}
+
+{% block title %}{{ isNew ? 'nowo_contact_form.admin.field.new_title'|trans({}, 'NowoContactFormBundle') : 'nowo_contact_form.admin.field.edit_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
+
+{% block content %}
+    <div class="mb-4">
+        <p class="text-muted mb-1">{{ contactForm.name }}</p>
+        <h1 class="h2 mb-0">{{ block('title') }}</h1>
+    </div>
+
+    {% form_theme form 'bootstrap_5_layout.html.twig' %}
+
+    {% if flow.vars.visible_steps is defined and flow.vars.visible_steps is not empty %}
+        {% set stepRoute = isNew ? 'nowo_contact_form_fields_new' : 'nowo_contact_form_fields_edit' %}
+        <ol class="list-group list-group-horizontal mb-4 flex-wrap">
+            {% for step in flow.vars.visible_steps %}
+                {% set stepParams = { formId: contactForm.id, step: step.name } %}
+                {% if not isNew %}
+                    {% set stepParams = stepParams|merge({ id: field.id }) %}
+                {% endif %}
+                <li class="list-group-item flex-fill text-center p-0 {{ step.is_current_step ? 'active' : '' }}">
+                    <a
+                        href="{{ path(stepRoute, stepParams) }}"
+                        class="d-block py-2 px-3 text-decoration-none {{ step.is_current_step ? 'active fw-semibold' : 'text-body' }}"
+                        {% if step.is_current_step %}aria-current="step"{% endif %}
+                    >
+                        {{ ('nowo_contact_form.admin.field.flow.steps.' ~ step.name)|trans({}, 'NowoContactFormBundle') }}
+                    </a>
+                </li>
+            {% endfor %}
+        </ol>
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {{ form_start(form) }}
+                {% for name, stepForm in form %}
+                    {% if name == currentStep %}
+                        {% if name == 'definition' %}
+                            {{ form_row(stepForm.name) }}
+                            {{ form_row(stepForm.type) }}
+                            {{ form_row(stepForm.required) }}
+                            {{ form_row(stepForm.sortOrder) }}
+                        {% elseif name == 'select_options' %}
+                            {{ form_widget(stepForm.name) }}
+                            {{ form_widget(stepForm.type) }}
+                            {{ form_widget(stepForm.required) }}
+                            {{ form_widget(stepForm.sortOrder) }}
+                            {{ form_row(stepForm.optionsMachineNamesLines) }}
+                        {% elseif name == 'phone_prefixes' %}
+                            {{ form_widget(stepForm.name) }}
+                            {{ form_widget(stepForm.type) }}
+                            {{ form_widget(stepForm.required) }}
+                            {{ form_widget(stepForm.sortOrder) }}
+                            {{ form_row(stepForm.phoneWidget) }}
+                            {{ form_row(stepForm.phonePrefixesLines) }}
+                            {{ form_row(stepForm.phoneDefaultCountry) }}
+                            {{ form_row(stepForm.phoneAllowedCountriesLines) }}
+                        {% elseif name == 'content' %}
+                            {{ form_widget(stepForm.name) }}
+                            {{ form_widget(stepForm.type) }}
+                            {{ form_widget(stepForm.required) }}
+                            {{ form_widget(stepForm.sortOrder) }}
+                            {% if stepForm.translations is defined %}
+                                {% include '@NowoContactFormBundle/admin/field/_translation_tabs.html.twig' with { form: stepForm } only %}
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
+                {% endfor %}
+
+                {% if form.navigator is defined %}
+                    <div class="d-flex flex-wrap gap-2 mt-4">
+                        {% if form.navigator.previous is defined %}
+                            {{ form_widget(form.navigator.previous, {
+                                label: 'nowo_contact_form.admin.field.flow.previous'|trans({}, 'NowoContactFormBundle'),
+                                attr: { class: 'btn btn-outline-secondary' },
+                            }) }}
+                        {% endif %}
+                        {% if form.navigator.next is defined %}
+                            {{ form_widget(form.navigator.next, {
+                                label: 'nowo_contact_form.admin.field.flow.next'|trans({}, 'NowoContactFormBundle'),
+                                attr: { class: 'btn btn-primary' },
+                            }) }}
+                        {% endif %}
+                        {% if form.navigator.finish is defined %}
+                            {{ form_widget(form.navigator.finish, {
+                                label: 'nowo_contact_form.admin.field.flow.finish'|trans({}, 'NowoContactFormBundle'),
+                                attr: { class: 'btn btn-primary' },
+                            }) }}
+                        {% endif %}
+                        <a href="{{ path('nowo_contact_form_fields_index', { formId: contactForm.id }) }}" class="btn btn-outline-secondary">
+                            {{ 'nowo_contact_form.admin.back'|trans({}, 'NowoContactFormBundle') }}
+                        </a>
+                    </div>
+                {% endif %}
+            {{ form_end(form) }}
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% set locales = contact_form_admin_locales() %}
+{% set currentLocale = app.request.locale %}
+
+{% if locales|length == 2 %}
+    {% set primaryLocale = locales[0] %}
+    {% set secondaryLocale = locales[1] %}
+    <div class="d-flex align-items-center gap-2 text-light" role="group" aria-label="{{ 'nowo_contact_form.admin.nav.locale_switch'|trans({}, 'NowoContactFormBundle') }}">
+        <span class="small {{ currentLocale == primaryLocale ? 'fw-semibold' : 'opacity-75' }}">
+            {{ ('nowo_contact_form.admin.locales.' ~ primaryLocale)|trans({}, 'NowoContactFormBundle') }}
+        </span>
+        <div class="form-check form-switch m-0">
+            <input
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+                id="admin-locale-switch"
+                {{ currentLocale == secondaryLocale ? 'checked' : '' }}
+                data-primary-locale="{{ primaryLocale }}"
+                data-secondary-locale="{{ secondaryLocale }}"
+                data-switch-url="{{ path('nowo_contact_form_admin_switch_locale', { locale: '__LOCALE__' }) }}"
+                aria-label="{{ 'nowo_contact_form.admin.nav.locale_switch'|trans({}, 'NowoContactFormBundle') }}"
+            >
+        </div>
+        <span class="small {{ currentLocale == secondaryLocale ? 'fw-semibold' : 'opacity-75' }}">
+            {{ ('nowo_contact_form.admin.locales.' ~ secondaryLocale)|trans({}, 'NowoContactFormBundle') }}
+        </span>
+    </div>
+{% elseif locales|length > 1 %}
+    <div class="dropdown">
+        <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="admin-locale-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
+            {{ ('nowo_contact_form.admin.locales.' ~ currentLocale)|trans({}, 'NowoContactFormBundle') }}
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="admin-locale-dropdown">
+            {% for locale in locales %}
+                <li>
+                    <a class="dropdown-item {{ currentLocale == locale ? 'active' : '' }}" href="{{ path('nowo_contact_form_admin_switch_locale', { locale: locale }) }}">
+                        {{ ('nowo_contact_form.admin.locales.' ~ locale)|trans({}, 'NowoContactFormBundle') }}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}

@@ -1,0 +1,36 @@
+{% extends '@NowoContactFormBundle/admin/layout.html.twig' %}
+
+{% block title %}{{ isNew ? 'nowo_contact_form.admin.form.new_title'|trans({}, 'NowoContactFormBundle') : 'nowo_contact_form.admin.form.edit_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
+
+{% block content %}
+    <div class="mb-4">
+        <h1 class="h2 mb-0">{{ block('title') }}</h1>
+    </div>
+
+    {% form_theme form 'bootstrap_5_layout.html.twig' %}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {{ form_start(form) }}
+                {{ form_row(form.name) }}
+                {{ form_row(form.slug) }}
+                {{ form_row(form.enabled) }}
+                {{ form_row(form.privacyPolicyUrl) }}
+                {{ form_row(form.retentionDays) }}
+                {{ form_row(form.notificationEmail) }}
+                {{ form_row(form.requireConsent) }}
+
+                {% include '@NowoContactFormBundle/admin/form/_translation_tabs.html.twig' with { form: form } only %}
+
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        {{ 'nowo_contact_form.admin.form.save'|trans({}, 'NowoContactFormBundle') }}
+                    </button>
+                    <a href="{{ path('nowo_contact_form_admin_index') }}" class="btn btn-outline-secondary">
+                        {{ 'nowo_contact_form.admin.back'|trans({}, 'NowoContactFormBundle') }}
+                    </a>
+                </div>
+            {{ form_end(form) }}
+        </div>
+    </div>
+{% endblock %}

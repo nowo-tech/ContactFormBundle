@@ -1,0 +1,18 @@
+{% for child in form %}
+    {% if child.vars.name != 'gdpr_consent' %}
+        {{ form_row(child) }}
+    {% endif %}
+{% endfor %}
+
+{% if form.gdpr_consent is defined %}
+    <div class="mb-3">
+        {{ form_row(form.gdpr_consent) }}
+        {% if contactForm.privacyPolicyUrl and translation.privacyPolicyText %}
+            <div class="form-text">
+                <a href="{{ contactForm.privacyPolicyUrl }}" target="_blank" rel="noopener">
+                    {{ translation.privacyPolicyText }}
+                </a>
+            </div>
+        {% endif %}
+    </div>
+{% endif %}

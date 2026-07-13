@@ -1,0 +1,7 @@
+{# Fragment returned by GET /demo/background-fragment. Injected into the page via fetch(); the bundle's MutationObserver initializes the icon selector automatically. #}
+<div class="icon-selector-background-fragment border rounded p-3 bg-light">
+    {{ form_start(form, { attr: { class: 'icon-selector-background-form' } }) }}
+    {{ form_row(form.icon) }}
+    <p class="small text-muted mb-0">{{ 'demo.background_fragment_loaded'|trans({}, 'messages') }}</p>
+    {{ form_end(form) }}
+</div>

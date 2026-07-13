@@ -1,0 +1,165 @@
+nowo_contact_form:
+  public:
+    submit: Invia
+    consent_default_label: Accetto il trattamento dei miei dati personali.
+    consent_required: Devi accettare la casella di consenso per inviare il modulo.
+    field_required: 'Il campo "%field%" è obbligatorio.'
+    phone_number_invalid: Inserisci un numero di telefono valido usando solo cifre.
+  admin:
+    back: Torna all'elenco
+    nav:
+      brand: Admin moduli di contatto
+      locale_switch: Lingua dell'interfaccia
+    yes: Sì
+    no: 'No'
+    actions:
+      edit: Modifica
+      fields: Campi
+      submissions: Invii
+      view: Visualizza
+    locales:
+      en: Inglese
+      es: Spagnolo
+    form:
+      index_title: Moduli di contatto
+      new_title: Nuovo modulo di contatto
+      edit_title: Modifica modulo di contatto
+      new: Nuovo modulo
+      save: Salva
+      created: Modulo di contatto creato.
+      updated: Modulo di contatto aggiornato.
+      deleted: Modulo di contatto eliminato.
+      empty: Non ci sono ancora moduli di contatto.
+      columns:
+        name: Nome
+        slug: Slug
+        enabled: Attivo
+        actions: Azioni
+      fields:
+        name: Nome interno
+        name_help: Etichetta riservata all'admin per identificare questo modulo. Non visibile nella pagina pubblica.
+        slug: Slug URL
+        slug_help: Usato nell'URL pubblico (es. /it/contact/supporto). Usa lettere minuscole, numeri e trattini.
+        enabled: Attivo
+        enabled_help: I moduli disattivati sono nascosti dal sito pubblico ma restano modificabili nell'admin.
+        privacy_policy_url: URL informativa sulla privacy
+        privacy_policy_url_help: Link opzionale mostrato accanto alla casella di consenso quando è richiesto il consenso GDPR.
+        retention_days: Conservazione dati (giorni)
+        retention_days_help: Gli invii più vecchi vengono rimossi dal comando di pulizia. Usa 0 per conservarli indefinitamente.
+        notification_email: Email di notifica (opzionale)
+        notification_email_help: Destinatario alternativo se non è configurato alcun notificatore Mailer. Lascia vuoto per usare il valore predefinito del bundle.
+        require_consent: Richiedi casella di consenso GDPR
+        require_consent_help: Se attivo, viene mostrata una casella di consenso personalizzabile che deve essere selezionata prima dell'invio.
+        translations: Traduzioni
+        translations_empty: Nessuna lingua configurata per questa applicazione.
+        translation:
+          locale: Lingua
+          title: Titolo
+          title_help: Intestazione mostrata in cima al modulo di contatto pubblico.
+          description: Descrizione
+          description_help: Testo introduttivo opzionale mostrato sotto il titolo nel modulo pubblico.
+          success_message: Messaggio di successo
+          success_message_help: Mostrato al visitatore dopo un invio riuscito.
+          consent_label: Etichetta casella di consenso
+          consent_label_help: 'Mostrata quando "Richiedi casella di consenso GDPR" è attivo. Supporta HTML di base: <strong>, <em>, <a href="">, ecc. I link vengono sanitizzati automaticamente.'
+          privacy_policy_text: Testo link informativa privacy
+          privacy_policy_text_help: Testo opzionale del link mostrato accanto alla casella di consenso quando è configurato un URL dell'informativa privacy.
+    field:
+      index_title: Campi
+      new_title: Nuovo campo
+      edit_title: Modifica campo
+      new: Nuovo campo
+      save: Salva
+      created: Campo creato.
+      updated: Campo aggiornato.
+      deleted: Campo eliminato.
+      empty: Nessun campo configurato.
+      consent_row:
+        hint: Configurato a livello di modulo (non è un campo personalizzato).
+        type: Casella di consenso
+        edit: Modifica modulo
+      flow:
+        steps:
+          definition: Impostazioni campo
+          select_options: Valori di selezione
+          phone_prefixes: Prefissi telefonici
+          content: Etichette e opzioni
+        next: Continua
+        previous: Indietro
+        finish: Salva campo
+      columns:
+        name: Nome
+        type: Tipo
+        required: Obbligatorio
+        actions: Azioni
+      type:
+        text: Testo
+        email: Email
+        phone: Telefono
+        textarea: Area di testo
+        select: Selezione
+        checkbox: Casella di controllo
+        number: Numero
+        date: Data
+        url: URL
+        file: Caricamento file
+      fields:
+        name: Nome del campo
+        name_help: Nome interno salvato negli invii (es. email, phone). Usa lettere minuscole, numeri e underscore.
+        type: Tipo di campo
+        type_help: Controlla l'input mostrato nel modulo pubblico. I campi select richiedono valori opzione; i campi telefono supportano il selettore prefissi Symfony o Phone Input Bundle.
+        required: Obbligatorio
+        required_help: Se attivo, il campo deve essere compilato prima di poter inviare il modulo.
+        sort_order: Ordine
+        sort_order_help: I numeri più bassi compaiono per primi nel modulo pubblico.
+        translations: Traduzioni
+        translations_empty: Nessuna lingua configurata per questa applicazione.
+        options_machine_names: Machine names (uno per riga)
+        options_machine_names_help: Valori stabili salvati negli invii. Usa lettere minuscole, numeri e underscore (es. general_inquiry). Definiscili prima di tradurre le etichette.
+        options_machine_names_invalid: Ogni machine name deve iniziare con una lettera e contenere solo lettere minuscole, numeri e underscore.
+        options_machine_names_duplicate: I machine names devono essere univoci.
+        phone_prefixes: Prefissi (uno per riga)
+        phone_prefixes_help: 'Solo per widget Symfony. Codici internazionali nel menu a tendina dei prefissi (es. +34). Lascia vuoto per usare i valori predefiniti del bundle.'
+        phone_prefixes_invalid: Ogni prefisso deve iniziare con + seguito da 1-4 cifre (es. +34).
+        phone_prefixes_duplicate: I prefissi devono essere univoci.
+        phone_widget: Widget telefono
+        phone_widget_help: Scegli il selettore prefissi integrato Symfony o nowo-tech/phone-input-bundle se installato.
+        phone_widget_symfony: Symfony (selettore prefissi)
+        phone_widget_phone_input: Phone Input Bundle
+        phone_widget_unavailable: Phone Input Bundle non è installato in questa applicazione.
+        phone_default_country: Paese predefinito (ISO)
+        phone_default_country_help: Per il widget Phone Input Bundle. Codice ISO a due lettere mostrato per impostazione predefinita (es. IT).
+        phone_default_country_invalid: Il paese predefinito deve essere un codice ISO a due lettere (es. IT).
+        phone_allowed_countries: Paesi consentiti (un ISO per riga)
+        phone_allowed_countries_help: 'Per Phone Input Bundle. Lista bianca opzionale (es. IT, US). Vuoto = tutti i paesi del bundle.'
+        phone_allowed_countries_invalid: Ogni paese deve essere un codice ISO a due lettere (es. IT).
+        phone_allowed_countries_duplicate: I paesi consentiti devono essere univoci.
+        translation:
+          locale: Lingua
+          label: Etichetta
+          label_help: Etichetta visibile del campo nel modulo pubblico per questa lingua.
+          placeholder: Placeholder
+          placeholder_help: Testo di suggerimento opzionale all'interno dell'input. Non usato per checkbox, file o select.
+          help: Testo di aiuto
+          help_help: Testo esplicativo opzionale mostrato sotto il campo nel modulo pubblico.
+          select_options: Etichette opzione (una per riga)
+          select_options_help: Un'etichetta per ogni machine name del passo precedente, nello stesso ordine, per questa lingua.
+          select_options_count_mismatch: Fornisci esattamente %count% etichetta/e per corrispondere ai machine names.
+    submission:
+      index_title: Invii
+      show_title: Dettaglio invio
+      metadata_title: Metadati invio
+      field_column: Campo
+      value_column: Valore
+      delete_confirm: Sei sicuro di voler eliminare questo invio?
+      deleted: Invio eliminato.
+      empty: Non ci sono ancora invii.
+      anonymous: Anonimo
+      consent_at: Consenso registrato il
+      values_title: Valori inviati
+      delete: Elimina invio
+      columns:
+        date: Data
+        client: Cliente
+        locale: Lingua
+        actions: Azioni

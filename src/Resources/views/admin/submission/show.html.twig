@@ -1,0 +1,80 @@
+{% extends '@NowoContactFormBundle/admin/layout.html.twig' %}
+
+{% block title %}{{ 'nowo_contact_form.admin.submission.show_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
+
+{% block content %}
+    <div class="mb-4">
+        <p class="text-muted mb-1">{{ contactForm.name }}</p>
+        <h1 class="h2 mb-0">{{ 'nowo_contact_form.admin.submission.show_title'|trans({}, 'NowoContactFormBundle') }}</h1>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">{{ 'nowo_contact_form.admin.submission.metadata_title'|trans({}, 'NowoContactFormBundle') }}</div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between gap-3">
+                        <span class="text-muted">{{ 'nowo_contact_form.admin.submission.columns.date'|trans({}, 'NowoContactFormBundle') }}</span>
+                        <span class="text-end">{{ submission.createdAt|date('Y-m-d H:i:s') }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between gap-3">
+                        <span class="text-muted">{{ 'nowo_contact_form.admin.submission.columns.client'|trans({}, 'NowoContactFormBundle') }}</span>
+                        <span class="text-end">
+                            {% if submission.anonymous %}
+                                {{ 'nowo_contact_form.admin.submission.anonymous'|trans({}, 'NowoContactFormBundle') }}
+                            {% else %}
+                                {{ submission.clientLabel ?? submission.clientId }}
+                            {% endif %}
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between gap-3">
+                        <span class="text-muted">{{ 'nowo_contact_form.admin.submission.columns.locale'|trans({}, 'NowoContactFormBundle') }}</span>
+                        <span class="text-end">{{ submission.locale }}</span>
+                    </li>
+                    {% if submission.consentGivenAt %}
+                        <li class="list-group-item d-flex justify-content-between gap-3">
+                            <span class="text-muted">{{ 'nowo_contact_form.admin.submission.consent_at'|trans({}, 'NowoContactFormBundle') }}</span>
+                            <span class="text-end">{{ submission.consentGivenAt|date('Y-m-d H:i:s') }}</span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">{{ 'nowo_contact_form.admin.submission.values_title'|trans({}, 'NowoContactFormBundle') }}</div>
+                <div class="table-responsive">
+                    <table class="table table-striped mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>{{ 'nowo_contact_form.admin.submission.field_column'|trans({}, 'NowoContactFormBundle') }}</th>
+                                <th>{{ 'nowo_contact_form.admin.submission.value_column'|trans({}, 'NowoContactFormBundle') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for value in submission.values %}
+                                <tr>
+                                    <td class="fw-medium">{{ value.fieldName }}</td>
+                                    <td>{{ value.value }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mt-4">
+        <form method="post" action="{{ path('nowo_contact_form_submissions_delete', { formId: contactForm.id, id: submission.id }) }}" onsubmit="return confirm('{{ 'nowo_contact_form.admin.submission.delete_confirm'|trans({}, 'NowoContactFormBundle')|e('js') }}');">
+            <input type="hidden" name="_token" value="{{ csrf_token('delete-submission-' ~ submission.id) }}">
+            <button type="submit" class="btn btn-danger">
+                {{ 'nowo_contact_form.admin.submission.delete'|trans({}, 'NowoContactFormBundle') }}
+            </button>
+        </form>
+        <a href="{{ path('nowo_contact_form_submissions_index', { formId: contactForm.id }) }}" class="btn btn-outline-secondary">
+            {{ 'nowo_contact_form.admin.back'|trans({}, 'NowoContactFormBundle') }}
+        </a>
+    </div>
+{% endblock %}

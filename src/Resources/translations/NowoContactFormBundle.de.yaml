@@ -1,0 +1,165 @@
+nowo_contact_form:
+  public:
+    submit: Absenden
+    consent_default_label: Ich stimme der Verarbeitung meiner personenbezogenen Daten zu.
+    consent_required: Sie müssen das Einwilligungsfeld aktivieren, um das Formular abzusenden.
+    field_required: 'Das Feld „%field%“ ist erforderlich.'
+    phone_number_invalid: Geben Sie eine gültige Telefonnummer nur mit Ziffern ein.
+  admin:
+    back: Zurück zur Liste
+    nav:
+      brand: Kontaktformular-Admin
+      locale_switch: Sprache der Oberfläche
+    yes: Ja
+    no: 'Nein'
+    actions:
+      edit: Bearbeiten
+      fields: Felder
+      submissions: Einsendungen
+      view: Anzeigen
+    locales:
+      en: Englisch
+      es: Spanisch
+    form:
+      index_title: Kontaktformulare
+      new_title: Neues Kontaktformular
+      edit_title: Kontaktformular bearbeiten
+      new: Neues Formular
+      save: Speichern
+      created: Kontaktformular erstellt.
+      updated: Kontaktformular aktualisiert.
+      deleted: Kontaktformular gelöscht.
+      empty: Noch keine Kontaktformulare vorhanden.
+      columns:
+        name: Name
+        slug: Slug
+        enabled: Aktiv
+        actions: Aktionen
+      fields:
+        name: Interner Name
+        name_help: Nur für Admins sichtbare Bezeichnung zur Identifikation dieses Formulars. Wird auf der öffentlichen Seite nicht angezeigt.
+        slug: URL-Slug
+        slug_help: Wird in der öffentlichen URL verwendet (z. B. /de/contact/support). Verwenden Sie Kleinbuchstaben, Zahlen und Bindestriche.
+        enabled: Aktiv
+        enabled_help: Deaktivierte Formulare sind auf der öffentlichen Website ausgeblendet, bleiben aber im Admin bearbeitbar.
+        privacy_policy_url: URL der Datenschutzerklärung
+        privacy_policy_url_help: Optionaler Link neben dem Einwilligungsfeld, wenn DSGVO-Einwilligung erforderlich ist.
+        retention_days: Datenspeicherung (Tage)
+        retention_days_help: Ältere Einsendungen werden durch den Bereinigungsbefehl entfernt. Verwenden Sie 0, um sie unbegrenzt aufzubewahren.
+        notification_email: Benachrichtigungs-E-Mail (optional)
+        notification_email_help: Fallback-Empfänger, wenn kein Mailer-Notifier konfiguriert ist. Leer lassen, um den Bundle-Standard zu verwenden.
+        require_consent: DSGVO-Einwilligungsfeld erforderlich
+        require_consent_help: Wenn aktiviert, wird ein anpassbares Einwilligungsfeld angezeigt und muss vor dem Absenden aktiviert werden.
+        translations: Übersetzungen
+        translations_empty: Für diese Anwendung sind keine Sprachen konfiguriert.
+        translation:
+          locale: Sprache
+          title: Titel
+          title_help: Überschrift oben auf dem öffentlichen Kontaktformular.
+          description: Beschreibung
+          description_help: Optionaler Einführungstext unter dem Titel auf dem öffentlichen Formular.
+          success_message: Erfolgsmeldung
+          success_message_help: Wird dem Besucher nach erfolgreicher Einsendung angezeigt.
+          consent_label: Beschriftung des Einwilligungsfelds
+          consent_label_help: 'Wird angezeigt, wenn „DSGVO-Einwilligungsfeld erforderlich“ aktiviert ist. Unterstützt einfaches HTML: <strong>, <em>, <a href=""> usw. Links werden automatisch bereinigt.'
+          privacy_policy_text: Linktext zur Datenschutzerklärung
+          privacy_policy_text_help: Optionaler Linktext neben dem Einwilligungsfeld, wenn eine URL der Datenschutzerklärung konfiguriert ist.
+    field:
+      index_title: Felder
+      new_title: Neues Feld
+      edit_title: Feld bearbeiten
+      new: Neues Feld
+      save: Speichern
+      created: Feld erstellt.
+      updated: Feld aktualisiert.
+      deleted: Feld gelöscht.
+      empty: Keine Felder konfiguriert.
+      consent_row:
+        hint: Auf Formular-Ebene konfiguriert (kein benutzerdefiniertes Feld).
+        type: Einwilligungsfeld
+        edit: Formular bearbeiten
+      flow:
+        steps:
+          definition: Feldeinstellungen
+          select_options: Auswahlwerte
+          phone_prefixes: Telefonvorwahlen
+          content: Beschriftungen und Optionen
+        next: Weiter
+        previous: Zurück
+        finish: Feld speichern
+      columns:
+        name: Name
+        type: Typ
+        required: Erforderlich
+        actions: Aktionen
+      type:
+        text: Text
+        email: E-Mail
+        phone: Telefon
+        textarea: Textbereich
+        select: Auswahl
+        checkbox: Kontrollkästchen
+        number: Zahl
+        date: Datum
+        url: URL
+        file: Datei-Upload
+      fields:
+        name: Feldname
+        name_help: Interner Name in Einsendungen gespeichert (z. B. email, phone). Verwenden Sie Kleinbuchstaben, Zahlen und Unterstriche.
+        type: Feldtyp
+        type_help: Steuert die Eingabe auf dem öffentlichen Formular. Select-Felder benötigen Optionswerte; Telefonfelder unterstützen Symfony-Vorwahlselektor oder Phone Input Bundle.
+        required: Erforderlich
+        required_help: Wenn aktiviert, muss das Feld ausgefüllt werden, bevor das Formular abgesendet werden kann.
+        sort_order: Sortierreihenfolge
+        sort_order_help: Niedrigere Zahlen erscheinen zuerst auf dem öffentlichen Formular.
+        translations: Übersetzungen
+        translations_empty: Für diese Anwendung sind keine Sprachen konfiguriert.
+        options_machine_names: Machine names (einer pro Zeile)
+        options_machine_names_help: Stabile Werte in Einsendungen gespeichert. Verwenden Sie Kleinbuchstaben, Zahlen und Unterstriche (z. B. general_inquiry). Definieren Sie sie vor der Übersetzung der Beschriftungen.
+        options_machine_names_invalid: Jeder machine name muss mit einem Buchstaben beginnen und nur Kleinbuchstaben, Zahlen und Unterstriche enthalten.
+        options_machine_names_duplicate: Machine names müssen eindeutig sein.
+        phone_prefixes: Vorwahlen (eine pro Zeile)
+        phone_prefixes_help: 'Nur für Symfony-Widget. Internationale Codes im Vorwahlen-Dropdown (z. B. +49). Leer lassen für Bundle-Standardwerte.'
+        phone_prefixes_invalid: Jede Vorwahl muss mit + gefolgt von 1–4 Ziffern beginnen (z. B. +49).
+        phone_prefixes_duplicate: Vorwahlen müssen eindeutig sein.
+        phone_widget: Telefon-Widget
+        phone_widget_help: Wählen Sie den integrierten Symfony-Vorwahlselektor oder nowo-tech/phone-input-bundle, falls installiert.
+        phone_widget_symfony: Symfony (Vorwahlselektor)
+        phone_widget_phone_input: Phone Input Bundle
+        phone_widget_unavailable: Phone Input Bundle ist in dieser Anwendung nicht installiert.
+        phone_default_country: Standardland (ISO)
+        phone_default_country_help: Für Phone Input Bundle-Widget. Standardmäßig angezeigter ISO-Zweibuchstaben-Code (z. B. DE).
+        phone_default_country_invalid: Das Standardland muss ein ISO-Zweibuchstaben-Code sein (z. B. DE).
+        phone_allowed_countries: Erlaubte Länder (ein ISO pro Zeile)
+        phone_allowed_countries_help: 'Für Phone Input Bundle. Optionale Whitelist (z. B. DE, US). Leer = alle Länder des Bundles.'
+        phone_allowed_countries_invalid: Jedes Land muss ein ISO-Zweibuchstaben-Code sein (z. B. DE).
+        phone_allowed_countries_duplicate: Erlaubte Länder müssen eindeutig sein.
+        translation:
+          locale: Sprache
+          label: Beschriftung
+          label_help: Sichtbare Feldbeschriftung auf dem öffentlichen Formular für diese Sprache.
+          placeholder: Platzhalter
+          placeholder_help: Optionaler Hinweistext im Eingabefeld. Nicht für Checkbox, Datei oder Select.
+          help: Hilfetext
+          help_help: Optionaler Erklärungstext unter dem Feld auf dem öffentlichen Formular.
+          select_options: Optionsbeschriftungen (eine pro Zeile)
+          select_options_help: Eine Beschriftung pro machine name aus dem vorherigen Schritt, in derselben Reihenfolge, für diese Sprache.
+          select_options_count_mismatch: Geben Sie genau %count% Beschriftung(en) an, die den machine names entsprechen.
+    submission:
+      index_title: Einsendungen
+      show_title: Einsendungsdetails
+      metadata_title: Einsendungs-Metadaten
+      field_column: Feld
+      value_column: Wert
+      delete_confirm: Möchten Sie diese Einsendung wirklich löschen?
+      deleted: Einsendung gelöscht.
+      empty: Noch keine Einsendungen vorhanden.
+      anonymous: Anonym
+      consent_at: Einwilligung erteilt am
+      values_title: Eingesendete Werte
+      delete: Einsendung löschen
+      columns:
+        date: Datum
+        client: Kunde
+        locale: Sprache
+        actions: Aktionen

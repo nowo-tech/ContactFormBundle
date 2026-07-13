@@ -1,0 +1,165 @@
+nowo_contact_form:
+  public:
+    submit: Enviar
+    consent_default_label: Aceito o tratamento dos meus dados pessoais.
+    consent_required: Tem de aceitar a caixa de consentimento para enviar o formulário.
+    field_required: 'O campo "%field%" é obrigatório.'
+    phone_number_invalid: Introduza um número de telefone válido usando apenas dígitos.
+  admin:
+    back: Voltar à lista
+    nav:
+      brand: Admin formulários de contacto
+      locale_switch: Idioma da interface
+    yes: Sim
+    no: 'Não'
+    actions:
+      edit: Editar
+      fields: Campos
+      submissions: Submissões
+      view: Ver
+    locales:
+      en: Inglês
+      es: Espanhol
+    form:
+      index_title: Formulários de contacto
+      new_title: Novo formulário de contacto
+      edit_title: Editar formulário de contacto
+      new: Novo formulário
+      save: Guardar
+      created: Formulário de contacto criado.
+      updated: Formulário de contacto atualizado.
+      deleted: Formulário de contacto eliminado.
+      empty: Ainda não existem formulários de contacto.
+      columns:
+        name: Nome
+        slug: Slug
+        enabled: Ativo
+        actions: Ações
+      fields:
+        name: Nome interno
+        name_help: Etiqueta apenas para o admin para identificar este formulário. Não é mostrada na página pública.
+        slug: Slug de URL
+        slug_help: Usado no URL público (ex. /pt/contact/suporte). Use letras minúsculas, números e hífens.
+        enabled: Ativo
+        enabled_help: Formulários desativados ficam ocultos no site público, mas continuam editáveis no admin.
+        privacy_policy_url: URL da política de privacidade
+        privacy_policy_url_help: Ligação opcional mostrada junto à caixa de consentimento quando o consentimento RGPD é exigido.
+        retention_days: Retenção de dados (dias)
+        retention_days_help: Submissões mais antigas são removidas pelo comando de limpeza. Use 0 para as manter indefinidamente.
+        notification_email: E-mail de notificação (opcional)
+        notification_email_help: Destinatário alternativo quando não há notificador Mailer configurado. Deixe vazio para usar o valor predefinido do bundle.
+        require_consent: Exigir caixa de consentimento RGPD
+        require_consent_help: Quando ativo, é mostrada uma caixa de consentimento personalizável que deve ser marcada antes do envio.
+        translations: Traduções
+        translations_empty: Não há idiomas configurados nesta aplicação.
+        translation:
+          locale: Idioma
+          title: Título
+          title_help: Cabeçalho mostrado no topo do formulário de contacto público.
+          description: Descrição
+          description_help: Texto introdutório opcional mostrado abaixo do título no formulário público.
+          success_message: Mensagem de sucesso
+          success_message_help: Mostrada ao visitante após uma submissão bem-sucedida.
+          consent_label: Etiqueta da caixa de consentimento
+          consent_label_help: 'Mostrada quando "Exigir caixa de consentimento RGPD" está ativo. Suporta HTML básico: <strong>, <em>, <a href="">, etc. As ligações são sanitizadas automaticamente.'
+          privacy_policy_text: Texto da ligação à política de privacidade
+          privacy_policy_text_help: Texto opcional da ligação mostrado junto à caixa de consentimento quando existe URL da política de privacidade.
+    field:
+      index_title: Campos
+      new_title: Novo campo
+      edit_title: Editar campo
+      new: Novo campo
+      save: Guardar
+      created: Campo criado.
+      updated: Campo atualizado.
+      deleted: Campo eliminado.
+      empty: Não há campos configurados.
+      consent_row:
+        hint: Configurado ao nível do formulário (não é um campo personalizado).
+        type: Caixa de consentimento
+        edit: Editar formulário
+      flow:
+        steps:
+          definition: Definições do campo
+          select_options: Valores de seleção
+          phone_prefixes: Prefixos telefónicos
+          content: Etiquetas e opções
+        next: Continuar
+        previous: Voltar
+        finish: Guardar campo
+      columns:
+        name: Nome
+        type: Tipo
+        required: Obrigatório
+        actions: Ações
+      type:
+        text: Texto
+        email: E-mail
+        phone: Telefone
+        textarea: Área de texto
+        select: Seleção
+        checkbox: Caixa de verificação
+        number: Número
+        date: Data
+        url: URL
+        file: Carregamento de ficheiro
+      fields:
+        name: Nome do campo
+        name_help: Nome interno guardado nas submissões (ex. email, phone). Use letras minúsculas, números e underscores.
+        type: Tipo de campo
+        type_help: Controla o input mostrado no formulário público. Campos select exigem valores de opção; campos telefone suportam seletor de prefixos Symfony ou Phone Input Bundle.
+        required: Obrigatório
+        required_help: Quando ativo, o campo tem de ser preenchido antes de enviar o formulário.
+        sort_order: Ordem
+        sort_order_help: Números mais baixos aparecem primeiro no formulário público.
+        translations: Traduções
+        translations_empty: Não há idiomas configurados nesta aplicação.
+        options_machine_names: Machine names (um por linha)
+        options_machine_names_help: Valores estáveis guardados nas submissões. Use letras minúsculas, números e underscores (ex. general_inquiry). Defina-os antes de traduzir as etiquetas.
+        options_machine_names_invalid: Cada machine name deve começar por uma letra e conter apenas letras minúsculas, números e underscores.
+        options_machine_names_duplicate: Os machine names devem ser únicos.
+        phone_prefixes: Prefixos (um por linha)
+        phone_prefixes_help: 'Apenas para widget Symfony. Códigos internacionais no menu de prefixos (ex. +351). Deixe vazio para usar os valores predefinidos do bundle.'
+        phone_prefixes_invalid: Cada prefixo deve começar por + seguido de 1 a 4 dígitos (ex. +351).
+        phone_prefixes_duplicate: Os prefixos devem ser únicos.
+        phone_widget: Widget de telefone
+        phone_widget_help: Escolha o seletor de prefixos Symfony integrado ou nowo-tech/phone-input-bundle se estiver instalado.
+        phone_widget_symfony: Symfony (seletor de prefixos)
+        phone_widget_phone_input: Phone Input Bundle
+        phone_widget_unavailable: Phone Input Bundle não está instalado nesta aplicação.
+        phone_default_country: País predefinido (ISO)
+        phone_default_country_help: Para o widget Phone Input Bundle. Código ISO de duas letras mostrado por predefinição (ex. PT).
+        phone_default_country_invalid: O país predefinido deve ser um código ISO de duas letras (ex. PT).
+        phone_allowed_countries: Países permitidos (um ISO por linha)
+        phone_allowed_countries_help: 'Para Phone Input Bundle. Lista branca opcional (ex. PT, US). Vazio = todos os países do bundle.'
+        phone_allowed_countries_invalid: Cada país deve ser um código ISO de duas letras (ex. PT).
+        phone_allowed_countries_duplicate: Os países permitidos devem ser únicos.
+        translation:
+          locale: Idioma
+          label: Etiqueta
+          label_help: Etiqueta visível do campo no formulário público para este idioma.
+          placeholder: Placeholder
+          placeholder_help: Texto de sugestão opcional dentro do input. Não usado para checkbox, ficheiro ou select.
+          help: Texto de ajuda
+          help_help: Texto explicativo opcional mostrado abaixo do campo no formulário público.
+          select_options: Etiquetas de opção (uma por linha)
+          select_options_help: Uma etiqueta por machine name do passo anterior, na mesma ordem, para este idioma.
+          select_options_count_mismatch: Indique exatamente %count% etiqueta(s) para corresponder aos machine names.
+    submission:
+      index_title: Submissões
+      show_title: Detalhe da submissão
+      metadata_title: Metadados da submissão
+      field_column: Campo
+      value_column: Valor
+      delete_confirm: Tem a certeza de que pretende eliminar esta submissão?
+      deleted: Submissão eliminada.
+      empty: Ainda não existem submissões.
+      anonymous: Anónimo
+      consent_at: Consentimento registado em
+      values_title: Valores enviados
+      delete: Eliminar submissão
+      columns:
+        date: Data
+        client: Cliente
+        locale: Idioma
+        actions: Ações

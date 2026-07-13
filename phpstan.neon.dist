@@ -1,0 +1,16 @@
+parameters:
+    level: 8
+    paths:
+        - src
+        - tests
+    excludePaths:
+        - demo/*
+    bootstrapFiles:
+        - vendor/autoload.php
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        -
+            message: '#does not specify its types: TData#'
+        -
+            message: '#never returns null so it can be removed from the return type#'
+            path: src/NowoContactFormBundle.php

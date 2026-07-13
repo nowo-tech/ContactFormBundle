@@ -1,0 +1,165 @@
+nowo_contact_form:
+  public:
+    submit: Verzenden
+    consent_default_label: Ik ga akkoord met de verwerking van mijn persoonsgegevens.
+    consent_required: U moet het toestemmingsvakje accepteren om het formulier te verzenden.
+    field_required: 'Het veld "%field%" is verplicht.'
+    phone_number_invalid: Voer een geldig telefoonnummer in met alleen cijfers.
+  admin:
+    back: Terug naar lijst
+    nav:
+      brand: Contactformulier-admin
+      locale_switch: Taal van de interface
+    yes: Ja
+    no: 'Nee'
+    actions:
+      edit: Bewerken
+      fields: Velden
+      submissions: Inzendingen
+      view: Bekijken
+    locales:
+      en: Engels
+      es: Spaans
+    form:
+      index_title: Contactformulieren
+      new_title: Nieuw contactformulier
+      edit_title: Contactformulier bewerken
+      new: Nieuw formulier
+      save: Opslaan
+      created: Contactformulier aangemaakt.
+      updated: Contactformulier bijgewerkt.
+      deleted: Contactformulier verwijderd.
+      empty: Nog geen contactformulieren.
+      columns:
+        name: Naam
+        slug: Slug
+        enabled: Actief
+        actions: Acties
+      fields:
+        name: Interne naam
+        name_help: Alleen voor admin zichtbaar label om dit formulier te identificeren. Niet zichtbaar op de openbare pagina.
+        slug: URL-slug
+        slug_help: Gebruikt in de openbare URL (bijv. /nl/contact/support). Gebruik kleine letters, cijfers en koppeltekens.
+        enabled: Actief
+        enabled_help: Uitgeschakelde formulieren zijn verborgen op de openbare site maar blijven bewerkbaar in de admin.
+        privacy_policy_url: URL privacybeleid
+        privacy_policy_url_help: Optionele link naast het toestemmingsvakje wanneer AVG-toestemming vereist is.
+        retention_days: Gegevensbewaring (dagen)
+        retention_days_help: Oudere inzendingen worden verwijderd door het opschooncommando. Gebruik 0 om ze onbeperkt te bewaren.
+        notification_email: Notificatie-e-mail (optioneel)
+        notification_email_help: Fallback-ontvanger wanneer geen Mailer-notifier is geconfigureerd. Laat leeg voor de bundle-standaard.
+        require_consent: AVG-toestemmingsvakje vereisen
+        require_consent_help: Indien ingeschakeld wordt een aanpasbaar toestemmingsvakje getoond dat moet worden aangevinkt vóór verzending.
+        translations: Vertalingen
+        translations_empty: Geen talen geconfigureerd voor deze applicatie.
+        translation:
+          locale: Taal
+          title: Titel
+          title_help: Koptekst bovenaan het openbare contactformulier.
+          description: Beschrijving
+          description_help: Optionele introductietekst onder de titel op het openbare formulier.
+          success_message: Succesbericht
+          success_message_help: Getoond aan de bezoeker na een succesvolle inzending.
+          consent_label: Label toestemmingsvakje
+          consent_label_help: 'Getoond wanneer "AVG-toestemmingsvakje vereisen" is ingeschakeld. Ondersteunt basis-HTML: <strong>, <em>, <a href="">, enz. Links worden automatisch gesaneerd.'
+          privacy_policy_text: Linktekst privacybeleid
+          privacy_policy_text_help: Optionele linktekst naast het toestemmingsvakje wanneer een privacybeleid-URL is geconfigureerd.
+    field:
+      index_title: Velden
+      new_title: Nieuw veld
+      edit_title: Veld bewerken
+      new: Nieuw veld
+      save: Opslaan
+      created: Veld aangemaakt.
+      updated: Veld bijgewerkt.
+      deleted: Veld verwijderd.
+      empty: Geen velden geconfigureerd.
+      consent_row:
+        hint: Geconfigureerd op formulierniveau (geen aangepast veld).
+        type: Toestemmingsvakje
+        edit: Formulier bewerken
+      flow:
+        steps:
+          definition: Veldinstellingen
+          select_options: Selectiewaarden
+          phone_prefixes: Telefoonprefixen
+          content: Labels en opties
+        next: Doorgaan
+        previous: Terug
+        finish: Veld opslaan
+      columns:
+        name: Naam
+        type: Type
+        required: Verplicht
+        actions: Acties
+      type:
+        text: Tekst
+        email: E-mail
+        phone: Telefoon
+        textarea: Tekstgebied
+        select: Selectie
+        checkbox: Selectievakje
+        number: Getal
+        date: Datum
+        url: URL
+        file: Bestand uploaden
+      fields:
+        name: Veldnaam
+        name_help: Interne naam opgeslagen in inzendingen (bijv. email, phone). Gebruik kleine letters, cijfers en underscores.
+        type: Veldtype
+        type_help: Bepaalt de invoer op het openbare formulier. Select-velden vereisen optiewaarden; telefoonvelden ondersteunen Symfony-prefixselector of Phone Input Bundle.
+        required: Verplicht
+        required_help: Indien ingeschakeld moet het veld worden ingevuld voordat het formulier kan worden verzonden.
+        sort_order: Sorteervolgorde
+        sort_order_help: Lagere nummers verschijnen eerst op het openbare formulier.
+        translations: Vertalingen
+        translations_empty: Geen talen geconfigureerd voor deze applicatie.
+        options_machine_names: Machine names (één per regel)
+        options_machine_names_help: Stabiele waarden opgeslagen in inzendingen. Gebruik kleine letters, cijfers en underscores (bijv. general_inquiry). Definieer ze vóór het vertalen van labels.
+        options_machine_names_invalid: Elke machine name moet beginnen met een letter en alleen kleine letters, cijfers en underscores bevatten.
+        options_machine_names_duplicate: Machine names moeten uniek zijn.
+        phone_prefixes: Prefixen (één per regel)
+        phone_prefixes_help: 'Alleen voor Symfony-widget. Internationale codes in het prefix-dropdown (bijv. +31). Laat leeg voor bundle-standaardwaarden.'
+        phone_prefixes_invalid: Elk prefix moet beginnen met + gevolgd door 1–4 cijfers (bijv. +31).
+        phone_prefixes_duplicate: Prefixen moeten uniek zijn.
+        phone_widget: Telefoonwidget
+        phone_widget_help: Kies de ingebouwde Symfony-prefixselector of nowo-tech/phone-input-bundle indien geïnstalleerd.
+        phone_widget_symfony: Symfony (prefixselector)
+        phone_widget_phone_input: Phone Input Bundle
+        phone_widget_unavailable: Phone Input Bundle is niet geïnstalleerd in deze applicatie.
+        phone_default_country: Standaardland (ISO)
+        phone_default_country_help: Voor Phone Input Bundle-widget. Standaard getoonde ISO-tweelettercode (bijv. NL).
+        phone_default_country_invalid: Het standaardland moet een ISO-tweelettercode zijn (bijv. NL).
+        phone_allowed_countries: Toegestane landen (één ISO per regel)
+        phone_allowed_countries_help: 'Voor Phone Input Bundle. Optionele whitelist (bijv. NL, US). Leeg = alle landen van de bundle.'
+        phone_allowed_countries_invalid: Elk land moet een ISO-tweelettercode zijn (bijv. NL).
+        phone_allowed_countries_duplicate: Toegestane landen moeten uniek zijn.
+        translation:
+          locale: Taal
+          label: Label
+          label_help: Zichtbaar veldlabel op het openbare formulier voor deze taal.
+          placeholder: Placeholder
+          placeholder_help: Optionele hinttekst in het invoerveld. Niet gebruikt voor checkbox, bestand of select.
+          help: Hulptekst
+          help_help: Optionele toelichting onder het veld op het openbare formulier.
+          select_options: Optielabels (één per regel)
+          select_options_help: Eén label per machine name uit de vorige stap, in dezelfde volgorde, voor deze taal.
+          select_options_count_mismatch: Geef precies %count% label(s) op die overeenkomen met de machine names.
+    submission:
+      index_title: Inzendingen
+      show_title: Inzendingdetails
+      metadata_title: Inzendingmetadata
+      field_column: Veld
+      value_column: Waarde
+      delete_confirm: Weet u zeker dat u deze inzending wilt verwijderen?
+      deleted: Inzending verwijderd.
+      empty: Nog geen inzendingen.
+      anonymous: Anoniem
+      consent_at: Toestemming gegeven op
+      values_title: Ingezonden waarden
+      delete: Inzending verwijderen
+      columns:
+        date: Datum
+        client: Klant
+        locale: Taal
+        actions: Acties

@@ -1,0 +1,37 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ ('demo.page_' ~ demo_slug ~ '_title')|trans({}, 'messages') }} – {{ 'demo.title'|trans({}, 'messages') }}{% endblock %}
+
+{% block body %}
+<div class="container py-5">
+    <nav class="mb-3">
+        <a href="{{ path('app_home', { _locale: app.request.locale }) }}">← {{ 'demo.back_home'|trans({}, 'messages') }}</a>
+    </nav>
+
+    <h1>{{ ('demo.page_' ~ demo_slug ~ '_title')|trans({}, 'messages') }}</h1>
+    <p class="lead">{{ ('demo.page_' ~ demo_slug ~ '_lead')|trans({}, 'messages') }}</p>
+
+    {% for message in app.flashes('success') %}
+    <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endfor %}
+
+    {% if saved_value %}
+    <div class="alert alert-info mb-4">
+        <strong>{{ 'demo.saved_value'|trans({}, 'messages') }}</strong>
+        <code class="ms-2">{{ saved_value }}</code>
+    </div>
+    {% endif %}
+
+    {{ form_start(form) }}
+    {% for child in form %}
+        {{ form_row(child) }}
+    {% endfor %}
+    <button type="submit" class="btn btn-primary mt-3">{{ 'demo.submit'|trans({}, 'messages') }}</button>
+    {{ form_end(form) }}
+</div>
+
+<script src="{{ asset(nowo_icon_selector_asset_path('icon-selector.js')) }}"></script>
+{% endblock %}

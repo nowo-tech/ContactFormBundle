@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache"
+         executionOrder="depends,defects"
+         beStrictAboutOutputDuringTests="true"
+         failOnRisky="false"
+>
+    <testsuites>
+        <testsuite name="unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+        <exclude>
+            <file>src/Controller/ContactFormAdminController.php</file>
+            <file>src/Controller/ContactFormFieldAdminController.php</file>
+            <file>src/Controller/ContactSubmissionAdminController.php</file>
+            <directory suffix=".php">src/Repository</directory>
+            <directory suffix=".php">src/EventSubscriber</directory>
+            <file>src/Form/ContactFormFieldContentStepType.php</file>
+            <file>src/Form/ContactFormFieldDefinitionStepType.php</file>
+            <file>src/Form/ContactFormFieldFlowType.php</file>
+            <file>src/Form/ContactFormFieldPhonePrefixesStepType.php</file>
+            <file>src/Form/ContactFormFieldSelectOptionsStepType.php</file>
+            <file>src/Form/ContactFormFieldTranslationType.php</file>
+            <file>src/Form/ContactFormFieldWizardStepTrait.php</file>
+            <file>src/Form/ContactFormTranslationType.php</file>
+            <file>src/Form/ContactFormType.php</file>
+            <file>src/Twig/ContactFormAdminTwigExtension.php</file>
+        </exclude>
+    </source>
+
+    <coverage>
+        <report>
+            <html outputDirectory="coverage"/>
+            <clover outputFile="coverage.xml"/>
+        </report>
+    </coverage>
+</phpunit>

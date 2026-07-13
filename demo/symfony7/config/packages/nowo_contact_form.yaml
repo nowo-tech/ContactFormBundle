@@ -1,0 +1,9 @@
+nowo_contact_form:
+    file_upload:
+        service: App\Service\DemoContactFormFileUploadHandler
+    notifications:
+        enabled: true
+        service: App\Notification\CompositeContactSubmissionNotifier
+        default_recipient: demo@example.com
+        mailer:
+            enabled: false

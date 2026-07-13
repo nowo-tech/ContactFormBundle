@@ -1,0 +1,3 @@
+# Exclude demo from git archive (e.g. GitHub "Source code" downloads).
+# Composer package dist already excludes /demo via composer.json "archive.exclude".
+/demo export-ignore
