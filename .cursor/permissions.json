@@ -1,0 +1,22 @@
+{
+  "terminalAllowlist": [
+    "git",
+    "git push",
+    "git push -u",
+    "ssh",
+    "gh"
+  ],
+  "autoRun": {
+    "allow_instructions": [
+      "Git push and git push -u origin are allowed when the user explicitly requests it.",
+      "Git fetch and git pull from origin are allowed.",
+      "Read-only git diagnostics (status, diff, log, show) are always allowed.",
+      "gh pr create and other read-only gh commands are allowed when the user requests them."
+    ],
+    "block_instructions": [
+      "Force push (git push --force) to main, master, or shared branches requires approval.",
+      "Destructive git operations (hard reset, clean -fdx, branch deletion) require approval.",
+      "Modifying ~/.ssh, shell rc files, or global git config requires approval."
+    ]
+  }
+}

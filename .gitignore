@@ -1,0 +1,39 @@
+# REQ-DEMO-003: version demo env templates (override parent bundles/.gitignore)
+!demo/symfony7/.env.example
+!demo/symfony7/.env.test
+!demo/symfony8/.env.example
+!demo/symfony8/.env.test
+
+/vendor
+/node_modules
+/.pnpm-store
+/var/
+
+# Cursor local sandbox (machine-specific; REQ-IDE-005)
+.cursor/sandbox.json
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# Test coverage
+/coverage
+/coverage.xml
+/coverage-ts
+/coverage-php.txt
+/coverage-ts.txt
+/coverage-output.txt
+
+# PHP tool caches
+/.php-cs-fixer.cache
+/.phpunit.cache
+/.phpunit.result.cache
+
+# Archives / compressed
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z

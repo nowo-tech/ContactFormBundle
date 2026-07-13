@@ -1,0 +1,10 @@
+# CODEOWNERS for ContactFormBundle
+* @HecFranco
+
+/.github/ @HecFranco
+
+/src/ @HecFranco
+
+/tests/ @HecFranco
+
+/.scripts/ @HecFranco

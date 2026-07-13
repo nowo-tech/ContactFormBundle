@@ -1,0 +1,3 @@
+nowo_contact_form_controllers:
+    resource: '../../Controller/'
+    type: attribute

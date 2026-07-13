@@ -1,0 +1,43 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Nowo\ContactFormBundle\:
+        resource: '../../'
+        exclude:
+            - '../../DependencyInjection/'
+            - '../../Entity/'
+            - '../../NowoContactFormBundle.php'
+            - '../../Notification/MailerContactSubmissionNotifier.php'
+
+    Nowo\ContactFormBundle\Controller\:
+        resource: '../../Controller/'
+        tags: ['controller.service_arguments']
+        public: true
+
+    Nowo\ContactFormBundle\Service\ContactPhonePrefixResolver:
+        arguments:
+            $defaultPrefixes: '%nowo_contact_form.phone_prefixes%'
+
+    Nowo\ContactFormBundle\Service\ContactPhoneInputOptionsResolver:
+        arguments:
+            $bundleDefaults: '%nowo_contact_form.phone_input%'
+
+    Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier: ~
+    Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler: ~
+
+    Nowo\ContactFormBundle\Service\IpAnonymizer: ~
+    Nowo\ContactFormBundle\Service\ClientLabelResolver: ~
+    Nowo\ContactFormBundle\Service\SecurityClientResolver: ~
+
+    Nowo\ContactFormBundle\Service\ContactSubmissionProcessor:
+        arguments:
+            $valueNormalizer: '@Nowo\ContactFormBundle\Service\ContactFormSubmissionValueNormalizer'
+            $defaultNotificationRecipient: '%nowo_contact_form.notifications.default_recipient%'
+
+    Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface:
+        alias: Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier
+
+    Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface:
+        alias: Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler

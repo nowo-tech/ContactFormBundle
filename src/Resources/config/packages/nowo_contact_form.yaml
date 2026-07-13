@@ -1,0 +1,17 @@
+nowo_contact_form:
+    client_entity_class: null
+    client_label_property: email
+    client_user_accessor: null
+    ip_anonymization_salt: '%kernel.secret%'
+    default_retention_days: 365
+    admin_route_prefix: '/admin/contact-forms'
+    notifications:
+        enabled: false
+        service: null
+        default_recipient: null
+        mailer:
+            enabled: false
+            from: 'noreply@example.com'
+            subject: 'New contact submission: {form}'
+    file_upload:
+        service: null

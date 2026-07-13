@@ -1,0 +1,17 @@
+framework:
+    secret: '%env(APP_SECRET)%'
+    http_method_override: false
+    session: true
+    default_locale: en
+    enabled_locales: ['en', 'es']
+    translator:
+        default_path: '%kernel.project_dir%/translations'
+        fallbacks: ['en']
+    php_errors:
+        log: true
+
+# Enable profiler in dev so the Web Profiler toolbar can collect and display data
+when@dev:
+    framework:
+        profiler:
+            only_exceptions: false

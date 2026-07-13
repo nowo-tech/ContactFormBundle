@@ -1,0 +1,131 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'demo.page_title'|trans({}, 'messages') }}{% endblock %}
+
+{% block body %}
+    <section class="demo-hero p-4 p-md-5 mb-4">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-8">
+                <span class="badge text-bg-primary mb-3">{{ 'demo.symfony_badge'|trans({}, 'messages') }}</span>
+                <h1 class="display-6 fw-bold mb-3">{{ 'demo.page_title'|trans({}, 'messages') }}</h1>
+                <p class="lead text-secondary mb-0">{{ 'demo.lead'|trans({}, 'messages')|raw }}</p>
+            </div>
+            <div class="col-lg-4">
+                <div class="bg-light rounded-3 p-3 border">
+                    <div class="small text-uppercase text-muted fw-semibold mb-2">{{ 'demo.quick_links'|trans({}, 'messages') }}</div>
+                    <div class="d-grid gap-2">
+                        <a href="{{ path('nowo_contact_form_admin_index') }}" class="btn btn-primary">
+                            {{ 'demo.menu_admin'|trans({}, 'messages') }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+            <div>
+                <h2 class="h4 mb-1">{{ 'demo.forms_title'|trans({}, 'messages') }}</h2>
+                <p class="text-secondary mb-0">{{ 'demo.forms_lead'|trans({}, 'messages') }}</p>
+            </div>
+            <span class="badge text-bg-secondary">{{ contactForms|length }} {{ 'demo.forms_count_label'|trans({}, 'messages') }}</span>
+        </div>
+
+        <div class="row g-4">
+            {% for contactForm in contactForms %}
+                {% set translation = contactForm.translationForLocale(app.request.locale) %}
+                <div class="col-lg-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body d-flex flex-column">
+                            <div class="d-flex flex-wrap gap-1 mb-3">
+                                {% for field in contactForm.fields %}
+                                    <span class="badge text-bg-light border text-dark">{{ field.type.value }}</span>
+                                {% endfor %}
+                            </div>
+                            <h3 class="h5">{{ translation.title }}</h3>
+                            <p class="text-secondary small mb-2"><code>{{ contactForm.slug }}</code></p>
+                            {% if translation.description %}
+                                <p class="text-secondary flex-grow-1">{{ translation.description }}</p>
+                            {% endif %}
+                            <div class="d-flex flex-wrap gap-2 mt-auto pt-2">
+                                <a href="{{ path('nowo_contact_form_public_show', { slug: contactForm.slug, _locale: app.request.locale }) }}" class="btn btn-sm btn-primary">
+                                    {{ 'demo.form_open'|trans({}, 'messages') }}
+                                </a>
+                                <a href="{{ path('nowo_contact_form_fields_index', { formId: contactForm.id }) }}" class="btn btn-sm btn-outline-secondary">
+                                    {{ 'demo.form_fields'|trans({}, 'messages') }}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="col-12">
+                    <div class="alert alert-warning mb-0">
+                        {{ 'demo.forms_empty'|trans({}, 'messages') }}
+                        <code>php bin/console app:seed-contact-demo</code>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm demo-card-link">
+                <div class="card-body">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <span class="badge rounded-pill text-bg-dark">Admin</span>
+                        <h2 class="h5 mb-0">{{ 'demo.card_admin_title'|trans({}, 'messages') }}</h2>
+                    </div>
+                    <p class="text-secondary">{{ 'demo.card_admin_body'|trans({}, 'messages') }}</p>
+                    <a href="{{ path('nowo_contact_form_admin_index') }}" class="btn btn-sm btn-outline-dark">
+                        {{ 'demo.card_admin_cta'|trans({}, 'messages') }}
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm border-0 bg-light">
+                <div class="card-body">
+                    <h2 class="h5 mb-3">{{ 'demo.field_types_title'|trans({}, 'messages') }}</h2>
+                    <p class="text-secondary small">{{ 'demo.field_types_body'|trans({}, 'messages') }}</p>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% for type in ['text', 'email', 'phone', 'textarea', 'select', 'checkbox', 'number', 'date', 'url', 'file'] %}
+                            <span class="badge text-bg-white border">{{ type }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+            <h2 class="h5 mb-1">{{ 'demo.notifications_title'|trans({}, 'messages') }}</h2>
+            <p class="text-secondary small mb-0">{{ 'demo.notifications_lead'|trans({}, 'messages') }}</p>
+        </div>
+        <div class="list-group list-group-flush">
+            <div class="list-group-item">
+                <div class="fw-medium">FileContactSubmissionNotifier</div>
+                <div class="text-secondary small"><code class="demo-code">var/log/contact-submissions-demo.log</code></div>
+            </div>
+            <div class="list-group-item">
+                <div class="fw-medium">WebhookContactSubmissionNotifier</div>
+                <div class="text-secondary small"><code class="demo-code">var/log/contact-submissions-webhook-demo.log</code></div>
+            </div>
+            <div class="list-group-item">
+                <div class="fw-medium">LoggingContactSubmissionNotifier</div>
+                <div class="text-secondary small">{{ 'demo.notifications_app_log'|trans({}, 'messages') }}</div>
+            </div>
+            <div class="list-group-item">
+                <div class="fw-medium">ContactSubmissionDemoSubscriber</div>
+                <div class="text-secondary small"><code class="demo-code">ContactSubmissionCreatedEvent</code></div>
+            </div>
+        </div>
+        <div class="card-body bg-light border-top">
+            <p class="small text-secondary mb-2">{{ 'demo.notifications_composite'|trans({}, 'messages') }}</p>
+            <p class="small text-secondary mb-0">{{ 'demo.notifications_mailer'|trans({}, 'messages') }}</p>
+        </div>
+    </section>
+{% endblock %}

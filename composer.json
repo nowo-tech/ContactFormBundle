@@ -1,0 +1,105 @@
+{
+    "name": "nowo-tech/contact-form-bundle",
+    "description": "Symfony bundle for configurable multilingual contact forms with GDPR compliance, customizable fields, client association, and admin CRUD.",
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "keywords": [
+        "symfony",
+        "symfony-bundle",
+        "contact-form",
+        "gdpr",
+        "multilingual",
+        "form",
+        "crud"
+    ],
+    "homepage": "https://github.com/nowo-tech/ContactFormBundle",
+    "support": {
+        "issues": "https://github.com/nowo-tech/ContactFormBundle/issues",
+        "source": "https://github.com/nowo-tech/ContactFormBundle"
+    },
+    "authors": [
+        {
+            "name": "Héctor Franco Aceituno",
+            "email": "hectorfranco@nowo.tech",
+            "homepage": "https://github.com/HecFranco",
+            "role": "Developer"
+        },
+        {
+            "name": "Nowo.tech",
+            "homepage": "https://nowo.tech"
+        }
+    ],
+    "require": {
+        "php": ">=8.2 <8.6",
+        "doctrine/doctrine-bundle": "^2.13 || ^3.0",
+        "doctrine/orm": "^2.17 || ^3.0",
+        "symfony/config": "^7.4 || ^8.0",
+        "symfony/dependency-injection": "^7.4 || ^8.0",
+        "symfony/form": "^7.4 || ^8.0",
+        "symfony/framework-bundle": "^7.4 || ^8.0",
+        "symfony/http-foundation": "^7.4 || ^8.0",
+        "symfony/http-kernel": "^7.4 || ^8.0",
+        "symfony/routing": "^7.4 || ^8.0",
+        "symfony/translation": "^7.4 || ^8.0",
+        "symfony/twig-bundle": "^7.4 || ^8.0",
+        "symfony/validator": "^7.4 || ^8.0",
+        "symfony/event-dispatcher": "^7.4 || ^8.0",
+        "symfony/console": "^7.4 || ^8.0"
+    },
+    "suggest": {
+        "symfony/mailer": "Send submission notifications via email",
+        "nowo-tech/phone-input-bundle": "Rich phone fields with country flags and search in the prefix selector",
+        "symfony/security-bundle": "Link submissions to authenticated clients automatically",
+        "symfony/security-csrf": "Enable CSRF protection on public contact forms",
+        "symfony/form": "^8.1 required for the admin field wizard (FormFlow)"
+    },
+    "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.0",
+        "phpstan/extension-installer": "^1.0",
+        "phpstan/phpstan": "^2.0",
+        "phpstan/phpstan-phpunit": "^2.0",
+        "phpstan/phpstan-symfony": "^2.0",
+        "phpunit/phpunit": "^11.0",
+        "rector/rector": "^2.0",
+        "symfony/browser-kit": "^7.4 || ^8.0",
+        "symfony/dom-crawler": "^7.4 || ^8.0",
+        "symfony/security-core": "^7.4",
+        "symfony/security-csrf": "^7.4 || ^8.0",
+        "symfony/security-bundle": "^7.4 || ^8.0",
+        "symfony/mailer": "^7.4 || ^8.0",
+        "symfony/yaml": "^7.4 || ^8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Nowo\\ContactFormBundle\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Nowo\\ContactFormBundle\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "phpstan/extension-installer": true,
+            "rector/rector": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "archive": {
+        "exclude": ["/demo", "/.cursor"]
+    },
+    "scripts": {
+        "test": "@php vendor/bin/phpunit --color=always",
+        "test-coverage": "@php vendor/bin/phpunit --color=always --coverage-text=coverage-output.txt --coverage-clover coverage.xml --coverage-html coverage",
+        "coverage-check": "phpunit --colors=always --coverage-text=coverage-output.txt --coverage-clover coverage.xml && sh .scripts/coverage-fail-under.sh coverage-output.txt 99",
+        "cs-check": "@php vendor/bin/php-cs-fixer fix --dry-run --diff",
+        "cs-fix": "@php vendor/bin/php-cs-fixer fix",
+        "rector": "@php vendor/bin/rector process",
+        "rector-dry": "@php vendor/bin/rector process --dry-run --no-progress-bar",
+        "phpstan": "@php vendor/bin/phpstan analyse --memory-limit=512M",
+        "qa": ["@cs-check", "@test"]
+    }
+}

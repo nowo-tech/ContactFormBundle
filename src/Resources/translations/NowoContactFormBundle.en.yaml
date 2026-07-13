@@ -1,0 +1,165 @@
+nowo_contact_form:
+  public:
+    submit: Submit
+    consent_default_label: I agree to the processing of my personal data.
+    consent_required: You must accept the consent checkbox to submit the form.
+    field_required: 'The field "%field%" is required.'
+    phone_number_invalid: Enter a valid phone number using digits only.
+  admin:
+    back: Back to list
+    nav:
+      brand: Contact Form Admin
+      locale_switch: Interface language
+    yes: 'Yes'
+    no: 'No'
+    actions:
+      edit: Edit
+      fields: Fields
+      submissions: Submissions
+      view: View
+    locales:
+      en: English
+      es: Spanish
+    form:
+      index_title: Contact forms
+      new_title: New contact form
+      edit_title: Edit contact form
+      new: New form
+      save: Save
+      created: Contact form created.
+      updated: Contact form updated.
+      deleted: Contact form deleted.
+      empty: No contact forms yet.
+      columns:
+        name: Name
+        slug: Slug
+        enabled: Enabled
+        actions: Actions
+      fields:
+        name: Internal name
+        name_help: Admin-only label to identify this form. Not shown on the public page.
+        slug: URL slug
+        slug_help: Used in the public URL (e.g. /en/contact/support). Use lowercase letters, numbers, and hyphens.
+        enabled: Enabled
+        enabled_help: Disabled forms are hidden from the public site but remain editable in the admin.
+        privacy_policy_url: Privacy policy URL
+        privacy_policy_url_help: Optional link shown next to the consent checkbox when GDPR consent is required.
+        retention_days: Data retention (days)
+        retention_days_help: Submissions older than this are removed by the cleanup command. Use 0 to keep them indefinitely.
+        notification_email: Notification email (optional)
+        notification_email_help: Fallback recipient when no Mailer notifier is configured. Leave empty to use the bundle default.
+        require_consent: Require GDPR consent checkbox
+        require_consent_help: When enabled, a customizable consent checkbox is shown and must be checked before submitting.
+        translations: Translations
+        translations_empty: No locales are configured for this application.
+        translation:
+          locale: Locale
+          title: Title
+          title_help: Heading displayed at the top of the public contact form.
+          description: Description
+          description_help: Optional introductory text shown below the title on the public form.
+          success_message: Success message
+          success_message_help: Shown to the visitor after a successful submission.
+          consent_label: Consent checkbox label
+          consent_label_help: 'Shown when "Require GDPR consent checkbox" is enabled. Supports basic HTML: <strong>, <em>, <a href="">, etc. Links are sanitized automatically.'
+          privacy_policy_text: Privacy policy link text
+          privacy_policy_text_help: Optional link text displayed next to the consent checkbox when a privacy policy URL is configured.
+    field:
+      index_title: Fields
+      new_title: New field
+      edit_title: Edit field
+      new: New field
+      save: Save
+      created: Field created.
+      updated: Field updated.
+      deleted: Field deleted.
+      empty: No fields configured.
+      consent_row:
+        hint: Configured at form level (not a custom field).
+        type: Consent checkbox
+        edit: Edit form
+      flow:
+        steps:
+          definition: Field settings
+          select_options: Select values
+          phone_prefixes: Phone prefixes
+          content: Labels and options
+        next: Continue
+        previous: Back
+        finish: Save field
+      columns:
+        name: Name
+        type: Type
+        required: Required
+        actions: Actions
+      type:
+        text: Text
+        email: Email
+        phone: Phone
+        textarea: Textarea
+        select: Select
+        checkbox: Checkbox
+        number: Number
+        date: Date
+        url: URL
+        file: File upload
+      fields:
+        name: Field name
+        name_help: Machine name stored in submissions (e.g. email, phone). Use lowercase letters, numbers, and underscores.
+        type: Field type
+        type_help: Controls the input rendered on the public form. Select fields require option values; phone fields support Symfony prefix selector or Phone Input Bundle.
+        required: Required
+        required_help: When enabled, the field must be filled in before the form can be submitted.
+        sort_order: Sort order
+        sort_order_help: Lower numbers appear first on the public form.
+        translations: Translations
+        translations_empty: No locales are configured for this application.
+        options_machine_names: Machine names (one per line)
+        options_machine_names_help: Stable values stored in submissions. Use lowercase letters, numbers, and underscores (e.g. general_inquiry). Define them before translating labels.
+        options_machine_names_invalid: Each machine name must start with a letter and contain only lowercase letters, numbers, and underscores.
+        options_machine_names_duplicate: Machine names must be unique.
+        phone_prefixes: Dialing prefixes (one per line)
+        phone_prefixes_help: 'For Symfony widget only. International codes in the prefix dropdown (e.g. +34). Leave empty to use bundle defaults.'
+        phone_prefixes_invalid: Each prefix must start with + followed by 1 to 4 digits (e.g. +34).
+        phone_prefixes_duplicate: Dialing prefixes must be unique.
+        phone_widget: Phone widget
+        phone_widget_help: Choose Symfony built-in prefix selector or nowo-tech/phone-input-bundle when installed.
+        phone_widget_symfony: Symfony (prefix selector)
+        phone_widget_phone_input: Phone Input Bundle
+        phone_widget_unavailable: Phone Input Bundle is not installed in this application.
+        phone_default_country: Default country (ISO)
+        phone_default_country_help: For Phone Input Bundle widget. Two-letter ISO code shown by default (e.g. ES).
+        phone_default_country_invalid: Default country must be a two-letter ISO code (e.g. ES).
+        phone_allowed_countries: Allowed countries (one ISO per line)
+        phone_allowed_countries_help: 'For Phone Input Bundle widget. Optional whitelist (e.g. ES, US). Leave empty for all bundled countries.'
+        phone_allowed_countries_invalid: Each country must be a two-letter ISO code (e.g. ES).
+        phone_allowed_countries_duplicate: Allowed countries must be unique.
+        translation:
+          locale: Locale
+          label: Label
+          label_help: Visible field label on the public form for this locale.
+          placeholder: Placeholder
+          placeholder_help: Optional hint text inside the input. Not used for checkbox, file, or select fields.
+          help: Help text
+          help_help: Optional explanatory text shown below the field on the public form.
+          select_options: Option labels (one per line)
+          select_options_help: One label per machine name from the previous step, in the same order, for this locale.
+          select_options_count_mismatch: Provide exactly %count% option label(s) to match the machine names.
+    submission:
+      index_title: Submissions
+      show_title: Submission detail
+      metadata_title: Submission metadata
+      field_column: Field
+      value_column: Value
+      delete_confirm: Are you sure you want to delete this submission?
+      deleted: Submission deleted.
+      empty: No submissions yet.
+      anonymous: Anonymous
+      consent_at: Consent given at
+      values_title: Submitted values
+      delete: Delete submission
+      columns:
+        date: Date
+        client: Client
+        locale: Locale
+        actions: Actions

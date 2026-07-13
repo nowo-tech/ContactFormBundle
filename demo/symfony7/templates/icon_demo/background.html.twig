@@ -1,0 +1,49 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ 'demo.page_background_title'|trans({}, 'messages') }} – {{ 'demo.title'|trans({}, 'messages') }}{% endblock %}
+
+{% block body %}
+<div class="container py-5">
+    <nav class="mb-3">
+        <a href="{{ path('app_home', { _locale: app.request.locale }) }}">← {{ 'demo.back_home'|trans({}, 'messages') }}</a>
+    </nav>
+
+    <h1>{{ 'demo.page_background_title'|trans({}, 'messages') }}</h1>
+    <p class="lead">{{ 'demo.page_background_lead'|trans({}, 'messages')|raw }}</p>
+
+    <div class="mb-4">
+        <button type="button" class="btn btn-primary" id="demo-background-load-btn" data-fragment-url="{{ path('app_demo_background_fragment', { _locale: app.request.locale }) }}">
+            {{ 'demo.background_load_button'|trans({}, 'messages') }}
+        </button>
+    </div>
+
+    <div id="demo-background-container" class="demo-background-container">
+        <p class="text-muted">{{ 'demo.background_placeholder'|trans({}, 'messages') }}</p>
+    </div>
+</div>
+
+<script src="{{ asset(nowo_icon_selector_asset_path('icon-selector.js')) }}"></script>
+<script>
+(function() {
+    var btn = document.getElementById('demo-background-load-btn');
+    var container = document.getElementById('demo-background-container');
+    if (!btn || !container) return;
+    btn.addEventListener('click', function() {
+        btn.disabled = true;
+        btn.textContent = '{{ 'demo.background_loading'|trans({}, 'messages') }}';
+        fetch(btn.getAttribute('data-fragment-url'))
+            .then(function(r) { return r.text(); })
+            .then(function(html) {
+                container.innerHTML = html;
+                btn.disabled = false;
+                btn.textContent = '{{ 'demo.background_load_again'|trans({}, 'messages') }}';
+            })
+            .catch(function() {
+                container.innerHTML = '<p class="text-danger">{{ 'demo.background_error'|trans({}, 'messages') }}</p>';
+                btn.disabled = false;
+                btn.textContent = '{{ 'demo.background_load_button'|trans({}, 'messages') }}';
+            });
+    });
+})();
+</script>
+{% endblock %}

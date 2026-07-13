@@ -1,0 +1,56 @@
+{% if form.translations is defined %}
+{% set sortedTranslations = form.translations|sort((a, b) => a.vars.data.locale <=> b.vars.data.locale) %}
+
+<fieldset class="mb-3">
+    <legend class="form-label fs-6 fw-semibold">
+        {{ 'nowo_contact_form.admin.field.fields.translations'|trans({}, 'NowoContactFormBundle') }}
+    </legend>
+
+    {% if sortedTranslations is not empty %}
+        <ul class="nav nav-tabs" id="field-translation-tabs" role="tablist">
+            {% for translationForm in sortedTranslations %}
+                {% set locale = translationForm.vars.data.locale %}
+                <li class="nav-item" role="presentation">
+                    <button
+                        class="nav-link {{ loop.first ? 'active' : '' }}"
+                        id="field-translation-tab-{{ locale }}"
+                        data-bs-toggle="tab"
+                        data-bs-target="#field-translation-pane-{{ locale }}"
+                        type="button"
+                        role="tab"
+                        aria-controls="field-translation-pane-{{ locale }}"
+                        aria-selected="{{ loop.first ? 'true' : 'false' }}"
+                    >
+                        {{ ('nowo_contact_form.admin.locales.' ~ locale)|trans({}, 'NowoContactFormBundle') }}
+                    </button>
+                </li>
+            {% endfor %}
+        </ul>
+
+        <div class="tab-content border border-top-0 rounded-bottom bg-white p-3 p-md-4" id="field-translation-tab-content">
+            {% for translationForm in sortedTranslations %}
+                {% set locale = translationForm.vars.data.locale %}
+                <div
+                    class="tab-pane fade {{ loop.first ? 'show active' : '' }}"
+                    id="field-translation-pane-{{ locale }}"
+                    role="tabpanel"
+                    aria-labelledby="field-translation-tab-{{ locale }}"
+                    tabindex="0"
+                >
+                    {{ form_widget(translationForm.locale) }}
+                    {{ form_row(translationForm.label) }}
+                    {{ form_row(translationForm.placeholder) }}
+                    {{ form_row(translationForm.help) }}
+                    {% if translationForm.selectOptionsLines is defined %}
+                        {{ form_row(translationForm.selectOptionsLines) }}
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-muted mb-0">{{ 'nowo_contact_form.admin.field.fields.translations_empty'|trans({}, 'NowoContactFormBundle') }}</p>
+    {% endif %}
+</fieldset>
+
+{% do form.translations.setRendered %}
+{% endif %}

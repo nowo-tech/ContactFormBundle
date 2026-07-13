@@ -1,0 +1,6 @@
+nowo_contact_form:
+    client_entity_class: null
+    client_label_property: email
+    ip_anonymization_salt: '%kernel.secret%'
+    default_retention_days: 365
+    admin_route_prefix: '/admin/contact-forms'

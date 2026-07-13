@@ -1,0 +1,15 @@
+# Optional: enable email notifications when symfony/mailer is installed.
+# Copy to nowo_contact_form_mailer.yaml and set notifications.service to null
+# so the bundle uses the built-in MailerContactSubmissionNotifier.
+#
+# composer require symfony/mailer
+#
+# nowo_contact_form:
+#     notifications:
+#         enabled: true
+#         service: null
+#         default_recipient: admin@example.com
+#         mailer:
+#             enabled: true
+#             from: noreply@example.com
+#             subject: 'New contact submission: {form}'

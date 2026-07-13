@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="{{ app.request.locale }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ translation.title }}</title>
+</head>
+<body>
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="flash flash-{{ label }}">{{ message }}</div>
+        {% endfor %}
+    {% endfor %}
+
+    <h1>{{ translation.title }}</h1>
+
+    {% if translation.description %}
+        <p>{{ translation.description }}</p>
+    {% endif %}
+
+    {% form_theme form '@NowoContactFormBundle/form/contact_phone.html.twig' %}
+
+    {{ form_start(form) }}
+        {% include '@NowoContactFormBundle/public/_form_fields.html.twig' with {
+            form: form,
+            contactForm: contactForm,
+            translation: translation,
+        } only %}
+
+        <button type="submit">{{ 'nowo_contact_form.public.submit'|trans({}, 'NowoContactFormBundle') }}</button>
+    {{ form_end(form) }}
+</body>
+</html>

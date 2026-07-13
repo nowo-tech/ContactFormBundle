@@ -1,0 +1,165 @@
+nowo_contact_form:
+  public:
+    submit: Envoyer
+    consent_default_label: J'accepte le traitement de mes données personnelles.
+    consent_required: Vous devez accepter la case de consentement pour envoyer le formulaire.
+    field_required: 'Le champ « %field% » est obligatoire.'
+    phone_number_invalid: Saisissez un numéro de téléphone valide en utilisant uniquement des chiffres.
+  admin:
+    back: Retour à la liste
+    nav:
+      brand: Admin formulaires de contact
+      locale_switch: Langue de l'interface
+    yes: Oui
+    no: 'Non'
+    actions:
+      edit: Modifier
+      fields: Champs
+      submissions: Soumissions
+      view: Voir
+    locales:
+      en: Anglais
+      es: Espagnol
+    form:
+      index_title: Formulaires de contact
+      new_title: Nouveau formulaire de contact
+      edit_title: Modifier le formulaire de contact
+      new: Nouveau formulaire
+      save: Enregistrer
+      created: Formulaire de contact créé.
+      updated: Formulaire de contact mis à jour.
+      deleted: Formulaire de contact supprimé.
+      empty: Aucun formulaire de contact pour le moment.
+      columns:
+        name: Nom
+        slug: Slug
+        enabled: Activé
+        actions: Actions
+      fields:
+        name: Nom interne
+        name_help: Libellé réservé à l'admin pour identifier ce formulaire. Non affiché sur la page publique.
+        slug: Slug d'URL
+        slug_help: Utilisé dans l'URL publique (ex. /fr/contact/support). Utilisez des minuscules, des chiffres et des tirets.
+        enabled: Activé
+        enabled_help: Les formulaires désactivés sont masqués du site public mais restent modifiables dans l'admin.
+        privacy_policy_url: URL de la politique de confidentialité
+        privacy_policy_url_help: Lien optionnel affiché à côté de la case de consentement lorsque le consentement RGPD est requis.
+        retention_days: Conservation des données (jours)
+        retention_days_help: Les soumissions plus anciennes sont supprimées par la commande de nettoyage. Utilisez 0 pour les conserver indéfiniment.
+        notification_email: E-mail de notification (optionnel)
+        notification_email_help: Destinataire de secours si aucun notificateur Mailer n'est configuré. Laissez vide pour utiliser la valeur par défaut du bundle.
+        require_consent: Exiger la case de consentement RGPD
+        require_consent_help: Si activé, une case de consentement personnalisable est affichée et doit être cochée avant l'envoi.
+        translations: Traductions
+        translations_empty: Aucune langue configurée pour cette application.
+        translation:
+          locale: Langue
+          title: Titre
+          title_help: En-tête affiché en haut du formulaire de contact public.
+          description: Description
+          description_help: Texte introductif optionnel affiché sous le titre sur le formulaire public.
+          success_message: Message de succès
+          success_message_help: Affiché au visiteur après une soumission réussie.
+          consent_label: Libellé de la case de consentement
+          consent_label_help: 'Affiché lorsque « Exiger la case de consentement RGPD » est activé. Prend en charge le HTML de base : <strong>, <em>, <a href="">, etc. Les liens sont automatiquement assainis.'
+          privacy_policy_text: Texte du lien vers la politique de confidentialité
+          privacy_policy_text_help: Texte optionnel du lien affiché à côté de la case de consentement lorsqu'une URL de politique de confidentialité est configurée.
+    field:
+      index_title: Champs
+      new_title: Nouveau champ
+      edit_title: Modifier le champ
+      new: Nouveau champ
+      save: Enregistrer
+      created: Champ créé.
+      updated: Champ mis à jour.
+      deleted: Champ supprimé.
+      empty: Aucun champ configuré.
+      consent_row:
+        hint: Configuré au niveau du formulaire (pas un champ personnalisé).
+        type: Case de consentement
+        edit: Modifier le formulaire
+      flow:
+        steps:
+          definition: Paramètres du champ
+          select_options: Valeurs de sélection
+          phone_prefixes: Préfixes téléphoniques
+          content: Libellés et options
+        next: Continuer
+        previous: Retour
+        finish: Enregistrer le champ
+      columns:
+        name: Nom
+        type: Type
+        required: Obligatoire
+        actions: Actions
+      type:
+        text: Texte
+        email: E-mail
+        phone: Téléphone
+        textarea: Zone de texte
+        select: Sélection
+        checkbox: Case à cocher
+        number: Nombre
+        date: Date
+        url: URL
+        file: Téléversement de fichier
+      fields:
+        name: Nom du champ
+        name_help: Nom interne enregistré dans les soumissions (ex. email, phone). Utilisez des minuscules, des chiffres et des underscores.
+        type: Type de champ
+        type_help: Contrôle l'entrée affichée sur le formulaire public. Les champs select nécessitent des valeurs d'option ; les champs téléphone prennent en charge le sélecteur de préfixes Symfony ou Phone Input Bundle.
+        required: Obligatoire
+        required_help: Si activé, le champ doit être rempli avant de pouvoir envoyer le formulaire.
+        sort_order: Ordre
+        sort_order_help: Les numéros les plus bas apparaissent en premier sur le formulaire public.
+        translations: Traductions
+        translations_empty: Aucune langue configurée pour cette application.
+        options_machine_names: Machine names (un par ligne)
+        options_machine_names_help: Valeurs stables enregistrées dans les soumissions. Utilisez des minuscules, des chiffres et des underscores (ex. general_inquiry). Définissez-les avant de traduire les libellés.
+        options_machine_names_invalid: Chaque machine name doit commencer par une lettre et ne contenir que des minuscules, des chiffres et des underscores.
+        options_machine_names_duplicate: Les machine names doivent être uniques.
+        phone_prefixes: Préfixes (un par ligne)
+        phone_prefixes_help: 'Pour le widget Symfony uniquement. Codes internationaux dans la liste déroulante des préfixes (ex. +33). Laissez vide pour utiliser les valeurs par défaut du bundle.'
+        phone_prefixes_invalid: Chaque préfixe doit commencer par + suivi de 1 à 4 chiffres (ex. +33).
+        phone_prefixes_duplicate: Les préfixes doivent être uniques.
+        phone_widget: Widget téléphone
+        phone_widget_help: Choisissez le sélecteur de préfixes Symfony intégré ou nowo-tech/phone-input-bundle s'il est installé.
+        phone_widget_symfony: Symfony (sélecteur de préfixes)
+        phone_widget_phone_input: Phone Input Bundle
+        phone_widget_unavailable: Phone Input Bundle n'est pas installé dans cette application.
+        phone_default_country: Pays par défaut (ISO)
+        phone_default_country_help: Pour le widget Phone Input Bundle. Code ISO à deux lettres affiché par défaut (ex. FR).
+        phone_default_country_invalid: Le pays par défaut doit être un code ISO à deux lettres (ex. FR).
+        phone_allowed_countries: Pays autorisés (un ISO par ligne)
+        phone_allowed_countries_help: 'Pour Phone Input Bundle. Liste blanche optionnelle (ex. FR, US). Vide = tous les pays du bundle.'
+        phone_allowed_countries_invalid: Chaque pays doit être un code ISO à deux lettres (ex. FR).
+        phone_allowed_countries_duplicate: Les pays autorisés doivent être uniques.
+        translation:
+          locale: Langue
+          label: Libellé
+          label_help: Libellé visible du champ sur le formulaire public pour cette langue.
+          placeholder: Placeholder
+          placeholder_help: Texte d'aide optionnel à l'intérieur du champ. Non utilisé pour checkbox, fichier ou select.
+          help: Texte d'aide
+          help_help: Texte explicatif optionnel affiché sous le champ sur le formulaire public.
+          select_options: Libellés d'option (un par ligne)
+          select_options_help: Un libellé par machine name de l'étape précédente, dans le même ordre, pour cette langue.
+          select_options_count_mismatch: Indiquez exactement %count% libellé(s) pour correspondre aux machine names.
+    submission:
+      index_title: Soumissions
+      show_title: Détail de la soumission
+      metadata_title: Métadonnées de la soumission
+      field_column: Champ
+      value_column: Valeur
+      delete_confirm: Êtes-vous sûr de vouloir supprimer cette soumission ?
+      deleted: Soumission supprimée.
+      empty: Aucune soumission pour le moment.
+      anonymous: Anonyme
+      consent_at: Consentement enregistré le
+      values_title: Valeurs soumises
+      delete: Supprimer la soumission
+      columns:
+        date: Date
+        client: Client
+        locale: Langue
+        actions: Actions
