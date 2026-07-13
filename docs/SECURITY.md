@@ -35,7 +35,7 @@ The bundle does **not** ship authentication or authorization for admin routes; t
 ### Spam and abuse on public forms
 
 - **Risk**: Automated submissions, flooding, or storage exhaustion.
-- **Mitigation**: CSRF is enabled on public forms. Add rate limiting, honeypot, or CAPTCHA in the host application. Consider disabling forms (`enabled: false`) when not needed.
+- **Mitigation**: When CSRF is enabled in the host application (`framework.form.csrf_protection`), public forms are protected. Add rate limiting (`public_submission_rate_limit` in bundle config), honeypot, or CAPTCHA for abuse. Disable unused forms (`enabled: false`).
 
 ### Personal data (PII) storage
 

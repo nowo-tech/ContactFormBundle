@@ -16,15 +16,15 @@ Use this checklist when cutting a new version. The workflow [.github/workflows/r
 
 4. **Commit**
    - Commit `docs/CHANGELOG.md`, `docs/UPGRADING.md` and any other release-related changes.
-   - Push to `main` (or merge your release branch).
+   - Push to `master` (default branch).
 
 ## Tag and push
 
 Replace `X.Y.Z` with the version (e.g. `1.0.0`):
 
 ```bash
-git checkout main
-git pull origin main
+git checkout master
+git pull origin master
 git tag -a vX.Y.Z -m "Release vX.Y.Z"
 git push origin vX.Y.Z
 ```
@@ -38,8 +38,8 @@ git push origin vX.Y.Z
 After running `make release-check` and committing all changes (CHANGELOG, UPGRADING, docs, and any CS/test fixes):
 
 ```bash
-git checkout main
-git pull origin main
+git checkout master
+git pull origin master
 git tag -a v1.0.0 -m "Release v1.0.0"
 git push origin v1.0.0
 ```

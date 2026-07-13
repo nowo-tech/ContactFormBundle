@@ -2,6 +2,12 @@
 
 This document describes how to upgrade between versions of Contact Form Bundle.
 
+## 1.0.2 (2026-07-13)
+
+No breaking changes.
+
+- **Integrators**: No action required. Test-only change for the bundle's integration kernel.
+
 ## 1.0.1 (2026-07-13)
 
 No breaking changes.

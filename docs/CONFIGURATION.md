@@ -15,6 +15,34 @@ Extension alias: `nowo_contact_form`.
 | `notifications.mailer.enabled` | `false` | Use symfony/mailer when installed |
 | `notifications.mailer.from` | `noreply@example.com` | Mailer sender |
 | `notifications.mailer.subject` | `New contact submission: {form}` | Mailer subject template |
+| `admin_route_prefix` | `/admin/contact-forms` | URL prefix for bundle admin CRUD routes |
+| `phone_prefixes` | ES/US/FR/UK/DE/PT defaults | Dialing prefixes for legacy phone fields (`code => label`) |
+| `phone_input.value_format` | `CONCATENATED` | Passed to PhoneInputBundle when installed |
+| `phone_input.default_country` | `ES` | Default country ISO for phone fields |
+| `phone_input.country_prefix_selector` | `true` | Show prefix selector in PhoneInputBundle |
+| `phone_input.show_flag` | `true` | Show flags in PhoneInputBundle selector |
+| `file_upload.service` | `null` | Custom `ContactFormFileUploadHandlerInterface` service id (required for file fields) |
+| `public_submission_rate_limit.enabled` | `true` | Enable per-IP rate limiting on public POST |
+| `public_submission_rate_limit.limit` | `5` | Max submissions per interval |
+| `public_submission_rate_limit.interval_seconds` | `60` | Rate-limit window in seconds |
+
+## CSRF (public forms)
+
+The bundle does not force CSRF options on dynamic forms. In the host Symfony application, enable form CSRF protection and install `symfony/security-csrf`:
+
+```yaml
+# config/packages/framework.yaml
+framework:
+    form:
+        csrf_protection:
+            enabled: true
+```
+
+See [Security](SECURITY.md) and [Upgrading](UPGRADING.md#101-2026-07-13).
+
+## Public submission rate limiting
+
+When `public_submission_rate_limit.enabled` is `true` and the app provides `cache.app`, submissions are limited per client IP and form slug. Exceeding the limit returns HTTP 429. Set `enabled: false` or `limit: 0` to disable.
 
 ## Client linking (public submissions)
 

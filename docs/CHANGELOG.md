@@ -11,7 +11,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Fixed
 
 - **CI / Symfony 7.0**: Unit tests no longer fail when the Form component is bootstrapped without the CSRF extension; public forms rely on host `framework.form.csrf_protection` configuration instead of hardcoded builder options.
-- **Integration tests**: Restore PHPUnit global error handlers via Symfony `WebTestCase` defaults; CI matrix installs `symfony/security-csrf` for CSRF-enabled form tests.
+- **DI**: `ContactFormSubmissionRateLimiter` is registered only via the bundle extension (excluded from autodiscovery).
+- **CI**: Matrix installs `symfony/security-bundle` and `symfony/security-csrf` for CSRF-enabled form tests.
+
+## [1.0.2] - 2026-07-13
+
+### Fixed
+
+- **CI (PHP 8.4 / 8.5)**: CI matrix installs `symfony/var-exporter` (required by Doctrine ORM 3 lazy ghost proxies in integration tests).
+
+### Changed
+
+- **Documentation**: `CONFIGURATION.md` documents rate limiting, CSRF, and remaining bundle options; `SECURITY.md` and `RELEASE.md` aligned with host-app CSRF setup and `master` branch workflow.
 
 ## [1.0.0] - 2026-07-13
 
