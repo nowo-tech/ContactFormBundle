@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-07-13
+
+### Fixed
+
+- **CI / Symfony 7.0**: Unit tests no longer fail when the Form component is bootstrapped without the CSRF extension; public forms rely on host `framework.form.csrf_protection` configuration instead of hardcoded builder options.
+- **Integration tests**: Restore PHPUnit global error handlers via Symfony `WebTestCase` defaults; CI matrix installs `symfony/security-csrf` for CSRF-enabled form tests.
+
 ## [1.0.0] - 2026-07-13
 
 First stable release of **Contact Form Bundle** (`nowo-tech/contact-form-bundle`).

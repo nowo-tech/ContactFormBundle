@@ -60,9 +60,6 @@ final class DynamicContactFormBuilder
             $options['attr']['enctype'] = 'multipart/form-data';
         }
 
-        $options['csrf_protection'] = true;
-        $options['csrf_field_name'] = '_token';
-
         $builder = $this->formFactory->createBuilder(options: $options);
 
         foreach ($fields as $field) {

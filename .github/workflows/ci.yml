@@ -58,7 +58,7 @@ jobs:
 
       - name: Install dependencies with Symfony ${{ matrix.symfony }}
         run: |
-          composer require symfony/config:^${{ matrix.symfony }} symfony/dependency-injection:^${{ matrix.symfony }} symfony/form:^${{ matrix.symfony }} symfony/framework-bundle:^${{ matrix.symfony }} symfony/http-foundation:^${{ matrix.symfony }} symfony/http-kernel:^${{ matrix.symfony }} symfony/routing:^${{ matrix.symfony }} symfony/twig-bundle:^${{ matrix.symfony }} symfony/translation:^${{ matrix.symfony }} symfony/validator:^${{ matrix.symfony }} symfony/web-profiler-bundle:^${{ matrix.symfony }} doctrine/doctrine-bundle:^2.13 doctrine/orm:^3.0 --no-interaction --no-update
+          composer require symfony/config:^${{ matrix.symfony }} symfony/dependency-injection:^${{ matrix.symfony }} symfony/form:^${{ matrix.symfony }} symfony/framework-bundle:^${{ matrix.symfony }} symfony/http-foundation:^${{ matrix.symfony }} symfony/http-kernel:^${{ matrix.symfony }} symfony/routing:^${{ matrix.symfony }} symfony/security-bundle:^${{ matrix.symfony }} symfony/security-csrf:^${{ matrix.symfony }} symfony/twig-bundle:^${{ matrix.symfony }} symfony/translation:^${{ matrix.symfony }} symfony/validator:^${{ matrix.symfony }} symfony/web-profiler-bundle:^${{ matrix.symfony }} doctrine/doctrine-bundle:^2.13 doctrine/orm:^3.0 --no-interaction --no-update
           composer update symfony/* --with-all-dependencies --no-interaction --prefer-dist --no-progress
 
       - name: Run tests
@@ -165,7 +165,7 @@ jobs:
 
       - name: Install dependencies (Symfony 7.0)
         run: |
-          composer require symfony/config:^7.0 symfony/dependency-injection:^7.0 symfony/form:^7.0 symfony/framework-bundle:^7.0 symfony/http-foundation:^7.0 symfony/http-kernel:^7.0 symfony/routing:^7.0 symfony/twig-bundle:^7.0 symfony/web-profiler-bundle:^7.0 --no-interaction --no-update
+          composer require symfony/config:^7.0 symfony/dependency-injection:^7.0 symfony/form:^7.0 symfony/framework-bundle:^7.0 symfony/http-foundation:^7.0 symfony/http-kernel:^7.0 symfony/routing:^7.0 symfony/security-bundle:^7.0 symfony/security-csrf:^7.0 symfony/twig-bundle:^7.0 symfony/web-profiler-bundle:^7.0 --no-interaction --no-update
           composer update symfony/* --with-all-dependencies --no-interaction --prefer-dist --no-progress
 
       - name: Run tests with coverage

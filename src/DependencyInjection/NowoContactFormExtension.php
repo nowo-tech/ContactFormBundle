@@ -91,6 +91,7 @@ final class NowoContactFormExtension extends Extension
 
         $container->register(ContactFormSubmissionRateLimiter::class)
             ->setAutowired(false)
+            ->setAutoconfigured(false)
             ->setArguments([
                 $container->has('cache.app') ? new Reference('cache.app') : null,
                 $limit,

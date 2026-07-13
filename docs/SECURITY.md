@@ -49,7 +49,7 @@ The bundle does **not** ship authentication or authorization for admin routes; t
 
 ### Cross-site request forgery (public forms)
 
-- **Mitigation**: `DynamicContactFormBuilder` enables `csrf_protection` on public forms. Ensure CSRF is enabled in the host framework config.
+- **Mitigation**: Enable CSRF for Symfony forms in the host application (`framework.form.csrf_protection` when using FrameworkBundle). See [Symfony CSRF documentation](https://symfony.com/doc/current/security/csrf.html#csrf-protection-in-forms).
 
 ### Cross-site scripting (Twig output)
 

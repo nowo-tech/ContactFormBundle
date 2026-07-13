@@ -84,7 +84,7 @@ final class DynamicContactFormBuilderTest extends TestCase
         );
     }
 
-    public function testCreateFormAddsFieldsConsentAndCsrf(): void
+    public function testCreateFormAddsFieldsAndConsent(): void
     {
         $contactForm = (new ContactForm())
             ->setRequireConsent(true)

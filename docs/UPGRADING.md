@@ -2,6 +2,12 @@
 
 This document describes how to upgrade between versions of Contact Form Bundle.
 
+## 1.0.1 (2026-07-13)
+
+No breaking changes.
+
+- **CSRF on public forms**: The bundle no longer sets `csrf_protection` / `csrf_field_name` on every dynamic form. Enable CSRF in your Symfony app (`framework.form.csrf_protection.enabled: true` and `symfony/security-csrf` installed). See [Security](SECURITY.md).
+
 ## 1.0.0 (2026-07-13)
 
 First stable release. No upgrade steps when installing for the first time.
