@@ -45,8 +45,8 @@ final class TestKernel extends Kernel
             'test'            => true,
             'csrf_protection' => true,
             'form'            => [
-                'enabled'           => true,
-                'csrf_protection'   => ['enabled' => true],
+                'enabled'         => true,
+                'csrf_protection' => ['enabled' => true],
             ],
             'session'         => ['storage_factory_id' => 'session.storage.factory.mock_file'],
             'router'          => ['utf8' => true],
