@@ -1,4 +1,4 @@
-# CI: tests on PHP 8.2–8.5 × Symfony 7.0, 7.4, 8.0, 8.1 (exclusions for incompatible pairs).
+# CI: tests on PHP 8.2–8.5 × Symfony 7.4, 8.0, 8.1 (exclusions for incompatible pairs).
 # Coverage with PCOV; release updated via release.yml on tag push.
 name: CI
 
@@ -31,7 +31,7 @@ jobs:
       fail-fast: false
       matrix:
         php: ['8.2', '8.3', '8.4', '8.5']
-        symfony: ['7.0', '7.4', '8.0', '8.1']
+        symfony: ['7.4', '8.0', '8.1']
         exclude:
           - php: '8.2'
             symfony: '8.0'
@@ -72,8 +72,41 @@ jobs:
 
       - name: Install dependencies with Symfony ${{ matrix.symfony }}
         run: |
-          composer require symfony/config:^${{ matrix.symfony }} symfony/dependency-injection:^${{ matrix.symfony }} symfony/form:^${{ matrix.symfony }} symfony/framework-bundle:^${{ matrix.symfony }} symfony/http-foundation:^${{ matrix.symfony }} symfony/http-kernel:^${{ matrix.symfony }} symfony/routing:^${{ matrix.symfony }} symfony/security-bundle:^${{ matrix.symfony }} symfony/security-csrf:^${{ matrix.symfony }} symfony/twig-bundle:^${{ matrix.symfony }} symfony/translation:^${{ matrix.symfony }} symfony/validator:^${{ matrix.symfony }} symfony/var-exporter:^${{ matrix.symfony }} symfony/web-profiler-bundle:^${{ matrix.symfony }} doctrine/doctrine-bundle:^2.13 doctrine/orm:^3.0 --no-interaction --no-update
-          composer update symfony/* --with-all-dependencies --no-interaction --prefer-dist --no-progress
+          # doctrine-bundle 2.x lacks Symfony 8; SF8 support landed in 3.1+.
+          DOCTRINE_BUNDLE='^2.13 || ^3.0'
+          case "${{ matrix.symfony }}" in
+            8.*) DOCTRINE_BUNDLE='^3.1' ;;
+          esac
+
+          composer require --no-interaction --no-update \
+            "symfony/config:^${{ matrix.symfony }}" \
+            "symfony/console:^${{ matrix.symfony }}" \
+            "symfony/dependency-injection:^${{ matrix.symfony }}" \
+            "symfony/event-dispatcher:^${{ matrix.symfony }}" \
+            "symfony/form:^${{ matrix.symfony }}" \
+            "symfony/framework-bundle:^${{ matrix.symfony }}" \
+            "symfony/http-foundation:^${{ matrix.symfony }}" \
+            "symfony/http-kernel:^${{ matrix.symfony }}" \
+            "symfony/routing:^${{ matrix.symfony }}" \
+            "symfony/translation:^${{ matrix.symfony }}" \
+            "symfony/twig-bundle:^${{ matrix.symfony }}" \
+            "symfony/validator:^${{ matrix.symfony }}" \
+            "doctrine/doctrine-bundle:${DOCTRINE_BUNDLE}" \
+            "doctrine/orm:^3.0"
+
+          composer require --dev --no-interaction --no-update \
+            "symfony/browser-kit:^${{ matrix.symfony }}" \
+            "symfony/dom-crawler:^${{ matrix.symfony }}" \
+            "symfony/mailer:^${{ matrix.symfony }}" \
+            "symfony/security-bundle:^${{ matrix.symfony }}" \
+            "symfony/security-core:^${{ matrix.symfony }}" \
+            "symfony/security-csrf:^${{ matrix.symfony }}" \
+            "symfony/var-exporter:^${{ matrix.symfony }}" \
+            "symfony/web-profiler-bundle:^${{ matrix.symfony }}" \
+            "symfony/yaml:^${{ matrix.symfony }}"
+
+          # Update Symfony + Doctrine so locked doctrine-bundle 2.x can move to 3.x on SF8.
+          composer update "symfony/*" "doctrine/*" --with-all-dependencies --no-interaction --prefer-dist --no-progress
 
       - name: Run tests
         run: |
@@ -85,8 +118,8 @@ jobs:
           fi
           echo "✅ All tests passed successfully"
 
-      - name: Run tests with coverage (PHP 8.2 + Symfony 7.0 only)
-        if: matrix.php == '8.2' && matrix.symfony == '7.0'
+      - name: Run tests with coverage (PHP 8.2 + Symfony 7.4 only)
+        if: matrix.php == '8.2' && matrix.symfony == '7.4'
         run: |
           echo "📊 Generating coverage report..."
           composer test-coverage
@@ -177,10 +210,32 @@ jobs:
           coverage: pcov
           tools: composer:v2
 
-      - name: Install dependencies (Symfony 7.0)
+      - name: Install dependencies (Symfony 7.4)
         run: |
-          composer require symfony/config:^7.0 symfony/dependency-injection:^7.0 symfony/form:^7.0 symfony/framework-bundle:^7.0 symfony/http-foundation:^7.0 symfony/http-kernel:^7.0 symfony/routing:^7.0 symfony/security-bundle:^7.0 symfony/security-csrf:^7.0 symfony/twig-bundle:^7.0 symfony/var-exporter:^7.0 symfony/web-profiler-bundle:^7.0 --no-interaction --no-update
-          composer update symfony/* --with-all-dependencies --no-interaction --prefer-dist --no-progress
+          composer require --no-interaction --no-update \
+            "symfony/config:^7.4" \
+            "symfony/console:^7.4" \
+            "symfony/dependency-injection:^7.4" \
+            "symfony/event-dispatcher:^7.4" \
+            "symfony/form:^7.4" \
+            "symfony/framework-bundle:^7.4" \
+            "symfony/http-foundation:^7.4" \
+            "symfony/http-kernel:^7.4" \
+            "symfony/routing:^7.4" \
+            "symfony/translation:^7.4" \
+            "symfony/twig-bundle:^7.4" \
+            "symfony/validator:^7.4"
+          composer require --dev --no-interaction --no-update \
+            "symfony/browser-kit:^7.4" \
+            "symfony/dom-crawler:^7.4" \
+            "symfony/mailer:^7.4" \
+            "symfony/security-bundle:^7.4" \
+            "symfony/security-core:^7.4" \
+            "symfony/security-csrf:^7.4" \
+            "symfony/var-exporter:^7.4" \
+            "symfony/web-profiler-bundle:^7.4" \
+            "symfony/yaml:^7.4"
+          composer update "symfony/*" "doctrine/*" --with-all-dependencies --no-interaction --prefer-dist --no-progress
 
       - name: Run tests with coverage
         run: |

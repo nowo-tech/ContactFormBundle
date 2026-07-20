@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **CI (Symfony 8.x)**: Matrix installs `doctrine/doctrine-bundle` `^3.1` on Symfony 8 (2.x only supports Symfony 6/7; SF8 support starts at 3.1), updates `doctrine/*` with Symfony packages, and keeps security/csrf/var-exporter in `require-dev` via `composer require --dev`.
+- **CI matrix**: Dropped Symfony 7.0 cells (bundle requires `^7.4 || ^8.0`); coverage job uses Symfony 7.4.
+- **`composer.json`**: `symfony/security-core` allowlist includes `^8.0`.
+
 ## [1.0.3] - 2026-07-20
 
 ### Added
