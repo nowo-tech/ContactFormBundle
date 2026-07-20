@@ -6,13 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-## [1.0.1] - 2026-07-13
+## [1.0.3] - 2026-07-20
 
-### Fixed
+### Added
 
-- **CI / Symfony 7.0**: Unit tests no longer fail when the Form component is bootstrapped without the CSRF extension; public forms rely on host `framework.form.csrf_protection` configuration instead of hardcoded builder options.
-- **DI**: `ContactFormSubmissionRateLimiter` is registered only via the bundle extension (excluded from autodiscovery).
-- **CI**: Matrix installs `symfony/security-bundle` and `symfony/security-csrf` for CSRF-enabled form tests.
+- **Tests**: Unit coverage for `ContactFormSubmissionRateLimiter` (limit, interval reset, null cache, missing client IP).
+- **Contributor Covenant** [`CODE_OF_CONDUCT.md`](../CODE_OF_CONDUCT.md).
+- **REQ-GIT-001 tooling**: `.scripts/check-no-cursor-coauthor.sh`, `.scripts/strip-cursor-coauthor-from-history.sh`, `.githooks/commit-msg`, Cursor rule `.cursor/rules/01-git-commits.mdc`, and [`docs/GITHUB_CI.md`](GITHUB_CI.md).
+- **CI**: `git-hygiene` job that audits full history for Cursor co-author trailers.
+- **Makefile**: `check-no-cursor-coauthor`, `setup-hooks`, and `strip-cursor-coauthor-from-history`; `release-check` depends on the co-author check.
+
+### Changed
+
+- **Documentation**: `README`, `CONTRIBUTING`, and `RELEASE` document Code of Conduct, git hooks, and the post-tag co-author re-check before push.
 
 ## [1.0.2] - 2026-07-13
 
@@ -23,6 +29,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### Changed
 
 - **Documentation**: `CONFIGURATION.md` documents rate limiting, CSRF, and remaining bundle options; `SECURITY.md` and `RELEASE.md` aligned with host-app CSRF setup and `master` branch workflow.
+
+## [1.0.1] - 2026-07-13
+
+### Fixed
+
+- **CI / Symfony 7.0**: Unit tests no longer fail when the Form component is bootstrapped without the CSRF extension; public forms rely on host `framework.form.csrf_protection` configuration instead of hardcoded builder options.
+- **DI**: `ContactFormSubmissionRateLimiter` is registered only via the bundle extension (excluded from autodiscovery).
+- **CI**: Matrix installs `symfony/security-bundle` and `symfony/security-csrf` for CSRF-enabled form tests.
 
 ## [1.0.0] - 2026-07-13
 

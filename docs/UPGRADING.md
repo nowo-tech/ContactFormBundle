@@ -2,11 +2,18 @@
 
 This document describes how to upgrade between versions of Contact Form Bundle.
 
+## 1.0.3 (2026-07-20)
+
+No breaking changes.
+
+- **Application installs**: No action required. Changes are tests, documentation, and contributor/CI git hygiene (REQ-GIT-001).
+- **Contributors**: Run `make setup-hooks` once per clone. Do not add Cursor co-author trailers to commits. See [GITHUB_CI.md](GITHUB_CI.md) and [Contributing](CONTRIBUTING.md).
+
 ## 1.0.2 (2026-07-13)
 
 No breaking changes.
 
-- **Integrators**: No action required. Test-only change for the bundle's integration kernel.
+- **Integrators**: No action required. CI/test dependency (`symfony/var-exporter`) and documentation only.
 
 ## 1.0.1 (2026-07-13)
 
