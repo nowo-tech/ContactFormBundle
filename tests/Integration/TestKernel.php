@@ -58,9 +58,7 @@ final class TestKernel extends Kernel
         $container->loadFromExtension('doctrine', [
             'dbal' => ['url' => 'sqlite:///' . $databasePath],
             'orm'  => [
-                'auto_generate_proxy_classes' => true,
-                'enable_lazy_ghost_objects'   => true,
-                'naming_strategy'             => 'doctrine.orm.naming_strategy.underscore_number_aware',
+                'naming_strategy' => 'doctrine.orm.naming_strategy.underscore_number_aware',
             ],
         ]);
         $container->loadFromExtension('twig', [

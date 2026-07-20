@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Tests / doctrine-bundle 3.x**: Integration `TestKernel` no longer sets removed ORM options `auto_generate_proxy_classes` / `enable_lazy_ghost_objects` (breaks Symfony 8 + doctrine-bundle 3.1+).
+
 ## [1.0.4] - 2026-07-20
 
 ### Changed
