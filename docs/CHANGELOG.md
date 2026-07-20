@@ -6,11 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-07-20
+
+### Changed
+
+- **Demos**: Removed `demo/symfony7`; FrankenPHP demo is Symfony 8 only (`demo/symfony8`, port 8021).
+- **Makefile**: Compose commands use `docker compose` (Compose V2 plugin) instead of `docker-compose` (root and `demo/symfony8`).
+
 ### Fixed
 
 - **CI (Symfony 8.x)**: Matrix installs `doctrine/doctrine-bundle` `^3.1` on Symfony 8 (2.x only supports Symfony 6/7; SF8 support starts at 3.1), updates `doctrine/*` with Symfony packages, and keeps security/csrf/var-exporter in `require-dev` via `composer require --dev`.
 - **CI matrix**: Dropped Symfony 7.0 cells (bundle requires `^7.4 || ^8.0`); coverage job uses Symfony 7.4.
 - **`composer.json`**: `symfony/security-core` allowlist includes `^8.0`.
+- **Demo (Symfony 8)**: Migration `Version20250620130000` is a no-op — `select_options` is already created in the initial schema, so fresh `make up` no longer fails on duplicate column.
+- **Demo Makefile**: Healthcheck wait loop no longer exits early; `release-verify` prefers `PORT` from `.env` over `.env.example`.
 
 ## [1.0.3] - 2026-07-20
 

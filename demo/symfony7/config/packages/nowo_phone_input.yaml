@@ -1,6 +1,0 @@
-nowo_phone_input:
-    default_country: ES
-    value_format: CONCATENATED
-    country_prefix_selector: true
-    show_flag: true
-    flag_display: CSS_ICON

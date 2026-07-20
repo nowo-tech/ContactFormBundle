@@ -2,6 +2,15 @@
 
 This document describes how to upgrade between versions of Contact Form Bundle.
 
+## 1.0.4 (2026-07-20)
+
+No breaking changes for application installs.
+
+- **Symfony 8 host apps**: Prefer `doctrine/doctrine-bundle` `^3.1` (2.x does not support Symfony 8). The bundle constraint remains `^2.13 || ^3.0` for Symfony 7.4.
+- **Demos**: `demo/symfony7` was removed; use `demo/symfony8` only (`http://localhost:8021`).
+- **Demo migrations**: If `make -C demo/symfony8 up` previously failed with duplicate `select_options`, pull 1.0.4 (or delete `demo/symfony8/var/data.db`) and run `up` again.
+- **Contributors**: Root and demo Makefiles use `docker compose` (Compose V2 plugin) instead of standalone `docker-compose`.
+
 ## 1.0.3 (2026-07-20)
 
 No breaking changes.

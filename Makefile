@@ -2,7 +2,7 @@
 .PHONY: help up down down-dev build shell install test test-coverage coverage-check cs-check cs-fix qa clean ensure-up rector rector-dry phpstan release-check release-check-demos composer-sync update validate validate-translations check-no-cursor-coauthor strip-cursor-coauthor-from-history
 
 COMPOSE_FILE ?= docker-compose.yml
-COMPOSE     ?= docker-compose -f $(COMPOSE_FILE)
+COMPOSE     ?= docker compose -f $(COMPOSE_FILE)
 SERVICE_PHP ?= php
 
 help:
@@ -20,7 +20,7 @@ help:
 	@echo "  qa              cs-check + test"
 	@echo "  release-check   Pre-release checks"
 	@echo ""
-	@echo "Demos: make -C demo/symfony7 or make -C demo/symfony8"
+	@echo "Demo: make -C demo/symfony8"
 
 build:
 	$(COMPOSE) build --no-cache

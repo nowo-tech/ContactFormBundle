@@ -8,18 +8,19 @@ use Doctrine\DBAL\Schema\Schema;
 use Doctrine\Migrations\AbstractMigration;
 
 /**
- * Adds translatable select option labels to field translations.
+ * Historical: select_options was originally added here; it is now created in Version20250619100000.
+ * Kept as a no-op so existing demo DBs that already recorded this version stay consistent.
  */
 final class Version20250620130000 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Add select_options column to contact form field translations.';
+        return 'No-op: select_options already exists on contact form field translations (initial schema).';
     }
 
     public function up(Schema $schema): void
     {
-        $this->addSql('ALTER TABLE nowo_contact_form_field_translation ADD COLUMN select_options CLOB DEFAULT NULL');
+        // Column is created in Version20250619100000 for fresh installs.
     }
 
     public function down(Schema $schema): void

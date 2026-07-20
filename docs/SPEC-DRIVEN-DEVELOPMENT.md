@@ -46,7 +46,7 @@ There is no separate executable spec language (for example Gherkin); Spec Kit sp
 - Symfony Flex recipe (manual install documented in [`INSTALLATION.md`](INSTALLATION.md) until a recipe is published)
 - Composite/multi-notifier wiring via DI tags (use custom `notifications.service` or event subscribers)
 
-**Demos** (`demo/symfony7`, `demo/symfony8`) illustrate FrankenPHP integration, notifications, and seed data; they are **not** part of the Packagist package API.
+**Demo** (`demo/symfony8`) illustrates FrankenPHP integration, notifications, and seed data; it is **not** part of the Packagist package API.
 
 ---
 
@@ -65,8 +65,8 @@ There is no separate executable spec language (for example Gherkin); Spec Kit sp
 | --- | --- | --- |
 | `REQ-MAKE-001` | Root [`Makefile`](../Makefile) | Docker-driven development workflow |
 | `REQ-MAKE-008` | Root [`Makefile`](../Makefile) | `update-deps` via shared `.scripts/` |
-| `REQ-DEMO-005` | [`demo/symfony7/Makefile`](../demo/symfony7/Makefile), [`demo/symfony8/Makefile`](../demo/symfony8/Makefile) | Canonical `make up` with `Demo started at:` |
-| `REQ-DEMO-007` | Same demo Makefiles + [`demo/Makefile`](../demo/Makefile) | `update-bundle` syncs mounted bundle before release verify |
+| `REQ-DEMO-005` | [`demo/symfony8/Makefile`](../demo/symfony8/Makefile) | Canonical `make up` with `Demo started at:` |
+| `REQ-DEMO-007` | Demo Makefile + [`demo/Makefile`](../demo/Makefile) | `update-bundle` syncs mounted bundle before release verify |
 
 When you change scripted behavior, update the existing `REQ-*` comment or introduce a new ID and reference it from the PR.
 

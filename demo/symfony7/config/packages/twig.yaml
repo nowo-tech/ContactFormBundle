@@ -1,6 +1,0 @@
-twig:
-    default_path: '%kernel.project_dir%/templates'
-    form_themes:
-        - 'bootstrap_5_layout.html.twig'
-        - '@NowoContactFormBundle/form/contact_phone.html.twig'
-        - '@NowoPhoneInputBundle/Form/phone_input_widget.html.twig'

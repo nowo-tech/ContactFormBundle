@@ -1120,7 +1120,7 @@
             "dist": {
                 "type": "path",
                 "url": "/var/contact-form-bundle",
-                "reference": "639ebd6348fb29bf6cd8fb33155a80572be4b8c7"
+                "reference": "603263d4b7aca35f564fd59cd5a4a080b7fb2fc5"
             },
             "require": {
                 "doctrine/doctrine-bundle": "^2.13 || ^3.0",
@@ -1151,8 +1151,9 @@
                 "symfony/dom-crawler": "^7.4 || ^8.0",
                 "symfony/mailer": "^7.4 || ^8.0",
                 "symfony/security-bundle": "^7.4 || ^8.0",
-                "symfony/security-core": "^7.4",
+                "symfony/security-core": "^7.4 || ^8.0",
                 "symfony/security-csrf": "^7.4 || ^8.0",
+                "symfony/var-exporter": "^7.4 || ^8.0",
                 "symfony/yaml": "^7.4 || ^8.0"
             },
             "suggest": {

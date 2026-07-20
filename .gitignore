@@ -1,6 +1,4 @@
 # REQ-DEMO-003: version demo env templates (override parent bundles/.gitignore)
-!demo/symfony7/.env.example
-!demo/symfony7/.env.test
 !demo/symfony8/.env.example
 !demo/symfony8/.env.test
 

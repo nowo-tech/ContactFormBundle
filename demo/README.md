@@ -1,12 +1,17 @@
-# Contact Form Bundle — Demos
+# Contact Form Bundle — Demo
 
-Symfony 7 and 8 demos with Doctrine (SQLite), migrations, seeded contact form, and **notification examples without symfony/mailer**.
+Symfony 8 demo with Doctrine (SQLite), migrations, seeded contact forms, and **notification examples without symfony/mailer**.
 
 ## Quick start
 
 ```bash
-make -C demo up DEMO=symfony7   # http://localhost:8020
-make -C demo up DEMO=symfony8   # http://localhost:8021
+make -C demo/symfony8 up   # http://localhost:8021
+```
+
+Or via the aggregate Makefile:
+
+```bash
+make -C demo up DEMO=symfony8
 ```
 
 Each `make up` runs:
@@ -35,7 +40,7 @@ Phone fields can use either widget in the admin field wizard (`phone_prefixes` s
 | `symfony` | Built-in `ContactPhoneType` with configurable prefixes | `contact` |
 | `phone_input` | `nowo-tech/phone-input-bundle` (`PhoneType`) with flags and country search | `job-application` |
 
-Demos install `nowo-tech/phone-input-bundle` from Packagist (`^1.1`). Configure defaults in `config/packages/nowo_phone_input.yaml` and bundle-level options in `config/packages/nowo_contact_form.yaml` under `phone_input`.
+The demo installs `nowo-tech/phone-input-bundle` from Packagist (`^1.1`). Configure defaults in `config/packages/nowo_phone_input.yaml` and bundle-level options in `config/packages/nowo_contact_form.yaml` under `phone_input`.
 
 Field `options` JSON examples:
 

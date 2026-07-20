@@ -1,7 +1,0 @@
-doctrine:
-    dbal:
-        url: '%env(resolve:DATABASE_URL)%'
-    orm:
-        entity_managers:
-            default:
-                auto_mapping: true

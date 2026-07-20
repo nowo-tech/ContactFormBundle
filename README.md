@@ -57,7 +57,7 @@ Run Doctrine migrations after mapping entities (bundle registers ORM mappings au
 
 ### Additional documentation
 
-- [Demo FrankenPHP](docs/DEMO-FRANKENPHP.md) (when using FrankenPHP demos)
+- [Demo FrankenPHP](docs/DEMO-FRANKENPHP.md) (when using the FrankenPHP demo)
 
 ## Requirements
 
@@ -73,7 +73,7 @@ make -C demo/symfony8 up
 
 Default URL: `http://localhost:8021` (see demo `.env.example` for `PORT`).
 
-**FrankenPHP worker mode:** demos ship with worker-enabled `Caddyfile` for production-style runs; development uses `Caddyfile.dev` without workers. See [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md).
+**FrankenPHP worker mode:** the demo ships with a worker-enabled `Caddyfile` for production-style runs; development uses `Caddyfile.dev` without workers. See [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md).
 
 ## Development
 
