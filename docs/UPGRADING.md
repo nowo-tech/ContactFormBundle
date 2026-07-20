@@ -2,6 +2,13 @@
 
 This document describes how to upgrade between versions of Contact Form Bundle.
 
+## 1.0.5 (2026-07-20)
+
+No breaking changes for application installs.
+
+- **Application installs**: No action required. Fix is limited to the bundle’s integration test kernel.
+- **Host apps on doctrine-bundle 3.x**: If you still set `auto_generate_proxy_classes` / `enable_lazy_ghost_objects`, remove them (they were removed in doctrine-bundle 3.0).
+
 ## 1.0.4 (2026-07-20)
 
 No breaking changes for application installs.
