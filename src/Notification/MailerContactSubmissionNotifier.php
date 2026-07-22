@@ -10,12 +10,12 @@ use Symfony\Component\Mime\Email;
 /**
  * Sends submission notifications via symfony/mailer when installed.
  */
-final class MailerContactSubmissionNotifier implements ContactSubmissionNotifierInterface
+final readonly class MailerContactSubmissionNotifier implements ContactSubmissionNotifierInterface
 {
     public function __construct(
-        private readonly MailerInterface $mailer,
-        private readonly string $from,
-        private readonly string $subjectTemplate,
+        private MailerInterface $mailer,
+        private string $from,
+        private string $subjectTemplate,
     ) {
     }
 

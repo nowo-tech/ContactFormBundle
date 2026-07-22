@@ -29,7 +29,7 @@ final class NowoContactFormBundle extends Bundle
         }
     }
 
-    public function getContainerExtension(): ?ExtensionInterface
+    public function getContainerExtension(): ExtensionInterface
     {
         if (!$this->extension instanceof ExtensionInterface) {
             $this->extension = new NowoContactFormExtension();

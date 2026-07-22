@@ -17,7 +17,7 @@ final class SecurityClientResolverTest extends TestCase
 {
     public function testResolveReturnsNullWhenNotConfigured(): void
     {
-        $resolver = new SecurityClientResolver(null, null, null);
+        $resolver = new SecurityClientResolver(null);
 
         self::assertNull($resolver->resolve());
     }
@@ -57,7 +57,7 @@ final class SecurityClientResolverTest extends TestCase
         };
 
         $user = new class($client) implements UserInterface {
-            public function __construct(private object $client)
+            public function __construct(private readonly object $client)
             {
             }
 

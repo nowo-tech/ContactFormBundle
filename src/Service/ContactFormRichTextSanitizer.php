@@ -7,6 +7,7 @@ namespace Nowo\ContactFormBundle\Service;
 use DOMAttr;
 use DOMDocument;
 use DOMElement;
+use DOMNode;
 
 use function in_array;
 use function sprintf;
@@ -71,14 +72,14 @@ final class ContactFormRichTextSanitizer
     {
         $child = $node->firstChild;
 
-        while ($child !== null) {
+        while ($child instanceof DOMNode) {
             $next = $child->nextSibling;
 
             if ($child instanceof DOMElement) {
                 $tag = strtolower($child->nodeName);
 
                 if (!isset(self::ALLOWED_ELEMENTS[$tag])) {
-                    while ($child->firstChild !== null) {
+                    while ($child->firstChild instanceof DOMNode) {
                         $node->insertBefore($child->firstChild, $child);
                     }
 

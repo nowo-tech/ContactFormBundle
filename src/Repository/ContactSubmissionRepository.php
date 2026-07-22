@@ -43,6 +43,6 @@ class ContactSubmissionRepository extends ServiceEntityRepository
             ->getQuery()
             ->getSingleColumnResult();
 
-        return array_map(static fn ($id): int => (int) $id, $ids);
+        return array_map(static fn (int $id): int => $id, $ids);
     }
 }

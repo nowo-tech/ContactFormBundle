@@ -6,9 +6,11 @@ namespace Nowo\ContactFormBundle\Tests\Unit\DependencyInjection;
 
 use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
+use Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Service\ClientResolverInterface;
 use Nowo\ContactFormBundle\Service\IpAnonymizer;
+use Nowo\ContactFormBundle\Service\SecurityClientResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -50,7 +52,7 @@ final class NowoContactFormExtensionTest extends TestCase
             (string) $container->getAlias(ContactSubmissionNotifierInterface::class),
         );
         self::assertSame(
-            'Nowo\\ContactFormBundle\\Service\\SecurityClientResolver',
+            SecurityClientResolver::class,
             (string) $container->getAlias(ClientResolverInterface::class),
         );
     }
@@ -92,9 +94,9 @@ final class NowoContactFormExtensionTest extends TestCase
             ],
         ])], $container);
 
-        self::assertTrue($container->hasDefinition(\Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier::class));
+        self::assertTrue($container->hasDefinition(MailerContactSubmissionNotifier::class));
         self::assertSame(
-            \Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier::class,
+            MailerContactSubmissionNotifier::class,
             (string) $container->getAlias(ContactSubmissionNotifierInterface::class),
         );
     }

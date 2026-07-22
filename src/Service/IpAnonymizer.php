@@ -7,10 +7,10 @@ namespace Nowo\ContactFormBundle\Service;
 /**
  * Anonymizes IP addresses for GDPR-compliant storage (SHA-256 hash with salt).
  */
-final class IpAnonymizer
+final readonly class IpAnonymizer
 {
     public function __construct(
-        private readonly string $salt = '',
+        private string $salt = '',
     ) {
     }
 

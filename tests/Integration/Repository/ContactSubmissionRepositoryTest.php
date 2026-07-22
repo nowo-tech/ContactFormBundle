@@ -16,11 +16,11 @@ final class ContactSubmissionRepositoryTest extends IntegrationTestCase
 {
     public function testFindExpiredIdsByFormAndFindByFormOrdered(): void
     {
-        static::createTestClient();
+        self::createTestClient();
         $this->resetDatabase();
 
         $form = (new ContactForm())->setName('Form')->setSlug('form')->setRetentionDays(30);
-        $em   = static::getContainer()->get('doctrine')->getManager();
+        $em   = self::getEntityManager();
         $em->persist($form);
 
         $old = (new ContactSubmission())
@@ -37,7 +37,7 @@ final class ContactSubmissionRepositoryTest extends IntegrationTestCase
         $em->flush();
 
         /** @var ContactSubmissionRepository $repository */
-        $repository = static::getContainer()->get(ContactSubmissionRepository::class);
+        $repository = self::getContainer()->get(ContactSubmissionRepository::class);
         $threshold  = new DateTimeImmutable('-30 days');
         $expiredIds = $repository->findExpiredIdsByForm($form, $threshold);
 

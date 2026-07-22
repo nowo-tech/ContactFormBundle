@@ -17,7 +17,7 @@ final class ContactFormAdminControllerTest extends IntegrationTestCase
 {
     public function testIndexListsForms(): void
     {
-        $client = static::createTestClient();
+        $client = self::createTestClient();
         $this->resetDatabase();
 
         $form = (new ContactForm())
@@ -25,7 +25,7 @@ final class ContactFormAdminControllerTest extends IntegrationTestCase
             ->setSlug('demo')
             ->addTranslation((new ContactFormTranslation())->setLocale('en')->setTitle('Demo'));
 
-        $em = static::getContainer()->get('doctrine')->getManager();
+        $em = self::getEntityManager();
         $em->persist($form);
         $em->flush();
 
@@ -37,7 +37,7 @@ final class ContactFormAdminControllerTest extends IntegrationTestCase
 
     public function testNewAndEditFormRender(): void
     {
-        $client = static::createTestClient();
+        $client = self::createTestClient();
         $this->resetDatabase();
 
         $form = (new ContactForm())
@@ -45,7 +45,7 @@ final class ContactFormAdminControllerTest extends IntegrationTestCase
             ->setSlug('support')
             ->addTranslation((new ContactFormTranslation())->setLocale('en')->setTitle('Contact us'));
 
-        $em = static::getContainer()->get('doctrine')->getManager();
+        $em = self::getEntityManager();
         $em->persist($form);
         $em->flush();
 
@@ -60,7 +60,7 @@ final class ContactFormAdminControllerTest extends IntegrationTestCase
 
     public function testEditReturns404ForMissingForm(): void
     {
-        $client = static::createTestClient();
+        $client = self::createTestClient();
         $this->resetDatabase();
 
         $client->request('GET', '/admin/contact-forms/999/edit');

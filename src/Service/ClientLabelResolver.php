@@ -9,11 +9,11 @@ use function is_string;
 /**
  * Resolves optional client entity labels when linking submissions to existing clients.
  */
-final class ClientLabelResolver
+final readonly class ClientLabelResolver
 {
     public function __construct(
-        private readonly ?string $clientEntityClass = null,
-        private readonly string $clientLabelProperty = 'email',
+        private ?string $clientEntityClass = null,
+        private string $clientLabelProperty = 'email',
     ) {
     }
 

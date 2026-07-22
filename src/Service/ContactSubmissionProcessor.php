@@ -20,17 +20,17 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Persists contact form submissions with GDPR metadata and optional client linkage.
  */
-final class ContactSubmissionProcessor
+final readonly class ContactSubmissionProcessor
 {
     public function __construct(
-        private readonly EntityManagerInterface $entityManager,
-        private readonly ContactFormFieldRepository $fieldRepository,
-        private readonly IpAnonymizer $ipAnonymizer,
-        private readonly ClientLabelResolver $clientLabelResolver,
-        private readonly EventDispatcherInterface $eventDispatcher,
-        private readonly ContactSubmissionNotifierInterface $notifier,
-        private readonly ContactFormSubmissionValueNormalizer $valueNormalizer,
-        private readonly ?string $defaultNotificationRecipient = null,
+        private EntityManagerInterface $entityManager,
+        private ContactFormFieldRepository $fieldRepository,
+        private IpAnonymizer $ipAnonymizer,
+        private ClientLabelResolver $clientLabelResolver,
+        private EventDispatcherInterface $eventDispatcher,
+        private ContactSubmissionNotifierInterface $notifier,
+        private ContactFormSubmissionValueNormalizer $valueNormalizer,
+        private ?string $defaultNotificationRecipient = null,
     ) {
     }
 

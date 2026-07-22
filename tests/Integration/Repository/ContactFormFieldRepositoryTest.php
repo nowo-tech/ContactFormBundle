@@ -15,21 +15,21 @@ final class ContactFormFieldRepositoryTest extends IntegrationTestCase
 {
     public function testFindByFormOrdered(): void
     {
-        static::createTestClient();
+        self::createTestClient();
         $this->resetDatabase();
 
         $form   = (new ContactForm())->setName('Form')->setSlug('form');
         $first  = (new ContactFormField())->setForm($form)->setName('a')->setSortOrder(2);
         $second = (new ContactFormField())->setForm($form)->setName('b')->setSortOrder(1);
 
-        $em = static::getContainer()->get('doctrine')->getManager();
+        $em = self::getEntityManager();
         $em->persist($form);
         $em->persist($first);
         $em->persist($second);
         $em->flush();
 
         /** @var ContactFormFieldRepository $repository */
-        $repository = static::getContainer()->get(ContactFormFieldRepository::class);
+        $repository = self::getContainer()->get(ContactFormFieldRepository::class);
         $fields     = $repository->findByFormOrdered($form);
 
         self::assertSame(['b', 'a'], array_map(static fn (ContactFormField $f): string => $f->getName(), $fields));

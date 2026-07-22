@@ -26,10 +26,11 @@ final class ContactFormSubmissionRateLimiterTest extends TestCase
 
     public function testConsumeIsNoOpWhenCachePoolIsNull(): void
     {
+        $this->expectNotToPerformAssertions();
+
         $limiter = new ContactFormSubmissionRateLimiter(null, 5, 60);
 
         $limiter->consume(Request::create('/'), 'contact');
-        self::assertTrue(true);
     }
 
     public function testConsumeTracksSubmissionsAndThrowsWhenLimitExceeded(): void
@@ -49,6 +50,8 @@ final class ContactFormSubmissionRateLimiterTest extends TestCase
 
     public function testConsumeResetsCounterAfterIntervalExpires(): void
     {
+        $this->expectNotToPerformAssertions();
+
         $cache   = new ArrayAdapter();
         $limiter = new ContactFormSubmissionRateLimiter($cache, 1, 1);
         $request = Request::create('/', 'POST', [], [], [], ['REMOTE_ADDR' => '203.0.113.11']);
@@ -58,16 +61,16 @@ final class ContactFormSubmissionRateLimiterTest extends TestCase
         sleep(2);
 
         $limiter->consume($request, 'contact');
-        self::assertTrue(true);
     }
 
     public function testConsumeUsesUnknownIpWhenClientIpMissing(): void
     {
+        $this->expectNotToPerformAssertions();
+
         $cache   = new ArrayAdapter();
         $limiter = new ContactFormSubmissionRateLimiter($cache, 5, 60);
         $request = Request::create('/');
 
         $limiter->consume($request, 'contact');
-        self::assertTrue(true);
     }
 }

@@ -172,7 +172,10 @@ final class CoverageCompletionTest extends TestCase
 
     public function testContactPhoneInputAvailabilityAndOptionsResolver(): void
     {
-        self::assertIsBool((new ContactPhoneInputAvailability())->isAvailable());
+        self::assertSame(
+            class_exists('Nowo\PhoneInputBundle\Form\Type\PhoneType'),
+            (new ContactPhoneInputAvailability())->isAvailable(),
+        );
 
         $field = (new ContactFormField())
             ->setType(ContactFieldType::Phone)
@@ -443,9 +446,7 @@ final class CoverageCompletionTest extends TestCase
         $mailer = $this->createMock(MailerInterface::class);
         $mailer->expects(self::once())
             ->method('send')
-            ->with(self::callback(static function (Email $email): bool {
-                return str_contains($email->getTextBody() ?? '', 'Client: 42');
-            }));
+            ->with(self::callback(static fn (Email $email): bool => str_contains((string) ($email->getTextBody() ?? ''), 'Client: 42')));
 
         (new MailerContactSubmissionNotifier(
             $mailer,

@@ -11,18 +11,18 @@ use function is_object;
 /**
  * Resolves client entities from Symfony Security when configured.
  */
-final class SecurityClientResolver implements ClientResolverInterface
+final readonly class SecurityClientResolver implements ClientResolverInterface
 {
     public function __construct(
-        private readonly ?string $clientEntityClass,
-        private readonly ?string $clientUserAccessor = null,
-        private readonly ?TokenStorageInterface $tokenStorage = null,
+        private ?string $clientEntityClass,
+        private ?string $clientUserAccessor = null,
+        private ?TokenStorageInterface $tokenStorage = null,
     ) {
     }
 
     public function resolve(): ?object
     {
-        if ($this->clientEntityClass === null || $this->tokenStorage === null) {
+        if ($this->clientEntityClass === null || !$this->tokenStorage instanceof TokenStorageInterface) {
             return null;
         }
 

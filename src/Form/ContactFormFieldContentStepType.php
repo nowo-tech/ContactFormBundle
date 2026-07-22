@@ -207,7 +207,7 @@ class ContactFormFieldContentStepType extends AbstractType
                     ]);
                 }
 
-                $this->populateSelectOptionsLinesForTranslation($translationForm, $field);
+                $this->populateSelectOptionsLinesForTranslation($translationForm);
 
                 continue;
             }
@@ -218,7 +218,7 @@ class ContactFormFieldContentStepType extends AbstractType
         }
     }
 
-    private function populateSelectOptionsLinesForTranslation(FormInterface $translationForm, ContactFormField $field): void
+    private function populateSelectOptionsLinesForTranslation(FormInterface $translationForm): void
     {
         if (!$translationForm->has('selectOptionsLines')) {
             return;

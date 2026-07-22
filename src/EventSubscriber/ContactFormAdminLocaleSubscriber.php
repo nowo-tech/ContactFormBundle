@@ -17,13 +17,13 @@ use function is_string;
 /**
  * Applies the session locale to admin routes when no route locale is set.
  */
-final class ContactFormAdminLocaleSubscriber implements EventSubscriberInterface
+final readonly class ContactFormAdminLocaleSubscriber implements EventSubscriberInterface
 {
     private const ADMIN_PATH_PREFIX = '/admin/contact-forms';
 
     public function __construct(
-        private readonly LocaleSwitcher $localeSwitcher,
-        private readonly ParameterBagInterface $parameterBag,
+        private LocaleSwitcher $localeSwitcher,
+        private ParameterBagInterface $parameterBag,
     ) {
     }
 

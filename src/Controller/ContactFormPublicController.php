@@ -7,6 +7,7 @@ namespace Nowo\ContactFormBundle\Controller;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Service\ClientResolverInterface;
+use Nowo\ContactFormBundle\Service\ContactFormSubmissionRateLimiter;
 use Nowo\ContactFormBundle\Service\ContactSubmissionProcessor;
 use Nowo\ContactFormBundle\Service\DynamicContactFormBuilder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -30,7 +31,7 @@ class ContactFormPublicController extends AbstractController
         private readonly DynamicContactFormBuilder $formBuilder,
         private readonly ContactSubmissionProcessor $submissionProcessor,
         private readonly ClientResolverInterface $clientResolver,
-        private readonly \Nowo\ContactFormBundle\Service\ContactFormSubmissionRateLimiter $submissionRateLimiter,
+        private readonly ContactFormSubmissionRateLimiter $submissionRateLimiter,
     ) {
     }
 

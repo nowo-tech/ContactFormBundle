@@ -8,6 +8,9 @@ use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Entity\ContactFormFieldTranslation;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
 
+use function array_is_list;
+use function is_array;
+
 /**
  * Keeps stable select option values on the field while labels live in translations.
  */
@@ -65,7 +68,9 @@ final class ContactFormFieldSelectOptionsSynchronizer
             }
         }
 
-        return $field->getOptions() ?? [];
+        $options = $field->getOptions();
+
+        return is_array($options) && array_is_list($options) ? $options : [];
     }
 
     /**
@@ -89,8 +94,9 @@ final class ContactFormFieldSelectOptionsSynchronizer
      */
     private function resolveOptionValues(ContactFormField $field, array $referenceLabels): array
     {
-        $existing = array_values($field->getOptions() ?? []);
-        $values   = [];
+        $existingOptions = $field->getOptions();
+        $existing        = is_array($existingOptions) && array_is_list($existingOptions) ? $existingOptions : [];
+        $values          = [];
 
         foreach ($referenceLabels as $index => $label) {
             if (isset($existing[$index]) && $existing[$index] !== '') {

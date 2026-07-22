@@ -10,13 +10,13 @@ use Nowo\ContactFormBundle\Phone\ContactFormFieldPhoneOptions;
 /**
  * Builds PhoneType options for public contact forms.
  */
-final class ContactPhoneInputOptionsResolver
+final readonly class ContactPhoneInputOptionsResolver
 {
     /**
      * @param array<string, mixed> $bundleDefaults
      */
     public function __construct(
-        private readonly array $bundleDefaults,
+        private array $bundleDefaults,
     ) {
     }
 

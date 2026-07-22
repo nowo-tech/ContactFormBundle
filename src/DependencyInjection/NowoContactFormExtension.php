@@ -20,6 +20,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\Mailer\MailerInterface;
 
 /**
  * Loads bundle configuration and service definitions.
@@ -136,7 +137,7 @@ final class NowoContactFormExtension extends Extension
 
         $notifierIds = [];
 
-        if ($notifications['mailer']['enabled'] && interface_exists(\Symfony\Component\Mailer\MailerInterface::class)) {
+        if ($notifications['mailer']['enabled'] && interface_exists(MailerInterface::class)) {
             $mailerId = $container->hasDefinition('mailer.mailer')
                 ? 'mailer.mailer'
                 : ($container->hasDefinition('mailer') ? 'mailer' : null);

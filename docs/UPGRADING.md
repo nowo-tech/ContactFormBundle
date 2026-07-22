@@ -2,6 +2,13 @@
 
 This document describes how to upgrade between versions of Contact Form Bundle.
 
+## 1.0.7 (2026-07-22)
+
+No breaking changes for application installs.
+
+- **Application installs**: No action required. Changes are limited to the FrankenPHP demo and docs.
+- **Demo contributors**: The demo defaults to `FRANKENPHP_MODE=worker`. Set `classic` in `demo/symfony8/.env` for per-request PHP / easier hot-reload, then recreate the container (`docker compose up -d` or `make up`). See [DEMO-FRANKENPHP.md](DEMO-FRANKENPHP.md).
+
 ## 1.0.6 (2026-07-22)
 
 Notable for apps that reference bundle Twig templates by logical name.

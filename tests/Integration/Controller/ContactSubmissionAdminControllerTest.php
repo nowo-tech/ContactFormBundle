@@ -19,7 +19,7 @@ final class ContactSubmissionAdminControllerTest extends IntegrationTestCase
 {
     public function testIndexListsSubmissions(): void
     {
-        $client = static::createTestClient();
+        $client = self::createTestClient();
         $this->resetDatabase();
 
         $form = (new ContactForm())
@@ -29,7 +29,7 @@ final class ContactSubmissionAdminControllerTest extends IntegrationTestCase
 
         $submission = (new ContactSubmission())->setForm($form)->setLocale('en');
 
-        $em = static::getContainer()->get('doctrine')->getManager();
+        $em = self::getEntityManager();
         $em->persist($form);
         $em->persist($submission);
         $em->flush();
@@ -41,7 +41,7 @@ final class ContactSubmissionAdminControllerTest extends IntegrationTestCase
 
     public function testShowReturns404WhenSubmissionBelongsToAnotherForm(): void
     {
-        $client = static::createTestClient();
+        $client = self::createTestClient();
         $this->resetDatabase();
 
         [$form, $submission] = $this->seedSubmission();
@@ -51,7 +51,7 @@ final class ContactSubmissionAdminControllerTest extends IntegrationTestCase
             ->setSlug('other')
             ->addTranslation((new ContactFormTranslation())->setLocale('en')->setTitle('Other'));
 
-        $em = static::getContainer()->get('doctrine')->getManager();
+        $em = self::getEntityManager();
         $em->persist($other);
         $em->flush();
 
@@ -79,7 +79,7 @@ final class ContactSubmissionAdminControllerTest extends IntegrationTestCase
             (new ContactSubmissionValue())->setFieldName('email')->setValue('user@example.com'),
         );
 
-        $em = static::getContainer()->get('doctrine')->getManager();
+        $em = self::getEntityManager();
         $em->persist($form);
         $em->persist($submission);
         $em->flush();

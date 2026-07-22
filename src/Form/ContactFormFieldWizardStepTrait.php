@@ -11,6 +11,7 @@ use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
+use Symfony\Component\Form\FormInterface;
 
 use function array_key_exists;
 use function in_array;
@@ -64,7 +65,7 @@ trait ContactFormFieldWizardStepTrait
     {
         $form = $event->getForm();
 
-        if ($form->getConfig()->getInheritData() && $form->getParent() !== null) {
+        if ($form->getConfig()->getInheritData() && $form->getParent() instanceof FormInterface) {
             $field = $form->getData();
 
             return $field instanceof ContactFormField ? $field : null;
@@ -83,7 +84,7 @@ trait ContactFormFieldWizardStepTrait
 
     /**
      * @param callable(mixed): string $modelToNormalized
-     * @param callable(?string): mixed|null $normalizedToModel
+     * @param callable(?string): mixed $normalizedToModel
      */
     protected function createHiddenField(
         FormBuilderInterface $builder,
@@ -102,6 +103,6 @@ trait ContactFormFieldWizardStepTrait
      */
     protected function parseLines(string $raw): array
     {
-        return array_values(array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $raw) ?: [])));
+        return array_values(array_filter(array_map(trim(...), preg_split('/\r\n|\r|\n/', $raw) ?: [])));
     }
 }

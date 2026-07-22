@@ -8,6 +8,7 @@ use Nowo\ContactFormBundle\Form\ContactPhoneType;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\Test\TypeTestCase;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Validation;
 
 #[CoversClass(ContactPhoneType::class)]
@@ -101,7 +102,7 @@ final class ContactPhoneTypeTest extends TypeTestCase
 
     public function testConfigureOptionsRequiresPrefixes(): void
     {
-        $resolver = new \Symfony\Component\OptionsResolver\OptionsResolver();
+        $resolver = new OptionsResolver();
         (new ContactPhoneType())->configureOptions($resolver);
 
         self::assertSame([], $resolver->resolve(['prefixes' => []])['prefixes']);

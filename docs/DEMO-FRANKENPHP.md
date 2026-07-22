@@ -18,9 +18,16 @@ The demo homepage links to:
 
 Run `make -C demo/symfony8 up`. The Makefile copies `.env.example` → `.env`, starts FrankenPHP, runs `composer install`, migrations, and prints `Demo started at: http://localhost:<PORT>`.
 
-## Worker mode
+## Worker mode / `FRANKENPHP_MODE`
 
-FrankenPHP **worker mode** is optional for production deployments. The demo runs in traditional mode for simplicity. For worker mode, see [FrankenPHP documentation](https://frankenphp.dev/docs/worker/).
+The demo defaults to FrankenPHP **worker** mode (`FRANKENPHP_MODE=worker`). Switch to classic (per-request PHP, hot-reload friendly) via `.env` / `.env.example` — not a Dockerfile `ENV`:
+
+| Value | Behaviour |
+| --- | --- |
+| **`worker`** (default) | Keep the worker Caddyfile (`php_server { worker ... }`) |
+| **`classic`** | Entrypoint copies `Caddyfile.dev` (plain `php_server`) |
+
+Compose passes `FRANKENPHP_MODE=${FRANKENPHP_MODE:-worker}` into the PHP service. After changing `.env`, run `docker compose up -d` (or `make up`) so the container is **recreated** — a plain `restart` does not reload env. No image rebuild is required. See [FrankenPHP worker docs](https://frankenphp.dev/docs/worker/).
 
 ## Root Docker vs demo Docker
 
@@ -33,3 +40,4 @@ The `Dockerfile` and `docker-compose.yml` at the **repository root** are for **d
 - `make up` prints `Demo started at: http://localhost:<PORT>`
 - Composer DNS fallbacks in demo compose (`dns: 8.8.8.8, 8.8.4.4`) for Docker/WSL
 - `make update-bundle` syncs the mounted bundle before release verification (`REQ-DEMO-007`)
+- Runtime mode via `FRANKENPHP_MODE` and `docker/entrypoint.sh` (`REQ-DEMO-010`)

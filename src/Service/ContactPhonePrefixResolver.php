@@ -11,13 +11,13 @@ use Nowo\ContactFormBundle\Phone\ContactFormFieldPhoneOptions;
 /**
  * Resolves international dialing prefixes for Symfony phone fields.
  */
-final class ContactPhonePrefixResolver
+final readonly class ContactPhonePrefixResolver
 {
     /**
      * @param array<string, string> $defaultPrefixes map of dialing code to display label
      */
     public function __construct(
-        private readonly array $defaultPrefixes,
+        private array $defaultPrefixes,
     ) {
     }
 
@@ -43,7 +43,7 @@ final class ContactPhonePrefixResolver
             $choices[$code] = $this->defaultPrefixes[$code] ?? $code;
         }
 
-        return $choices !== [] ? $choices : $this->defaultPrefixes;
+        return $choices;
     }
 
     /**

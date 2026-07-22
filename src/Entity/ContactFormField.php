@@ -37,7 +37,7 @@ class ContactFormField
     #[ORM\Column(name: 'sort_order', options: ['default' => 0])]
     private int $sortOrder = 0;
 
-    /** @var list<string>|null */
+    /** @var array<string, mixed>|list<string>|null */
     #[ORM\Column(type: Types::JSON, nullable: true)]
     private ?array $options = null;
 
@@ -82,7 +82,7 @@ class ContactFormField
 
     public function setType(?ContactFieldType $type): self
     {
-        if ($type !== null) {
+        if ($type instanceof ContactFieldType) {
             $this->type = $type;
         }
 
@@ -116,7 +116,7 @@ class ContactFormField
     }
 
     /**
-     * @return list<string>|null
+     * @return array<string, mixed>|list<string>|null
      */
     public function getOptions(): ?array
     {
@@ -124,7 +124,7 @@ class ContactFormField
     }
 
     /**
-     * @param list<string>|null $options
+     * @param array<string, mixed>|list<string>|null $options
      */
     public function setOptions(?array $options): self
     {

@@ -59,7 +59,7 @@ class ContactPhoneType extends AbstractType
             ]);
 
         $builder->addModelTransformer(new CallbackTransformer(
-            static function (?string $combined) use ($prefixCodes): ?array {
+            static function (?string $combined) use ($prefixCodes): array {
                 if ($combined === null || $combined === '') {
                     return ContactPhoneValue::split(null, $prefixCodes);
                 }

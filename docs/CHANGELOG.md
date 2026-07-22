@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-07-22
+
+### Added
+
+- **Demo (Symfony 8)**: `FRANKENPHP_MODE` (`worker` default, or `classic`) via `.env` / Compose; dedicated `docker/entrypoint.sh` (`REQ-DEMO-010`).
+
+### Changed
+
+- **Documentation**: `DEMO-FRANKENPHP.md` documents classic vs worker switching and aligns with the demo default (worker).
+- **Code style**: Applied pending Rector rules (`readonly` services, stricter type checks, test `self::` cleanup).
+- **Static analysis**: Cleared PHPStan level 8 (options typing, Doctrine EM helpers in integration tests, and related assertions).
+- **Dependencies (lock)**: Bumped `doctrine/doctrine-bundle` in the root and demo locks.
+
 ## [1.0.6] - 2026-07-22
 
 ### Fixed

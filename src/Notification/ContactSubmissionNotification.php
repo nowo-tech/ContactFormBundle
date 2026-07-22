@@ -9,17 +9,17 @@ use Nowo\ContactFormBundle\Entity\ContactSubmission;
 /**
  * Immutable snapshot passed to submission notifiers.
  */
-final class ContactSubmissionNotification
+final readonly class ContactSubmissionNotification
 {
     /**
      * @param array<string, string> $fieldValues
      */
     public function __construct(
-        private readonly ContactSubmission $submission,
-        private readonly string $formName,
-        private readonly string $formSlug,
-        private readonly array $fieldValues,
-        private readonly ?string $notificationRecipient,
+        private ContactSubmission $submission,
+        private string $formName,
+        private string $formSlug,
+        private array $fieldValues,
+        private ?string $notificationRecipient,
     ) {
     }
 

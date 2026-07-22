@@ -14,12 +14,12 @@ use function count;
 /**
  * Removes contact submissions that exceeded their form retention period.
  */
-final class SubmissionRetentionCleanupService
+final readonly class SubmissionRetentionCleanupService
 {
     public function __construct(
-        private readonly ContactFormRepository $formRepository,
-        private readonly ContactSubmissionRepository $submissionRepository,
-        private readonly EntityManagerInterface $entityManager,
+        private ContactFormRepository $formRepository,
+        private ContactSubmissionRepository $submissionRepository,
+        private EntityManagerInterface $entityManager,
     ) {
     }
 

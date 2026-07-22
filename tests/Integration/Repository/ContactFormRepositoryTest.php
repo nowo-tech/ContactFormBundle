@@ -15,11 +15,11 @@ final class ContactFormRepositoryTest extends IntegrationTestCase
 {
     public function testFindOneEnabledBySlugReturnsEnabledFormOnly(): void
     {
-        static::createTestClient();
+        self::createTestClient();
         $this->resetDatabase();
 
         /** @var ContactFormRepository $repository */
-        $repository = static::getContainer()->get(ContactFormRepository::class);
+        $repository = self::getContainer()->get(ContactFormRepository::class);
 
         $enabled = (new ContactForm())
             ->setName('Enabled')
@@ -31,7 +31,7 @@ final class ContactFormRepositoryTest extends IntegrationTestCase
             ->setSlug('disabled')
             ->setEnabled(false);
 
-        $em = static::getContainer()->get('doctrine')->getManager();
+        $em = self::getEntityManager();
         $em->persist($enabled);
         $em->persist($disabled);
         $em->flush();

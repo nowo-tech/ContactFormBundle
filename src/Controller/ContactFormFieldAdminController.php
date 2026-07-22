@@ -14,6 +14,7 @@ use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use RuntimeException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\Form\Flow\AbstractFlowType;
 use Symfony\Component\Form\Flow\DataStorage\SessionDataStorage;
 use Symfony\Component\Form\Flow\FormFlowInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -133,7 +134,7 @@ class ContactFormFieldAdminController extends AbstractController
         bool $isNew,
         string $step,
     ): Response {
-        if (!class_exists(\Symfony\Component\Form\Flow\AbstractFlowType::class)) {
+        if (!class_exists(AbstractFlowType::class)) {
             throw new RuntimeException('Contact form field wizard requires symfony/form with FormFlow support (Symfony 7.4+ / 8.1+).');
         }
 

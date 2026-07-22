@@ -10,6 +10,7 @@ use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
+use function in_array;
 use function is_array;
 use function is_object;
 use function is_scalar;
@@ -17,10 +18,10 @@ use function is_scalar;
 /**
  * Normalizes submitted form field values into strings for persistence.
  */
-final class ContactFormSubmissionValueNormalizer
+final readonly class ContactFormSubmissionValueNormalizer
 {
     public function __construct(
-        private readonly ContactFormFileUploadHandlerInterface $fileUploadHandler,
+        private ContactFormFileUploadHandlerInterface $fileUploadHandler,
     ) {
     }
 
@@ -30,7 +31,7 @@ final class ContactFormSubmissionValueNormalizer
         ContactForm $form,
     ): string {
         return match ($field->getType()) {
-            ContactFieldType::Checkbox => $value === true || $value === '1' || $value === 1 ? '1' : '0',
+            ContactFieldType::Checkbox => in_array($value, [true, '1', 1], true) ? '1' : '0',
             ContactFieldType::File     => $this->normalizeFileValue($value, $form, $field),
             ContactFieldType::Date     => $value instanceof DateTimeInterface ? $value->format('Y-m-d') : $this->scalarOrEmpty($value),
             ContactFieldType::Phone    => $this->normalizePhoneValue($value),

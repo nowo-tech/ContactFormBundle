@@ -83,7 +83,10 @@ return (new Config())
         'modernize_types_casting' => true,
         'no_short_bool_cast' => true,
         'explicit_string_variable' => true,
-        'fully_qualified_strict_types' => true,
+        'fully_qualified_strict_types' => [
+            // Convert \Foo\Bar to use Foo\Bar; + Bar (instanceof, new, types, ::class, etc.).
+            'import_symbols' => true,
+        ],
         'global_namespace_import' => [
             'import_classes' => true,
             'import_constants' => true,
@@ -94,4 +97,8 @@ return (new Config())
         (new Finder())
             ->in(__DIR__)
             ->exclude(['vendor', 'var', 'coverage', '.phpunit.cache'])
+            // Symfony auto-generates this dump; do not CS-fix it.
+            ->notPath('demo/symfony8/config/reference.php')
+            // Keep Symfony Flex-style FQCN entries without use imports.
+            ->notPath('demo/symfony8/config/bundles.php')
     );

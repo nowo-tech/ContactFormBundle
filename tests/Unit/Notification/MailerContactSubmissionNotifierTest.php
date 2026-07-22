@@ -38,11 +38,9 @@ final class MailerContactSubmissionNotifierTest extends TestCase
         $mailer = $this->createMock(MailerInterface::class);
         $mailer->expects(self::once())
             ->method('send')
-            ->with(self::callback(static function (Email $email): bool {
-                return $email->getTo()[0]->getAddress() === 'admin@example.com'
-                    && str_contains($email->getSubject(), 'Contact')
-                    && str_contains($email->getTextBody() ?? '', 'message: Hello');
-            }));
+            ->with(self::callback(static fn (Email $email): bool => $email->getTo()[0]->getAddress() === 'admin@example.com'
+                && str_contains((string) $email->getSubject(), 'Contact')
+                && str_contains((string) ($email->getTextBody() ?? ''), 'message: Hello')));
 
         $notifier = new MailerContactSubmissionNotifier(
             $mailer,

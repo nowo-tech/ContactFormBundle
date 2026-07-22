@@ -15,9 +15,9 @@ final class NullContactSubmissionNotifierTest extends TestCase
 {
     public function testNotifyDoesNothing(): void
     {
+        $this->expectNotToPerformAssertions();
+
         $notifier = new NullContactSubmissionNotifier();
         $notifier->notify(new ContactSubmissionNotification(new ContactSubmission(), '', '', [], null));
-
-        self::assertTrue(true);
     }
 }

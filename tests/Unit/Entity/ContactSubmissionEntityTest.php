@@ -58,9 +58,10 @@ final class ContactSubmissionEntityTest extends TestCase
     public function testConstructorDefaults(): void
     {
         $submission = new ContactSubmission();
+        $createdAt  = $submission->getCreatedAt();
 
         self::assertTrue($submission->isAnonymous());
         self::assertSame('en', $submission->getLocale());
-        self::assertInstanceOf(DateTimeImmutable::class, $submission->getCreatedAt());
+        self::assertSame(DateTimeImmutable::class, $createdAt::class);
     }
 }

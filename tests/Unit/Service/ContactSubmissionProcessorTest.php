@@ -18,6 +18,7 @@ use Nowo\ContactFormBundle\Service\ContactFormSubmissionValueNormalizer;
 use Nowo\ContactFormBundle\Service\ContactSubmissionProcessor;
 use Nowo\ContactFormBundle\Service\IpAnonymizer;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Form\FormInterface;
@@ -49,7 +50,7 @@ final class ContactSubmissionProcessorTest extends TestCase
             static fn (string $name): bool => in_array($name, ['email', 'gdpr_consent'], true),
         );
         $symfonyForm->method('get')->willReturnCallback(
-            static fn (string $name) => match ($name) {
+            static fn (string $name): MockObject => match ($name) {
                 'email'        => $emailField,
                 'gdpr_consent' => $consentField,
                 default        => throw new InvalidArgumentException($name),
@@ -140,7 +141,6 @@ final class ContactSubmissionProcessorTest extends TestCase
             $symfonyForm,
             Request::create('/'),
             'es',
-            null,
         );
 
         self::assertTrue($submission->isAnonymous());

@@ -13,7 +13,7 @@ final class ContactFormPublicLegacyControllerTest extends IntegrationTestCase
 {
     public function testLegacyRouteRedirectsToLocalizedRoute(): void
     {
-        $client = static::createTestClient();
+        $client = self::createTestClient();
         $this->resetDatabase();
 
         $client->request('GET', '/contact/support');

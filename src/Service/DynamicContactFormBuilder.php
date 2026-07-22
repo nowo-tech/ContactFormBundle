@@ -25,27 +25,31 @@ use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Form\FormTypeInterface;
+use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\Email;
 use Symfony\Component\Validator\Constraints\IsTrue;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Url;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+use function array_is_list;
 use function count;
+use function is_array;
 
 /**
  * Builds dynamic Symfony forms from ContactForm entity definitions.
  */
-final class DynamicContactFormBuilder
+final readonly class DynamicContactFormBuilder
 {
     public function __construct(
-        private readonly FormFactoryInterface $formFactory,
-        private readonly ContactFormFieldRepository $fieldRepository,
-        private readonly TranslatorInterface $translator,
-        private readonly ContactFormRichTextSanitizer $richTextSanitizer,
-        private readonly ContactPhonePrefixResolver $phonePrefixResolver,
-        private readonly ContactPhoneInputOptionsResolver $phoneInputOptionsResolver,
-        private readonly ContactPhoneInputAvailability $phoneInputAvailability,
+        private FormFactoryInterface $formFactory,
+        private ContactFormFieldRepository $fieldRepository,
+        private TranslatorInterface $translator,
+        private ContactFormRichTextSanitizer $richTextSanitizer,
+        private ContactPhonePrefixResolver $phonePrefixResolver,
+        private ContactPhoneInputOptionsResolver $phoneInputOptionsResolver,
+        private ContactPhoneInputAvailability $phoneInputAvailability,
     ) {
     }
 
@@ -170,9 +174,15 @@ final class DynamicContactFormBuilder
             $phoneOptions->widget === ContactPhoneWidget::PhoneInput
             && $this->phoneInputAvailability->isAvailable()
         ) {
+            $phoneInputType = 'Nowo\\PhoneInputBundle\\Form\\Type\\PhoneType';
+
+            if (!is_subclass_of($phoneInputType, FormTypeInterface::class)) {
+                return;
+            }
+
             $builder->add(
                 $field->getName(),
-                'Nowo\PhoneInputBundle\Form\Type\PhoneType',
+                $phoneInputType,
                 array_merge($options, $this->phoneInputOptionsResolver->resolveForField($field)),
             );
 
@@ -193,7 +203,7 @@ final class DynamicContactFormBuilder
     }
 
     /**
-     * @return list<\Symfony\Component\Validator\Constraint>
+     * @return list<Constraint>
      */
     private function buildConstraints(
         ContactFormField $field,
@@ -230,8 +240,9 @@ final class DynamicContactFormBuilder
      */
     private function buildSelectChoices(ContactFormField $field, ContactFormFieldTranslation $translation): array
     {
-        $values = $field->getOptions() ?? [];
-        $labels = $translation->getSelectOptions();
+        $storedValues = $field->getOptions();
+        $values       = is_array($storedValues) && array_is_list($storedValues) ? $storedValues : [];
+        $labels       = $translation->getSelectOptions();
 
         if ($labels === null || count($labels) !== count($values)) {
             $labels = $values;

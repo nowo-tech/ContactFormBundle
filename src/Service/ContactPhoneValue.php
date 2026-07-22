@@ -54,7 +54,7 @@ final class ContactPhoneValue
      */
     private static function sortByLengthDesc(array $prefixes): array
     {
-        $sorted = array_values($prefixes);
+        $sorted = $prefixes;
         usort($sorted, static fn (string $a, string $b): int => strlen($b) <=> strlen($a));
 
         return $sorted;

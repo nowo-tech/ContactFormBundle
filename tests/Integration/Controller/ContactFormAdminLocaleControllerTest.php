@@ -13,7 +13,7 @@ final class ContactFormAdminLocaleControllerTest extends IntegrationTestCase
 {
     public function testSwitchLocalePersistsInSessionAndRedirectsBack(): void
     {
-        $client = static::createTestClient();
+        $client = self::createTestClient();
         $this->resetDatabase();
 
         $client->request('GET', '/admin/contact-forms');
@@ -30,7 +30,7 @@ final class ContactFormAdminLocaleControllerTest extends IntegrationTestCase
 
     public function testSwitchLocaleReturns404ForUnsupportedLocale(): void
     {
-        $client = static::createTestClient();
+        $client = self::createTestClient();
         $this->resetDatabase();
 
         $client->request('GET', '/admin/contact-forms/locale/fr');

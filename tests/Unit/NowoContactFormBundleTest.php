@@ -25,6 +25,6 @@ final class NowoContactFormBundleTest extends TestCase
     {
         $bundle = new NowoContactFormBundle();
 
-        self::assertSame('nowo_contact_form', $bundle->getContainerExtension()?->getAlias());
+        self::assertSame('nowo_contact_form', $bundle->getContainerExtension()->getAlias());
     }
 }

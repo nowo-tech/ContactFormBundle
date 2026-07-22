@@ -17,6 +17,7 @@ use Nowo\ContactFormBundle\Service\ContactPhoneInputOptionsResolver;
 use Nowo\ContactFormBundle\Service\ContactPhonePrefixResolver;
 use Nowo\ContactFormBundle\Service\DynamicContactFormBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\FormFactoryInterface;
@@ -31,7 +32,7 @@ final class DynamicContactFormBuilderTest extends TestCase
 {
     private FormFactoryInterface $formFactory;
 
-    private TranslatorInterface $translator;
+    private MockObject&TranslatorInterface $translator;
 
     private ContactFormRichTextSanitizer $richTextSanitizer;
 

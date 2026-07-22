@@ -18,7 +18,7 @@ final class ContactFormPublicControllerTest extends IntegrationTestCase
 {
     public function testShowRendersEnabledForm(): void
     {
-        $client = static::createTestClient();
+        $client = self::createTestClient();
         $this->resetDatabase();
         $this->seedContactForm('support');
 
@@ -30,7 +30,7 @@ final class ContactFormPublicControllerTest extends IntegrationTestCase
 
     public function testShowReturns404ForUnknownSlug(): void
     {
-        $client = static::createTestClient();
+        $client = self::createTestClient();
         $this->resetDatabase();
 
         $client->request('GET', '/en/contact/missing');
@@ -40,7 +40,7 @@ final class ContactFormPublicControllerTest extends IntegrationTestCase
 
     public function testSubmitValidForm(): void
     {
-        $client = static::createTestClient();
+        $client = self::createTestClient();
         $this->resetDatabase();
         $this->seedContactForm('support');
 
@@ -85,7 +85,7 @@ final class ContactFormPublicControllerTest extends IntegrationTestCase
 
         $form->addField($field);
 
-        $em = static::getContainer()->get('doctrine')->getManager();
+        $em = self::getEntityManager();
         $em->persist($form);
         $em->flush();
 
