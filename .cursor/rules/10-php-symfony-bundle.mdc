@@ -13,6 +13,7 @@ Target this bundle compatibility by default: PHP >=8.2 and Symfony 7.4+/8.0+.
 Prefer:
 - modern PHP with strict typing and explicit return types
 - PSR-12 coding style
+- `use Foo\Bar;` + short name (never `\Foo\Bar` in code; enforced by CS Fixer `fully_qualified_strict_types.import_symbols` / REQ-CS-001)
 - final classes by default
 - readonly where appropriate
 - constructor injection
