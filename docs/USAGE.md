@@ -71,5 +71,6 @@ nowo_contact_form:
 
 ## Overrides
 
-- Twig: `templates/bundles/NowoContactFormBundle/`
+- Twig templates (logical name): `@NowoContactFormBundle/...`
+- Twig overrides: `templates/bundles/NowoContactFormBundle/`
 - Translations: `translations/NowoContactFormBundle.{locale}.yaml`

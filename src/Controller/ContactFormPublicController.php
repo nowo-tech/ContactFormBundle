@@ -70,7 +70,7 @@ class ContactFormPublicController extends AbstractController
             ]);
         }
 
-        return $this->render('@NowoContactForm/public/contact_form.html.twig', [
+        return $this->render('@NowoContactFormBundle/public/contact_form.html.twig', [
             'contactForm' => $contactForm,
             'translation' => $translation,
             'form'        => $symfonyForm,

@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-07-22
+
+### Fixed
+
+- **Twig**: Public form render uses `@NowoContactFormBundle/...` (aligned with admin controllers and `TwigPathsPass` namespace).
+- **TwigPathsPass**: Prepends `templates/bundles/NowoContactFormBundle` when present so app overrides win; resolves Twig loader aliases and falls back to `twig.loader.filesystem`.
+
+### Changed
+
+- **Dependencies (lock)**: Bumped `doctrine/dbal` and `friendsofphp/php-cs-fixer` in root and demo locks.
+
 ## [1.0.5] - 2026-07-20
 
 ### Fixed

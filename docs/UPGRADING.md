@@ -2,6 +2,14 @@
 
 This document describes how to upgrade between versions of Contact Form Bundle.
 
+## 1.0.6 (2026-07-22)
+
+Notable for apps that reference bundle Twig templates by logical name.
+
+- **Twig namespace** — Prefer `@NowoContactFormBundle/...` (public form and admin already use this). If you still call `@NowoContactForm/...`, switch to `@NowoContactFormBundle/...`.
+- **Application overrides** — Keep overrides under `templates/bundles/NowoContactFormBundle/...`; `TwigPathsPass` now prepends that path so they take precedence for the `NowoContactFormBundle` Twig namespace.
+- **Otherwise**: No schema or configuration changes.
+
 ## 1.0.5 (2026-07-20)
 
 No breaking changes for application installs.
