@@ -8,9 +8,8 @@ parameters:
     bootstrapFiles:
         - vendor/autoload.php
     reportUnmatchedIgnoredErrors: false
-    ignoreErrors:
-        -
-            message: '#does not specify its types: TData#'
-        -
-            message: '#never returns null so it can be removed from the return type#'
-            path: src/NowoContactFormBundle.php
+    ignoreErrors: []
+
+includes:
+  - vendor/nowo-tech/phpstan-frankenphp/ruleset-classic.neon
+  - vendor/nowo-tech/phpstan-frankenphp/ruleset-worker.neon

@@ -1,43 +1,51 @@
-# Icon Selector Bundle — Demo (Symfony 8)
+# Contact Form Bundle — Demo (Symfony 8)
 
-This demo runs with **FrankenPHP** (Caddy, HTTP on port 80). In **dev** (`APP_ENV=dev`), worker mode is disabled so each request runs in a new PHP process and **code/template changes are visible on refresh** without restarting the container.
+This demo runs with **FrankenPHP** (Caddy on port 80). Runtime mode is controlled by **`FRANKENPHP_MODE`** in `.env` (default **`worker`**). Use `classic` for per-request PHP / easier hot-reload. See [docs/DEMO-FRANKENPHP.md](../../docs/DEMO-FRANKENPHP.md).
 
 ## Quick start
 
 ```bash
 make up
-make install
-# Open http://localhost:8011 (or set PORT in .env)
+# Open http://localhost:8021 (or the PORT from .env)
 ```
 
-Language is switched via URL (locale prefix). Supported: `en`, `es`. Use the language dropdown in the navbar.
+`make up` copies `.env.example` → `.env` when missing, installs Composer dependencies, runs migrations, seeds demo forms, and prints `Demo started at: http://localhost:<PORT>`.
 
-URLs (replace `{locale}` with `en` or `es`):
-- `/` — Redirects to `/en/`
-- `/{locale}/` — Home with links to all demos
-- `/{locale}/demo/grid` — Icon selector (grid)
-- `/{locale}/demo/search` — Icon selector (search)
-- `/{locale}/demo/tom-select` — Icon selector (Tom Select dropdown)
-- `/{locale}/demo/heroicons` — Icon selector (Heroicons only)
+Language is switched via URL locale prefix (`en`, `es`).
+
+## Demo URLs
+
+Replace `{locale}` with `en` or `es`:
+
+| Path | Description |
+| --- | --- |
+| `/` | Redirects to `/{locale}/` |
+| `/{locale}/` | Home with links to seeded public forms and admin |
+| `/{locale}/contact/contact` | Public general contact form |
+| `/{locale}/contact/job-application` | Public job application form |
+| `/{locale}/contact/partner-inquiry` | Public partner inquiry form |
+| `/admin/contact-forms` | Admin CRUD (forms, fields, submissions) |
 
 ## Web Profiler toolbar
 
-The demo has **Web Profiler** and **Nowo Twig Inspector** enabled in `dev`. The toolbar is shown at the bottom of the page when:
+**Web Profiler** and **Nowo Twig Inspector** are enabled in `dev`. The toolbar appears when:
 
-- `APP_ENV=dev` and `APP_DEBUG=1` (default in `.env`)
-- You have run `make install` and the dev routes are loaded
+- `APP_ENV=dev` and `APP_DEBUG=1` (defaults in `.env.example`)
+- Dependencies are installed (`make up` / `make install`)
 
-If the toolbar does not appear, clear the cache inside the container:
+If the toolbar is missing:
 
 ```bash
-docker-compose exec php php bin/console cache:clear --env=dev
+docker compose exec php php bin/console cache:clear --env=dev
 ```
 
-Then reload the page. You can also open `/_profiler` to see the latest requests.
+Then reload. Open `/_profiler` for recent requests.
 
 ## Commands
 
-- `make up` — Build and start the container (FrankenPHP). After changing Dockerfile or Caddyfile, run `make build` or `docker-compose build` then `make up`.
-- `make down` — Stop the container
-- `make install` — Composer install (and cache:clear)
-- `make shell` — Open a shell in the container
+- `make up` — Ensure `.env`, install deps, migrate, seed, start FrankenPHP
+- `make down` — Stop containers
+- `make install` — `composer install` in the running container
+- `make shell` — Shell in the PHP container
+- `make update-bundle` — Sync mounted path repository + clear cache
+- `make test` — Demo smoke checks (`lint:yaml` + `about`)

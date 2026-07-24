@@ -25,6 +25,8 @@ use function count;
 
 /**
  * Wizard step for phone field widget and prefix configuration.
+ *
+ * @extends AbstractType<ContactFormField>
  */
 class ContactFormFieldPhonePrefixesStepType extends AbstractType
 {
@@ -189,6 +191,7 @@ class ContactFormFieldPhonePrefixesStepType extends AbstractType
     }
 
     /**
+     * @param FormInterface<ContactFormField|null> $form
      * @param list<string> $values
      */
     private function validatePrefixes(FormInterface $form, array $values): bool

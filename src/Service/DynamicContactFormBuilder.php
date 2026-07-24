@@ -55,6 +55,8 @@ final readonly class DynamicContactFormBuilder
 
     /**
      * @param array<string, mixed> $options
+     *
+     * @return FormInterface<mixed>
      */
     public function createForm(ContactForm $form, string $locale, array $options = []): FormInterface
     {
@@ -112,6 +114,9 @@ final readonly class DynamicContactFormBuilder
         return false;
     }
 
+    /**
+     * @param FormBuilderInterface<mixed> $builder
+     */
     private function addField(FormBuilderInterface $builder, ContactFormField $field, string $locale): void
     {
         $translation = $field->getTranslationForLocale($locale);
@@ -164,6 +169,7 @@ final readonly class DynamicContactFormBuilder
     }
 
     /**
+     * @param FormBuilderInterface<mixed> $builder
      * @param array<string, mixed> $options
      */
     private function addPhoneField(FormBuilderInterface $builder, ContactFormField $field, array $options): void

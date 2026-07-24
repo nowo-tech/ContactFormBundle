@@ -26,6 +26,8 @@ use function is_string;
 
 /**
  * Final wizard step: localized labels and type-specific copy.
+ *
+ * @extends AbstractType<ContactFormField>
  */
 class ContactFormFieldContentStepType extends AbstractType
 {
@@ -183,6 +185,9 @@ class ContactFormFieldContentStepType extends AbstractType
         });
     }
 
+    /**
+     * @param FormInterface<ContactFormField|null> $form
+     */
     private function configureSelectOptionsFields(
         FormInterface $form,
         ContactFormField $field,
@@ -218,6 +223,9 @@ class ContactFormFieldContentStepType extends AbstractType
         }
     }
 
+    /**
+     * @param FormInterface<ContactFormFieldTranslation|null> $translationForm
+     */
     private function populateSelectOptionsLinesForTranslation(FormInterface $translationForm): void
     {
         if (!$translationForm->has('selectOptionsLines')) {

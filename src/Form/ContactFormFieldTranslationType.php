@@ -15,6 +15,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * Embedded form type for contact form field translations.
+ *
+ * @extends AbstractType<ContactFormFieldTranslation>
  */
 class ContactFormFieldTranslationType extends AbstractType
 {

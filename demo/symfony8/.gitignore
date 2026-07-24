@@ -1,18 +1,23 @@
 # Local environment (do not version secrets)
 /.env
-/.env.local
-/.env.*.local
 /.env.dev
+/.env.local
+/.env.local.php
+/.env.*.local
+/config/secrets/prod/prod.decrypt.private.php
 
 # Dependencies
 /vendor/
 
-# Symfony
-/var/
-/.phpunit.cache/
-/public/bundles/
+# pnpm local store (REQ-GITIGNORE-003)
+/.pnpm-store
 
-# Demo MySQL data
+# Symfony runtime / build
+/var/
+/public/bundles/
+/.phpunit.cache/
+
+# Demo MySQL data (if used)
 /.data/
 
 # Archives / compressed
@@ -22,13 +27,3 @@
 *.tgz
 *.rar
 *.7z
-
-###> symfony/framework-bundle ###
-/.env.local
-/.env.local.php
-/.env.*.local
-/config/secrets/prod/prod.decrypt.private.php
-/public/bundles/
-/var/
-/vendor/
-###< symfony/framework-bundle ###

@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-07-24
+
+### Added
+
+- **Tooling (REQ-CS-005)**: `nowo-tech/phpstan-frankenphp` in `require-dev` with `ruleset-classic` + `ruleset-worker` in `phpstan.neon.dist`.
+- **Documentation (REQ-DOCS-017)**: FrankenPHP Friendly Worker Mode banner and canonical claim in root `README.md` (`docs/images/frankenphp-friendly.png`).
+
+### Changed
+
+- **Static analysis**: Form/service PHPDoc generics for Symfony `AbstractType` / `FormInterface` / `FormBuilderInterface` (`TData`); removed prior `ignoreErrors` for missing generics.
+- **Demo (Symfony 8)**: FrankenPHP image bumped to PHP **8.5**; `.env.example` comments per variable; `.gitignore` ignores `/.pnpm-store` (REQ-GITIGNORE-003); `make up` removes stray `.env.dev`; demo README rewritten for Contact Form (was Icon Selector copy-paste).
+- **Documentation**: `DEMO-FRANKENPHP.md` PHP version table aligned to 8.5; README worker-mode wording matches `FRANKENPHP_MODE=worker`.
+
+### Removed
+
+- **Docs assets**: Unused Icon Selector screenshots (`docs/images/demo-grid.png`, `demo-tom-select.png`).
+
 ## [1.0.7] - 2026-07-22
 
 ### Added

@@ -6,6 +6,10 @@
 
 **Contact Form Bundle** — configurable multilingual contact forms with GDPR consent, customizable fields (email, phone, text, textarea, select), optional client association, anonymous submissions, and admin CRUD. For Symfony 7.4+ and 8 · PHP 8.2+.
 
+![FrankenPHP Friendly Worker Mode](docs/images/frankenphp-friendly.png)
+
+This bundle is **FrankenPHP worker mode friendly**.
+
 ## Features
 
 - ✅ **Admin CRUD** for form definitions, customizable fields, and submissions
@@ -73,7 +77,7 @@ make -C demo/symfony8 up
 
 Default URL: `http://localhost:8021` (see demo `.env.example` for `PORT`).
 
-**FrankenPHP worker mode:** the demo ships with a worker-enabled `Caddyfile` for production-style runs; development uses `Caddyfile.dev` without workers. See [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md).
+**FrankenPHP worker mode:** default is `FRANKENPHP_MODE=worker` (see `.env.example`). Set `classic` for per-request PHP / easier hot-reload, then recreate the container (`docker compose up -d`). Details: [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md).
 
 ## Development
 

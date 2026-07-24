@@ -17,6 +17,8 @@ use function is_array;
 
 /**
  * Phone input with an international dialing prefix selector.
+ *
+ * @extends AbstractType<string|null>
  */
 class ContactPhoneType extends AbstractType
 {

@@ -34,6 +34,9 @@ final readonly class ContactSubmissionProcessor
     ) {
     }
 
+    /**
+     * @param FormInterface<mixed> $symfonyForm
+     */
     public function process(
         ContactForm $form,
         FormInterface $symfonyForm,

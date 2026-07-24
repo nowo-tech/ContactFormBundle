@@ -4,7 +4,7 @@ The repository includes an **optional Symfony 8 demo app** under `demo/symfony8`
 
 | Demo | PHP | Default HTTP port |
 |------|-----|-------------------|
-| `demo/symfony8` | 8.4 | 8021 |
+| `demo/symfony8` | 8.5 | 8021 |
 
 See [`demo/README.md`](../demo/README.md) for quick start and aggregate `make` targets.
 

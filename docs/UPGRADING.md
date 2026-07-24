@@ -2,6 +2,14 @@
 
 This document describes how to upgrade between versions of Contact Form Bundle.
 
+## 1.0.8 (2026-07-24)
+
+No breaking changes for application installs.
+
+- **Application installs**: No action required. Package API and configuration are unchanged.
+- **Contributors / CI**: PHPStan now loads FrankenPHP classic + worker rulesets (`nowo-tech/phpstan-frankenphp`). Run `composer update nowo-tech/phpstan-frankenphp` (or full `composer update`) in the bundle repo if you develop against this release.
+- **Demo contributors**: Symfony 8 demo image is PHP **8.5** (`dunglas/frankenphp:1-php8.5-alpine`). Rebuild the demo image after pull (`make -C demo/symfony8 build` then `make up`). `FRANKENPHP_MODE` defaults remain as in 1.0.7.
+
 ## 1.0.7 (2026-07-22)
 
 No breaking changes for application installs.

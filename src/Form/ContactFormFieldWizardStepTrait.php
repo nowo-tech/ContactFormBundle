@@ -22,6 +22,9 @@ use function is_array;
  */
 trait ContactFormFieldWizardStepTrait
 {
+    /**
+     * @param FormBuilderInterface<ContactFormField|null> $builder
+     */
     protected function addPreservedDefinitionFields(FormBuilderInterface $builder): void
     {
         $builder
@@ -31,6 +34,9 @@ trait ContactFormFieldWizardStepTrait
             ->add($this->createHiddenField($builder, 'sortOrder', static fn (?int $sortOrder): string => (string) ($sortOrder ?? 0), static fn (mixed $value): int => (int) $value));
     }
 
+    /**
+     * @param FormBuilderInterface<ContactFormField|null> $builder
+     */
     protected function addPreservedDefinitionFieldsPreSubmitListener(FormBuilderInterface $builder): void
     {
         $builder->addEventListener(FormEvents::PRE_SUBMIT, static function (FormEvent $event): void {
@@ -83,8 +89,11 @@ trait ContactFormFieldWizardStepTrait
     }
 
     /**
+     * @param FormBuilderInterface<ContactFormField|null> $builder
      * @param callable(mixed): string $modelToNormalized
      * @param callable(?string): mixed $normalizedToModel
+     *
+     * @return FormBuilderInterface<mixed>
      */
     protected function createHiddenField(
         FormBuilderInterface $builder,

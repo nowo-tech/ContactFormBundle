@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\Form;
 
+use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -15,6 +16,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * First wizard step: field identity and behavior.
+ *
+ * @extends AbstractType<ContactFormField>
  */
 class ContactFormFieldDefinitionStepType extends AbstractType
 {

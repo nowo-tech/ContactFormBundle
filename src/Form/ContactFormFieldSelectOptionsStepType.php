@@ -20,6 +20,8 @@ use function count;
 
 /**
  * Wizard step for select field machine names (stable stored values).
+ *
+ * @extends AbstractType<ContactFormField>
  */
 class ContactFormFieldSelectOptionsStepType extends AbstractType
 {
@@ -80,6 +82,7 @@ class ContactFormFieldSelectOptionsStepType extends AbstractType
     }
 
     /**
+     * @param FormInterface<ContactFormField|null> $form
      * @param list<string> $values
      */
     private function validateMachineNames(FormInterface $form, array $values): bool
