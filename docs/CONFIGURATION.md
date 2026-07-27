@@ -15,7 +15,15 @@ Extension alias: `nowo_contact_form`.
 | `notifications.mailer.enabled` | `false` | Use symfony/mailer when installed |
 | `notifications.mailer.from` | `noreply@example.com` | Mailer sender |
 | `notifications.mailer.subject` | `New contact submission: {form}` | Mailer subject template |
-| `admin_route_prefix` | `/admin/contact-forms` | URL prefix for bundle admin CRUD routes |
+| `admin_route_prefix` | `/admin/contact-forms` | URL prefix for bundle admin CRUD routes (host `access_control`) |
+| `web_ui.enabled` | `true` | Registers admin access enforcement when security is configured |
+| `web_ui.layout_template` | `@NowoContactFormBundle/admin/layout.html.twig` | Twig layout extended by admin pages (global `nowo_contact_form_layout_template`). Set to your app layout or a one-file bridge |
+| `web_ui.css_framework` | `bootstrap5` | Host CSS stack hint: `bootstrap5`, `bootstrap4`, `bootstrap`, `tailwind`, `foundation`, `tabler`, `custom`, `none` |
+| `web_ui.icon_set` | `bootstrap-icons` | Icon hint: `bootstrap-icons`, `tabler-icons`, `ux_icon`, `svg_inline`, `none` |
+| `web_ui.list_page_size` | `20` | Page size for admin form and submission lists |
+| `security.access_roles` | `[ROLE_ADMIN]` | Roles allowed for admin CRUD (empty disables bundle-level role checks) |
+| `security.access_checker` | `null` | Optional custom service id implementing `ContactFormAccessCheckerInterface` |
+| `security.allow_unauthenticated` | `false` | **DEV/DEMO ONLY.** Skip SecurityBundle requirement and admin access subscriber. Never enable in production |
 | `phone_prefixes` | ES/US/FR/UK/DE/PT defaults | Dialing prefixes for legacy phone fields (`code => label`) |
 | `phone_input.value_format` | `CONCATENATED` | Passed to PhoneInputBundle when installed |
 | `phone_input.default_country` | `ES` | Default country ISO for phone fields |
@@ -39,6 +47,41 @@ framework:
 ```
 
 See [Security](SECURITY.md) and [Upgrading](UPGRADING.md#101-2026-07-13).
+
+## Admin Web UI (layout and CSS)
+
+Admin pages extend `web_ui.layout_template` (Twig global `nowo_contact_form_layout_template`). Prefer pointing that at your project layout (or a thin bridge that maps `nowo_ui_content` into your `body` block) instead of copying list/form templates.
+
+```yaml
+nowo_contact_form:
+    web_ui:
+        layout_template: 'base.html.twig'
+        css_framework: bootstrap5
+        list_page_size: 20
+```
+
+When using the project layout, load host CSS/JS in that layout. Bundle pages stack extras with `{{ parent() }}` in `stylesheets` / `javascripts` when they add assets. Semantic hooks use `nowo-ui-*` classes.
+
+## Admin security
+
+```yaml
+nowo_contact_form:
+    security:
+        access_roles: [ROLE_ADMIN]
+        # access_checker: App\Security\ContactFormAccessChecker
+        allow_unauthenticated: false
+```
+
+Also lock the path in the host firewall:
+
+```yaml
+# config/packages/security.yaml
+security:
+    access_control:
+        - { path: ^/admin/contact-forms, roles: ROLE_ADMIN }
+```
+
+`allow_unauthenticated: true` is for demos/CI only. Production must keep it `false` and require `symfony/security-bundle`.
 
 ## Public submission rate limiting
 

@@ -16,12 +16,12 @@ final class ContactFormAdminLocaleControllerTest extends IntegrationTestCase
         $client = self::createTestClient();
         $this->resetDatabase();
 
-        $client->request('GET', '/admin/contact-forms');
+        $client->request('GET', '/admin/contact-forms/');
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('Contact forms', (string) $client->getResponse()->getContent());
 
         $client->request('GET', '/admin/contact-forms/locale/es');
-        self::assertResponseRedirects('/admin/contact-forms');
+        self::assertResponseRedirects('/admin/contact-forms/');
 
         $client->followRedirect();
         self::assertResponseIsSuccessful();

@@ -4,3 +4,16 @@ nowo_contact_form:
     ip_anonymization_salt: '%kernel.secret%'
     default_retention_days: 365
     admin_route_prefix: '/admin/contact-forms'
+    web_ui:
+        enabled: true
+        layout_template: '@NowoContactFormBundle/admin/layout.html.twig'
+        css_framework: bootstrap5
+        list_page_size: 20
+    security:
+        access_roles: [ROLE_ADMIN]
+        # access_checker: App\Security\ContactFormAccessChecker
+        allow_unauthenticated: false
+    public_submission_rate_limit:
+        enabled: true
+        limit: 5
+        interval_seconds: 60

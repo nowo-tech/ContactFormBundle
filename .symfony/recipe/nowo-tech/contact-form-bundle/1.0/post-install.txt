@@ -1,0 +1,17 @@
+Contact Form Bundle has been installed!
+
+The Flex recipe:
+  - registers NowoContactFormBundle
+  - creates config/packages/nowo_contact_form.yaml
+  - imports routes in config/routes/nowo_contact_form.yaml
+
+Next steps:
+1. Create the database schema (migration or doctrine:schema:update).
+2. Protect admin routes in security.yaml, for example:
+     security:
+         access_control:
+             - { path: ^/admin/contact-forms, roles: ROLE_ADMIN }
+3. Keep security.allow_unauthenticated: false in production.
+4. Schedule GDPR cleanup: php bin/console nowo:contact-form:cleanup-submissions
+
+See docs/INSTALLATION.md, docs/CONFIGURATION.md, and docs/SECURITY.md.

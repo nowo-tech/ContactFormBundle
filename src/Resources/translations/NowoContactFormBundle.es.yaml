@@ -12,6 +12,11 @@ nowo_contact_form:
       locale_switch: Idioma de la interfaz
     yes: Sí
     no: 'No'
+
+    pagination:
+      summary: "Página %page% de %pages% (%total% elementos)"
+      prev: "Anterior"
+      next: "Siguiente"
     actions:
       edit: Editar
       fields: Campos

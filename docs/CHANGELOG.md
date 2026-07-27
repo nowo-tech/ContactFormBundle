@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-07-27
+
+### Added
+
+- **Flex recipe (REQ-RECIPE-001)**: Complete `.symfony/recipe` with `copy-from-recipe`, routes import, `post-install.txt`, and Flex section in `INSTALLATION.md`.
+- **Admin Web UI (REQ-UI-001 / REQ-UI-002)**: `web_ui` layout/css/icon config, Twig globals, semantic `nowo-ui-*` hooks; `security.access_roles` + `ContactFormAccessCheckerInterface` + admin access subscriber; host firewall guidance.
+- **Pagination (REQ-PERF-001)**: Admin form and submission lists paginated via `web_ui.list_page_size` (default `20`).
+
+### Changed
+
+- **Admin routes**: Path prefix from `admin_route_prefix` via `routes.yaml` (index URL ends with `/`).
+- **Security posture**: Documented bundled admin auth; demo uses `allow_unauthenticated: true` (demo-only).
+- **GitHub About (REQ-DOCS-018)**: Description, Packagist website, and topics set on the repository.
+- **Coverage**: PHP line coverage badge refreshed to **99.45%**.
+
 ## [1.0.8] - 2026-07-24
 
 ### Added

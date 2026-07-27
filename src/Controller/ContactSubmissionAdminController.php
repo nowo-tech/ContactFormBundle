@@ -10,16 +10,20 @@ use Nowo\ContactFormBundle\Entity\ContactSubmission;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Repository\ContactSubmissionRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+use function ceil;
+use function max;
+
 /**
  * Admin controller for viewing and managing contact submissions.
  */
 #[Route(
-    '/admin/contact-forms/{formId}/submissions',
+    '/{formId}/submissions',
     name: 'nowo_contact_form_submissions_',
     requirements: ['formId' => '\d+'],
 )]
@@ -29,17 +33,29 @@ class ContactSubmissionAdminController extends AbstractController
         private readonly ContactFormRepository $formRepository,
         private readonly ContactSubmissionRepository $submissionRepository,
         private readonly TranslatorInterface $translator,
+        private readonly ParameterBagInterface $parameterBag,
     ) {
     }
 
     #[Route('', name: 'index', methods: ['GET'])]
-    public function index(int $formId): Response
+    public function index(int $formId, Request $request): Response
     {
-        $form = $this->getContactForm($formId);
+        $form     = $this->getContactForm($formId);
+        $pageSize = max(1, (int) $this->parameterBag->get('nowo_contact_form.web_ui.list_page_size'));
+        $page     = max(1, $request->query->getInt('page', 1));
+        $total    = $this->submissionRepository->countByForm($form);
+        $pages    = max(1, (int) ceil($total / $pageSize));
+        if ($page > $pages) {
+            $page = $pages;
+        }
 
         return $this->render('@NowoContactFormBundle/admin/submission/index.html.twig', [
             'contactForm' => $form,
-            'submissions' => $this->submissionRepository->findByFormOrdered($form),
+            'submissions' => $this->submissionRepository->findByFormOrderedPage($form, $page, $pageSize),
+            'page'        => $page,
+            'pages'       => $pages,
+            'total'       => $total,
+            'pageSize'    => $pageSize,
         ]);
     }
 

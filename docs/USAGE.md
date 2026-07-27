@@ -2,22 +2,28 @@
 
 ## Admin
 
-- `/admin/contact-forms` — list and CRUD form definitions
+- `/admin/contact-forms/` — list and CRUD form definitions (trailing slash)
 - `/admin/contact-forms/{id}/fields` — manage customizable fields
 - `/admin/contact-forms/{id}/submissions` — view and delete submissions
 
 ### Secure admin routes
 
-The bundle does **not** enforce authentication. In production, restrict admin URLs in your firewall, for example:
+Admin CRUD is protected by the bundle access checker (`security.access_roles`, default `ROLE_ADMIN`) **and** should be locked by the host firewall:
 
 ```yaml
+# config/packages/nowo_contact_form.yaml
+nowo_contact_form:
+    security:
+        access_roles: [ROLE_ADMIN]
+        allow_unauthenticated: false
+
 # config/packages/security.yaml
 security:
     access_control:
         - { path: ^/admin/contact-forms, roles: ROLE_ADMIN }
 ```
 
-Or protect controllers with `#[IsGranted('ROLE_ADMIN')]` in a decorating layer in your application.
+Point `web_ui.layout_template` at your project layout to embed admin pages in host chrome (see [Configuration](CONFIGURATION.md)).
 
 ## Public form
 

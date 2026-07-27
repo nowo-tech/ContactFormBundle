@@ -7,6 +7,9 @@ namespace Nowo\ContactFormBundle\DependencyInjection;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier;
+use Nowo\ContactFormBundle\Security\AllowAllContactFormAccessChecker;
+use Nowo\ContactFormBundle\Security\ConfigurableContactFormAccessChecker;
+use Nowo\ContactFormBundle\Security\ContactFormAccessCheckerInterface;
 use Nowo\ContactFormBundle\Service\ClientLabelResolver;
 use Nowo\ContactFormBundle\Service\ClientResolverInterface;
 use Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface;
@@ -15,12 +18,16 @@ use Nowo\ContactFormBundle\Service\ContactSubmissionProcessor;
 use Nowo\ContactFormBundle\Service\IpAnonymizer;
 use Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
+use Nowo\ContactFormBundle\Twig\ContactFormAdminTwigExtension;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\Mailer\MailerInterface;
+
+use function is_string;
 
 /**
  * Loads bundle configuration and service definitions.
@@ -43,6 +50,17 @@ final class NowoContactFormExtension extends Extension
         $container->setParameter('nowo_contact_form.phone_input', $config['phone_input']);
         $container->setParameter('nowo_contact_form.admin_route_prefix', $config['admin_route_prefix']);
         $container->setParameter('nowo_contact_form.notifications.default_recipient', $config['notifications']['default_recipient']);
+
+        $webUi = $config['web_ui'];
+        $container->setParameter('nowo_contact_form.web_ui.enabled', $webUi['enabled']);
+        $container->setParameter('nowo_contact_form.web_ui.layout_template', $webUi['layout_template']);
+        $container->setParameter('nowo_contact_form.web_ui.css_framework', $webUi['css_framework']);
+        $container->setParameter('nowo_contact_form.web_ui.icon_set', $webUi['icon_set']);
+        $container->setParameter('nowo_contact_form.web_ui.list_page_size', $webUi['list_page_size']);
+
+        $security = $config['security'];
+        $container->setParameter('nowo_contact_form.security.access_roles', $security['access_roles']);
+        $container->setParameter('nowo_contact_form.security.allow_unauthenticated', $security['allow_unauthenticated']);
 
         $container->register(IpAnonymizer::class)
             ->setAutowired(false)
@@ -76,9 +94,53 @@ final class NowoContactFormExtension extends Extension
         $container->getDefinition(ContactSubmissionProcessor::class)
             ->setArgument('$defaultNotificationRecipient', $config['notifications']['default_recipient']);
 
+        if ($container->hasDefinition(ContactFormAdminTwigExtension::class)) {
+            $container->getDefinition(ContactFormAdminTwigExtension::class)
+                ->setArgument('$layoutTemplate', $webUi['layout_template'])
+                ->setArgument('$cssFramework', $webUi['css_framework'])
+                ->setArgument('$iconSet', $webUi['icon_set']);
+        }
+
+        $this->registerAccessChecker($container, $security);
         $this->registerNotifier($container, $config);
         $this->registerFileUploadHandler($container, $config);
         $this->registerSubmissionRateLimiter($container, $config);
+    }
+
+    /**
+     * @param array{access_checker: ?string, access_roles: list<string>, allow_unauthenticated: bool} $security
+     */
+    private function registerAccessChecker(ContainerBuilder $container, array $security): void
+    {
+        $accessCheckerId = $security['access_checker'] ?? null;
+        if (is_string($accessCheckerId) && $accessCheckerId !== '') {
+            $container->setAlias(ContactFormAccessCheckerInterface::class, $accessCheckerId);
+
+            return;
+        }
+
+        $hasAuthorizationChecker = $container->hasDefinition('security.authorization_checker')
+            || $container->hasAlias('security.authorization_checker');
+
+        if ($security['allow_unauthenticated'] && !$hasAuthorizationChecker) {
+            $accessCheckerId = 'nowo_contact_form.access_checker.allow_all';
+            $container->setDefinition($accessCheckerId, new Definition(AllowAllContactFormAccessChecker::class));
+            $container->setAlias(ContactFormAccessCheckerInterface::class, $accessCheckerId);
+
+            return;
+        }
+
+        $accessCheckerId = 'nowo_contact_form.access_checker.default';
+        $definition      = new Definition(ConfigurableContactFormAccessChecker::class);
+        $definition->setArgument('$accessRoles', $security['access_roles']);
+        if ($hasAuthorizationChecker) {
+            $definition->setArgument('$authorizationChecker', new Reference('security.authorization_checker'));
+        } else {
+            // Placeholder until SecurityBundle registers the checker; SecurityPass fails compile if still missing.
+            $definition->setAutowired(true);
+        }
+        $container->setDefinition($accessCheckerId, $definition);
+        $container->setAlias(ContactFormAccessCheckerInterface::class, $accessCheckerId);
     }
 
     /**

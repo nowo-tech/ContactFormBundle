@@ -18,9 +18,11 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Translation\LocaleSwitcher;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+use function ceil;
 use function in_array;
 use function is_array;
 use function is_string;
+use function max;
 
 use const PHP_URL_HOST;
 use const PHP_URL_PATH;
@@ -29,11 +31,9 @@ use const PHP_URL_QUERY;
 /**
  * Admin CRUD controller for contact form definitions.
  */
-#[Route('/admin/contact-forms', name: 'nowo_contact_form_admin_')]
+#[Route('', name: 'nowo_contact_form_admin_')]
 class ContactFormAdminController extends AbstractController
 {
-    private const ADMIN_PATH_PREFIX = '/admin/contact-forms';
-
     public function __construct(
         private readonly ContactFormRepository $formRepository,
         private readonly TranslatorInterface $translator,
@@ -44,10 +44,22 @@ class ContactFormAdminController extends AbstractController
     }
 
     #[Route('', name: 'index', methods: ['GET'])]
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $pageSize = max(1, (int) $this->parameterBag->get('nowo_contact_form.web_ui.list_page_size'));
+        $page     = max(1, $request->query->getInt('page', 1));
+        $total    = $this->formRepository->count([]);
+        $pages    = max(1, (int) ceil($total / $pageSize));
+        if ($page > $pages) {
+            $page = $pages;
+        }
+
         return $this->render('@NowoContactFormBundle/admin/form/index.html.twig', [
-            'forms' => $this->formRepository->findBy([], ['name' => 'ASC']),
+            'forms'    => $this->formRepository->findOrderedPage($page, $pageSize),
+            'page'     => $page,
+            'pages'    => $pages,
+            'total'    => $total,
+            'pageSize' => $pageSize,
         ]);
     }
 
@@ -209,7 +221,8 @@ class ContactFormAdminController extends AbstractController
 
         $refererPath = parse_url($referer, PHP_URL_PATH);
 
-        if (!is_string($refererPath) || !str_starts_with($refererPath, self::ADMIN_PATH_PREFIX)) {
+        $adminPrefix = $this->parameterBag->get('nowo_contact_form.admin_route_prefix');
+        if (!is_string($adminPrefix) || !is_string($refererPath) || !str_starts_with($refererPath, $adminPrefix)) {
             return null;
         }
 

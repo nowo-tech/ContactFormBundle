@@ -29,7 +29,7 @@ final class ContactFormAdminControllerTest extends IntegrationTestCase
         $em->persist($form);
         $em->flush();
 
-        $client->request('GET', '/admin/contact-forms');
+        $client->request('GET', '/admin/contact-forms/');
 
         self::assertResponseIsSuccessful();
         self::assertStringContainsString('Demo', (string) $client->getResponse()->getContent());

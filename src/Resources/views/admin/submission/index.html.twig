@@ -1,4 +1,4 @@
-{% extends '@NowoContactFormBundle/admin/layout.html.twig' %}
+{% extends nowo_contact_form_layout_template|default('@NowoContactFormBundle/admin/layout.html.twig') %}
 
 {% block title %}{{ 'nowo_contact_form.admin.submission.index_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
 
@@ -32,7 +32,7 @@
                             </td>
                             <td><span class="badge text-bg-light border">{{ submission.locale }}</span></td>
                             <td class="text-end">
-                                <a href="{{ path('nowo_contact_form_submissions_show', { formId: contactForm.id, id: submission.id }) }}" class="btn btn-sm btn-outline-primary">
+                                <a href="{{ path('nowo_contact_form_submissions_show', { formId: contactForm.id, id: submission.id }) }}" class="btn btn-sm btn-outline-primary nowo-ui-action-view">
                                     {{ 'nowo_contact_form.admin.actions.view'|trans({}, 'NowoContactFormBundle') }}
                                 </a>
                             </td>
@@ -48,6 +48,8 @@
             </table>
         </div>
     </div>
+
+    {% include '@NowoContactFormBundle/admin/_pagination.html.twig' %}
 
     <a href="{{ path('nowo_contact_form_admin_index') }}" class="btn btn-outline-secondary">
         {{ 'nowo_contact_form.admin.back'|trans({}, 'NowoContactFormBundle') }}

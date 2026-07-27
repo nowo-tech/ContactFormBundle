@@ -1,4 +1,8 @@
 nowo_contact_form:
+    # DEMO ONLY — production hosts must keep allow_unauthenticated: false and protect the admin prefix.
+    security:
+        allow_unauthenticated: true
+        access_roles: [ROLE_ADMIN]
     file_upload:
         service: App\Service\DemoContactFormFileUploadHandler
     notifications:

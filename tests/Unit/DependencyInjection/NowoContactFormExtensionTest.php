@@ -8,6 +8,8 @@ use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier;
+use Nowo\ContactFormBundle\Security\AllowAllContactFormAccessChecker;
+use Nowo\ContactFormBundle\Security\ContactFormAccessCheckerInterface;
 use Nowo\ContactFormBundle\Service\ClientResolverInterface;
 use Nowo\ContactFormBundle\Service\IpAnonymizer;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
@@ -54,6 +56,47 @@ final class NowoContactFormExtensionTest extends TestCase
         self::assertSame(
             SecurityClientResolver::class,
             (string) $container->getAlias(ClientResolverInterface::class),
+        );
+        self::assertTrue($container->hasParameter('nowo_contact_form.web_ui.layout_template'));
+        self::assertSame(['ROLE_ADMIN'], $container->getParameter('nowo_contact_form.security.access_roles'));
+    }
+
+    public function testLoadRegistersAllowAllAccessCheckerWithoutSecurity(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new NowoContactFormExtension();
+        $extension->load([array_merge($this->baseConfig(), [
+            'security' => [
+                'access_roles'          => ['ROLE_ADMIN'],
+                'access_checker'        => null,
+                'allow_unauthenticated' => true,
+            ],
+        ])], $container);
+
+        self::assertTrue($container->hasAlias(ContactFormAccessCheckerInterface::class));
+        self::assertSame(
+            'nowo_contact_form.access_checker.allow_all',
+            (string) $container->getAlias(ContactFormAccessCheckerInterface::class),
+        );
+    }
+
+    public function testLoadUsesCustomAccessCheckerService(): void
+    {
+        $container = new ContainerBuilder();
+        $container->register('app.access_checker', AllowAllContactFormAccessChecker::class);
+
+        $extension = new NowoContactFormExtension();
+        $extension->load([array_merge($this->baseConfig(), [
+            'security' => [
+                'access_roles'          => ['ROLE_ADMIN'],
+                'access_checker'        => 'app.access_checker',
+                'allow_unauthenticated' => false,
+            ],
+        ])], $container);
+
+        self::assertSame(
+            'app.access_checker',
+            (string) $container->getAlias(ContactFormAccessCheckerInterface::class),
         );
     }
 

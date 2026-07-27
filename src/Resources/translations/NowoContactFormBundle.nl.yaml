@@ -12,6 +12,11 @@ nowo_contact_form:
       locale_switch: Taal van de interface
     yes: Ja
     no: 'Nee'
+
+    pagination:
+      summary: "Pagina %page% van %pages% (%total% items)"
+      prev: "Vorige"
+      next: "Volgende"
     actions:
       edit: Bewerken
       fields: Velden

@@ -1,0 +1,2 @@
+nowo_contact_form:
+    resource: '@NowoContactFormBundle/Resources/config/routes.yaml'

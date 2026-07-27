@@ -30,7 +30,7 @@ use function sprintf;
  * Admin CRUD controller for customizable contact form fields.
  */
 #[Route(
-    '/admin/contact-forms/{formId}/fields',
+    '/{formId}/fields',
     name: 'nowo_contact_form_fields_',
     requirements: ['formId' => '\d+'],
 )]

@@ -73,7 +73,10 @@ final class TestKernel extends Kernel
         ]);
         $container->loadFromExtension('nowo_contact_form', [
             'notifications' => ['enabled' => false],
-            'phone_input'   => [
+            'security'      => [
+                'allow_unauthenticated' => true,
+            ],
+            'phone_input' => [
                 'value_format'            => 'CONCATENATED',
                 'default_country'         => 'ES',
                 'country_prefix_selector' => true,

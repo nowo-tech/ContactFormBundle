@@ -1,18 +1,18 @@
-{% extends '@NowoContactFormBundle/admin/layout.html.twig' %}
+{% extends nowo_contact_form_layout_template|default('@NowoContactFormBundle/admin/layout.html.twig') %}
 
 {% block title %}{{ 'nowo_contact_form.admin.form.index_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
 
 {% block content %}
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div class="nowo-ui-page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <h1 class="h2 mb-0">{{ 'nowo_contact_form.admin.form.index_title'|trans({}, 'NowoContactFormBundle') }}</h1>
-        <a href="{{ path('nowo_contact_form_admin_new') }}" class="btn btn-primary">
+        <a href="{{ path('nowo_contact_form_admin_new') }}" class="btn btn-primary nowo-ui-action-create">
             {{ 'nowo_contact_form.admin.form.new'|trans({}, 'NowoContactFormBundle') }}
         </a>
     </div>
 
-    <div class="card shadow-sm">
+    <div class="nowo-ui-table-wrap card shadow-sm">
         <div class="table-responsive">
-            <table class="table table-striped table-hover mb-0 align-middle">
+            <table class="table table-striped table-hover mb-0 align-middle nowo-ui-table">
                 <thead class="table-light">
                     <tr>
                         <th>{{ 'nowo_contact_form.admin.form.columns.name'|trans({}, 'NowoContactFormBundle') }}</th>
@@ -35,7 +35,7 @@
                             </td>
                             <td class="text-end">
                                 <div class="btn-group btn-group-sm" role="group">
-                                    <a href="{{ path('nowo_contact_form_admin_edit', { id: contactForm.id }) }}" class="btn btn-outline-primary">
+                                    <a href="{{ path('nowo_contact_form_admin_edit', { id: contactForm.id }) }}" class="btn btn-outline-primary nowo-ui-action-edit">
                                         {{ 'nowo_contact_form.admin.actions.edit'|trans({}, 'NowoContactFormBundle') }}
                                     </a>
                                     <a href="{{ path('nowo_contact_form_fields_index', { formId: contactForm.id }) }}" class="btn btn-outline-secondary">
@@ -58,4 +58,6 @@
             </table>
         </div>
     </div>
+
+    {% include '@NowoContactFormBundle/admin/_pagination.html.twig' %}
 {% endblock %}

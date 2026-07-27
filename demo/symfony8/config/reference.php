@@ -969,7 +969,19 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         country_prefix_selector?: bool|Param, // Enable the country prefix selector on PhoneInputBundle fields. // Default: true
  *         show_flag?: bool|Param, // Show country flags in PhoneInputBundle prefix selector. // Default: true
  *     },
- *     admin_route_prefix?: scalar|Param|null, // URL prefix for bundle admin CRUD routes. // Default: "/admin/contact-forms"
+ *     admin_route_prefix?: scalar|Param|null, // URL path prefix for admin CRUD routes (host should lock with security.access_control). // Default: "/admin/contact-forms"
+ *     web_ui?: array{
+ *         enabled?: bool|Param, // When false, admin access subscriber is not registered (routes still load; prefer security firewall). // Default: true
+ *         layout_template?: scalar|Param|null, // Twig layout extended by admin pages (global nowo_contact_form_layout_template). Set to your app layout or a one-file bridge. // Default: "@NowoContactFormBundle/admin/layout.html.twig"
+ *         css_framework?: "bootstrap"|"bootstrap4"|"bootstrap5"|"tailwind"|"foundation"|"custom"|"tabler"|"none"|Param, // Host CSS stack hint: bootstrap5 | bootstrap4 | bootstrap | tailwind | foundation | tabler | custom | none. // Default: "bootstrap5"
+ *         icon_set?: "bootstrap-icons"|"tabler-icons"|"ux_icon"|"svg_inline"|"none"|Param, // Default: "bootstrap-icons"
+ *         list_page_size?: int|Param, // Default page size for admin form and submission lists. // Default: 20
+ *     },
+ *     security?: array{
+ *         access_checker?: scalar|Param|null, // Optional service id implementing ContactFormAccessCheckerInterface. // Default: null
+ *         access_roles?: list<scalar|Param|null>,
+ *         allow_unauthenticated?: bool|Param, // DEV/DEMO ONLY. When true, admin UI may load without SecurityBundle / without login. Production MUST keep false. // Default: false
+ *     },
  *     notifications?: array{
  *         enabled?: bool|Param, // Enable submission notifications via ContactSubmissionNotifierInterface. // Default: false
  *         service?: scalar|Param|null, // Custom service id implementing ContactSubmissionNotifierInterface (overrides built-in notifiers). // Default: null

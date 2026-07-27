@@ -21,6 +21,11 @@ final class ConfigurationTest extends TestCase
         self::assertSame('email', $config['client_label_property']);
         self::assertSame(365, $config['default_retention_days']);
         self::assertSame('/admin/contact-forms', $config['admin_route_prefix']);
+        self::assertTrue($config['web_ui']['enabled']);
+        self::assertSame('bootstrap5', $config['web_ui']['css_framework']);
+        self::assertSame(20, $config['web_ui']['list_page_size']);
+        self::assertSame(['ROLE_ADMIN'], $config['security']['access_roles']);
+        self::assertFalse($config['security']['allow_unauthenticated']);
         self::assertFalse($config['notifications']['enabled']);
         self::assertFalse($config['notifications']['mailer']['enabled']);
     }

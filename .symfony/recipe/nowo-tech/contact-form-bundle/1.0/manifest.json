@@ -1,1 +1,8 @@
-{"bundles":{"Nowo\\ContactFormBundle\\NowoContactFormBundle":["all"]}}
+{
+    "bundles": {
+        "Nowo\\ContactFormBundle\\NowoContactFormBundle": ["all"]
+    },
+    "copy-from-recipe": {
+        "config/": "%CONFIG_DIR%/"
+    }
+}

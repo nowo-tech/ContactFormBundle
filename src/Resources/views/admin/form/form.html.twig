@@ -1,4 +1,4 @@
-{% extends '@NowoContactFormBundle/admin/layout.html.twig' %}
+{% extends nowo_contact_form_layout_template|default('@NowoContactFormBundle/admin/layout.html.twig') %}
 
 {% block title %}{{ isNew ? 'nowo_contact_form.admin.form.new_title'|trans({}, 'NowoContactFormBundle') : 'nowo_contact_form.admin.form.edit_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
 

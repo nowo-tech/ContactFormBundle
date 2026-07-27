@@ -11,6 +11,8 @@ services:
             - '../../NowoContactFormBundle.php'
             - '../../Notification/MailerContactSubmissionNotifier.php'
             - '../../Service/ContactFormSubmissionRateLimiter.php'
+            - '../../Security/'
+            - '../../EventSubscriber/ContactFormAdminAccessSubscriber.php'
 
     Nowo\ContactFormBundle\Controller\:
         resource: '../../Controller/'

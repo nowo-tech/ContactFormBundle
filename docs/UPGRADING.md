@@ -2,6 +2,20 @@
 
 This document describes how to upgrade between versions of Contact Form Bundle.
 
+## Unreleased
+
+## 1.0.9 (2026-07-27)
+
+Additive configuration for admin Web UI security and layout (backward compatible defaults).
+
+- **New config**: `web_ui.*` (`layout_template`, `css_framework`, `icon_set`, `list_page_size`) and `security.*` (`access_roles`, `access_checker`, `allow_unauthenticated`).
+- **Admin access**: By default admin routes require `ROLE_ADMIN` via `ContactFormAccessCheckerInterface`. Hosts without `symfony/security-bundle` must set `security.allow_unauthenticated: true` (demo/dev only) or install SecurityBundle. Production hosts should keep `allow_unauthenticated: false` and add `access_control` for `admin_route_prefix`.
+- **Admin lists**: Forms and submissions indexes are paginated (`web_ui.list_page_size`, default `20`).
+- **Twig**: Admin pages extend `nowo_contact_form_layout_template`. Override `web_ui.layout_template` to use your app layout (or a one-file bridge).
+- **Admin index URL**: Canonical path is `/admin/contact-forms/` (trailing slash). Requests without the slash may 301 to the slash form.
+- **Flex recipe**: Documented under `.symfony/recipe`; see [INSTALLATION.md](INSTALLATION.md).
+- **Otherwise**: No schema changes; existing form/field/submission data is unchanged.
+
 ## 1.0.8 (2026-07-24)
 
 No breaking changes for application installs.

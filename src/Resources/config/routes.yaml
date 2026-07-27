@@ -1,3 +1,22 @@
-nowo_contact_form_controllers:
-    resource: '../../Controller/'
+nowo_contact_form_admin:
+    resource: '../../Controller/ContactFormAdminController.php'
+    type: attribute
+    prefix: '%nowo_contact_form.admin_route_prefix%'
+
+nowo_contact_form_fields:
+    resource: '../../Controller/ContactFormFieldAdminController.php'
+    type: attribute
+    prefix: '%nowo_contact_form.admin_route_prefix%'
+
+nowo_contact_form_submissions:
+    resource: '../../Controller/ContactSubmissionAdminController.php'
+    type: attribute
+    prefix: '%nowo_contact_form.admin_route_prefix%'
+
+nowo_contact_form_public:
+    resource: '../../Controller/ContactFormPublicController.php'
+    type: attribute
+
+nowo_contact_form_public_legacy:
+    resource: '../../Controller/ContactFormPublicLegacyController.php'
     type: attribute

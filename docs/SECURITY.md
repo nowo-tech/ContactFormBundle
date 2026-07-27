@@ -12,7 +12,7 @@ The bundle provides:
 - **Optional notifications** via `ContactSubmissionNotifierInterface`, Symfony Mailer, or `ContactSubmissionCreatedEvent`.
 - **Retention cleanup** via `nowo:contact-form:cleanup-submissions`.
 
-The bundle does **not** ship authentication or authorization for admin routes; the host application must protect them.
+The bundle ships a **default admin access checker** (`security.access_roles`, default `ROLE_ADMIN`) enforced on admin routes. The host application must still protect the admin path with a firewall / `access_control`. Set `security.allow_unauthenticated: true` only in demos.
 
 ## Attack surface
 
@@ -30,7 +30,7 @@ The bundle does **not** ship authentication or authorization for admin routes; t
 ### Unprotected admin routes
 
 - **Risk**: Anyone can create, edit, or delete forms and view submissions if admin URLs are public.
-- **Mitigation**: Restrict `/admin/contact-forms/**` in the host firewall (roles, VPN, IP allowlist). See [`USAGE.md`](USAGE.md).
+- **Mitigation**: Bundle-level `ContactFormAccessCheckerInterface` (default roles from `security.access_roles`) plus host `access_control` on `admin_route_prefix` (default `/admin/contact-forms/**`). Keep `security.allow_unauthenticated: false` in production. See [`CONFIGURATION.md`](CONFIGURATION.md) and [`USAGE.md`](USAGE.md).
 
 ### Spam and abuse on public forms
 
