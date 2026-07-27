@@ -6,9 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.10] - 2026-07-27
+
 ### Added
 
 - **Tooling (REQ-REL-003 / REQ-MAKE-002)**: `make check-open-prs` (`.scripts/check-open-prs.sh`) is part of `release-check` and fails when unresolved open GitHub PRs remain.
+
+### Changed
+
+- **CI**: `actions/checkout` bumped from v6 to v7 (#9).
+- **Docs**: `RELEASE.md` documents the open-PR gate before tagging.
 
 ## [1.0.9] - 2026-07-27
 

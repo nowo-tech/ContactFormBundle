@@ -4,6 +4,13 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 
 ## Unreleased
 
+## 1.0.10 (2026-07-27)
+
+No breaking changes for application installs.
+
+- **Application installs**: No action required. Package API and configuration are unchanged.
+- **Contributors / maintainers**: `make release-check` now runs `check-open-prs` (REQ-REL-003). Resolve or hold open GitHub PRs before tagging. See [RELEASE.md](RELEASE.md).
+
 ## 1.0.9 (2026-07-27)
 
 Additive configuration for admin Web UI security and layout (backward compatible defaults).
