@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Tooling (REQ-REL-003 / REQ-MAKE-002)**: `make check-open-prs` (`.scripts/check-open-prs.sh`) is part of `release-check` and fails when unresolved open GitHub PRs remain.
+
 ## [1.0.9] - 2026-07-27
 
 ### Added

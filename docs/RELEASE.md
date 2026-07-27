@@ -12,7 +12,8 @@ Use this checklist when cutting a new version. The workflow [.github/workflows/r
    - Add or update upgrade notes for the new version if there are breaking or notable changes.
 
 3. **Run release-check**
-   - From the bundle root: `make release-check` (validates composer, runs cs-fix, cs-check, rector-dry, phpstan, test-coverage, and demo `release-verify` HTTP smoke).
+   - From the bundle root: `make release-check` (validates composer, fails on unresolved open PRs via `check-open-prs` / REQ-REL-003, runs cs-fix, cs-check, rector-dry, phpstan, test-coverage, and demo `release-verify` HTTP smoke).
+   - Before tagging, `gh pr list --state open` must be empty (or only valid `hold` / `do-not-merge` exceptions with a future `review-by: YYYY-MM-DD`).
 
 4. **Commit**
    - Commit `docs/CHANGELOG.md`, `docs/UPGRADING.md` and any other release-related changes.

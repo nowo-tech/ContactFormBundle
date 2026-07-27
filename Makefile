@@ -1,5 +1,5 @@
 # Contact Form Bundle - Development
-.PHONY: help up down down-dev build shell install test test-coverage coverage-check cs-check cs-fix qa clean ensure-up rector rector-dry phpstan release-check release-check-demos composer-sync update validate validate-translations check-no-cursor-coauthor strip-cursor-coauthor-from-history
+.PHONY: help up down down-dev build shell install test test-coverage coverage-check cs-check cs-fix qa clean ensure-up rector rector-dry phpstan release-check release-check-demos composer-sync update validate validate-translations check-no-cursor-coauthor check-open-prs strip-cursor-coauthor-from-history
 
 COMPOSE_FILE ?= docker-compose.yml
 COMPOSE     ?= docker compose -f $(COMPOSE_FILE)
@@ -18,7 +18,8 @@ help:
 	@echo "  rector / rector-dry  Rector"
 	@echo "  phpstan         Static analysis"
 	@echo "  qa              cs-check + test"
-	@echo "  release-check   Pre-release checks"
+	@echo "  release-check   Pre-release: check-open-prs, cs-fix, cs-check, rector-dry, phpstan, coverage-check, demos"
+	@echo "  check-open-prs  Fail if unresolved open GitHub PRs remain (REQ-REL-003)"
 	@echo ""
 	@echo "Demo: make -C demo/symfony8"
 
@@ -88,7 +89,7 @@ composer-sync: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer validate --strict
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer update --no-install
 
-release-check: check-no-cursor-coauthor ensure-up composer-sync cs-fix cs-check rector-dry phpstan coverage-check release-check-demos
+release-check: check-no-cursor-coauthor check-open-prs ensure-up composer-sync cs-fix cs-check rector-dry phpstan coverage-check release-check-demos
 
 release-check-demos:
 	@$(MAKE) -C demo release-check
@@ -107,6 +108,11 @@ include $(BUNDLE_ROOT)/../.scripts/Makefile.update-deps.mk
 check-no-cursor-coauthor:
 	@chmod +x .scripts/check-no-cursor-coauthor.sh
 	@./.scripts/check-no-cursor-coauthor.sh HEAD
+
+check-open-prs:
+	@chmod +x .scripts/check-open-prs.sh
+	@bash .scripts/check-open-prs.sh
+
 setup-hooks:
 	@chmod +x .githooks/pre-commit 2>/dev/null || true
 	@chmod +x .githooks/commit-msg 2>/dev/null || true
