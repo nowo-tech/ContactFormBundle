@@ -2,6 +2,25 @@
 
 This document describes the **attack surface**, **threats**, and **controls** for `nowo-tech/contact-form-bundle`. It is written in English per project standards.
 
+## Table of contents
+
+- [Scope](#scope)
+- [Attack surface](#attack-surface)
+- [Threats and mitigations](#threats-and-mitigations)
+  - [Unprotected admin routes](#unprotected-admin-routes)
+  - [Spam and abuse on public forms](#spam-and-abuse-on-public-forms)
+  - [Personal data (PII) storage](#personal-data-pii-storage)
+  - [IP address processing](#ip-address-processing)
+  - [Cross-site request forgery (public forms)](#cross-site-request-forgery-public-forms)
+  - [Cross-site scripting (Twig output)](#cross-site-scripting-twig-output)
+  - [Notification content leakage](#notification-content-leakage)
+  - [Dependency vulnerabilities](#dependency-vulnerabilities)
+- [Logging and secrets](#logging-and-secrets)
+- [Cryptography](#cryptography)
+- [Reporting](#reporting)
+- [Release security checklist (12.4.1)](#release-security-checklist-1241)
+- [AI security audit](#ai-security-audit)
+
 ## Scope
 
 The bundle provides:
@@ -91,3 +110,15 @@ Before each tagged release, maintainers confirm (tick in the release PR or tag n
 | No sensitive submission data in logs | ☐ |
 | Retention command documented for production cron | ☐ |
 | Rate limiting / spam mitigation considered for public endpoints | ☐ |
+
+## AI security audit
+
+| Field | Value |
+| --- | --- |
+| Grade | **Pass (conditional)** |
+| Risk | **Medium** |
+| Date | 2026-07-28 |
+| Method | Nowo monorepo static re-review |
+| Residual | Consent `label_html` after `ContactFormRichTextSanitizer`; demo `allow_unauthenticated` must stay off in production |
+
+Recorded in the Nowo monorepo `BUNDLES_SECURITY_ANALYSIS.md`.

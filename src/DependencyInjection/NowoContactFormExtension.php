@@ -19,6 +19,8 @@ use Nowo\ContactFormBundle\Service\IpAnonymizer;
 use Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
 use Nowo\ContactFormBundle\Twig\ContactFormAdminTwigExtension;
+use Psr\Clock\ClockInterface;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -41,6 +43,13 @@ final class NowoContactFormExtension extends Extension
 
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yaml');
+
+        if (!$container->has('clock')) {
+            $container->register('clock', NativeClock::class);
+        }
+        if (!$container->hasAlias(ClockInterface::class) && !$container->hasDefinition(ClockInterface::class)) {
+            $container->setAlias(ClockInterface::class, 'clock');
+        }
 
         $container->setParameter('nowo_contact_form.client_entity_class', $config['client_entity_class']);
         $container->setParameter('nowo_contact_form.client_label_property', $config['client_label_property']);
@@ -92,6 +101,7 @@ final class NowoContactFormExtension extends Extension
         $container->setAlias(ClientResolverInterface::class, SecurityClientResolver::class);
 
         $container->getDefinition(ContactSubmissionProcessor::class)
+            ->setArgument('$clock', new Reference('clock'))
             ->setArgument('$defaultNotificationRecipient', $config['notifications']['default_recipient']);
 
         if ($container->hasDefinition(ContactFormAdminTwigExtension::class)) {
@@ -159,6 +169,7 @@ final class NowoContactFormExtension extends Extension
                 $container->has('cache.app') ? new Reference('cache.app') : null,
                 $limit,
                 $interval,
+                new Reference('clock'),
             ]);
     }
 

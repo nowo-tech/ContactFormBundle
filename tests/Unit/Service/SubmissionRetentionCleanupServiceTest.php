@@ -12,6 +12,7 @@ use Nowo\ContactFormBundle\Repository\ContactSubmissionRepository;
 use Nowo\ContactFormBundle\Service\SubmissionRetentionCleanupService;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Clock\MockClock;
 
 #[CoversClass(SubmissionRetentionCleanupService::class)]
 final class SubmissionRetentionCleanupServiceTest extends TestCase
@@ -35,6 +36,7 @@ final class SubmissionRetentionCleanupServiceTest extends TestCase
             $formRepository,
             $submissionRepository,
             $entityManager,
+            new MockClock(),
         );
 
         self::assertSame(2, $service->cleanup(true));
@@ -60,6 +62,7 @@ final class SubmissionRetentionCleanupServiceTest extends TestCase
             $formRepository,
             $submissionRepository,
             $entityManager,
+            new MockClock(),
         );
 
         self::assertSame(1, $service->cleanup(false));
@@ -81,6 +84,7 @@ final class SubmissionRetentionCleanupServiceTest extends TestCase
             $formRepository,
             $submissionRepository,
             $this->createMock(EntityManagerInterface::class),
+            new MockClock(),
         );
 
         self::assertSame([1, 2], $service->collectExpiredSubmissionIds());

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\Service;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Repository\ContactSubmissionRepository;
+use Psr\Clock\ClockInterface;
 
 use function count;
 
@@ -20,6 +20,7 @@ final readonly class SubmissionRetentionCleanupService
         private ContactFormRepository $formRepository,
         private ContactSubmissionRepository $submissionRepository,
         private EntityManagerInterface $entityManager,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -31,7 +32,7 @@ final readonly class SubmissionRetentionCleanupService
         $ids = [];
 
         foreach ($this->formRepository->findAll() as $form) {
-            $threshold = new DateTimeImmutable('-' . $form->getRetentionDays() . ' days');
+            $threshold = $this->clock->now()->modify('-' . $form->getRetentionDays() . ' days');
             $ids       = array_merge(
                 $ids,
                 $this->submissionRepository->findExpiredIdsByForm($form, $threshold),

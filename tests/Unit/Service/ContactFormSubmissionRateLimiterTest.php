@@ -8,6 +8,7 @@ use Nowo\ContactFormBundle\Service\ContactFormSubmissionRateLimiter;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
@@ -17,7 +18,7 @@ final class ContactFormSubmissionRateLimiterTest extends TestCase
     public function testConsumeIsNoOpWhenLimitOrIntervalIsZero(): void
     {
         $cache   = new ArrayAdapter();
-        $limiter = new ContactFormSubmissionRateLimiter($cache, 0, 60);
+        $limiter = new ContactFormSubmissionRateLimiter($cache, 0, 60, new MockClock());
 
         $limiter->consume(Request::create('/'), 'contact');
 
@@ -28,7 +29,7 @@ final class ContactFormSubmissionRateLimiterTest extends TestCase
     {
         $this->expectNotToPerformAssertions();
 
-        $limiter = new ContactFormSubmissionRateLimiter(null, 5, 60);
+        $limiter = new ContactFormSubmissionRateLimiter(null, 5, 60, new MockClock());
 
         $limiter->consume(Request::create('/'), 'contact');
     }
@@ -36,7 +37,7 @@ final class ContactFormSubmissionRateLimiterTest extends TestCase
     public function testConsumeTracksSubmissionsAndThrowsWhenLimitExceeded(): void
     {
         $cache   = new ArrayAdapter();
-        $limiter = new ContactFormSubmissionRateLimiter($cache, 2, 60);
+        $limiter = new ContactFormSubmissionRateLimiter($cache, 2, 60, new MockClock());
         $request = Request::create('/', 'POST', [], [], [], ['REMOTE_ADDR' => '203.0.113.10']);
 
         $limiter->consume($request, 'support');
@@ -52,13 +53,14 @@ final class ContactFormSubmissionRateLimiterTest extends TestCase
     {
         $this->expectNotToPerformAssertions();
 
+        $clock   = new MockClock();
         $cache   = new ArrayAdapter();
-        $limiter = new ContactFormSubmissionRateLimiter($cache, 1, 1);
+        $limiter = new ContactFormSubmissionRateLimiter($cache, 1, 1, $clock);
         $request = Request::create('/', 'POST', [], [], [], ['REMOTE_ADDR' => '203.0.113.11']);
 
         $limiter->consume($request, 'contact');
 
-        sleep(2);
+        $clock->sleep(2);
 
         $limiter->consume($request, 'contact');
     }
@@ -68,7 +70,7 @@ final class ContactFormSubmissionRateLimiterTest extends TestCase
         $this->expectNotToPerformAssertions();
 
         $cache   = new ArrayAdapter();
-        $limiter = new ContactFormSubmissionRateLimiter($cache, 5, 60);
+        $limiter = new ContactFormSubmissionRateLimiter($cache, 5, 60, new MockClock());
         $request = Request::create('/');
 
         $limiter->consume($request, 'contact');

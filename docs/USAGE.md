@@ -1,5 +1,14 @@
 # Usage
 
+## Table of contents
+
+- [Admin](#admin)
+  - [Secure admin routes](#secure-admin-routes)
+- [Public form](#public-form)
+- [Custom notification (Slack, API, etc.)](#custom-notification-slack-api-etc)
+- [Mailer notifications](#mailer-notifications)
+- [Overrides](#overrides)
+
 ## Admin
 
 - `/admin/contact-forms/` — list and CRUD form definitions (trailing slash)

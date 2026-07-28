@@ -46,6 +46,7 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 - **FR-BUNDLE-001**: `NowoContactFormBundle` alias `nowo_contact_form`.
 - **FR-CFG-001**: `Configuration` — admin, public routes, retention, rate limit, notifications, phone widgets.
 - **FR-CFG-002**: `NowoContactFormExtension`, `TwigPathsPass`.
+- **FR-SEC-001**: Admin access checker interface + configurable/allow-all implementations; `ContactFormSecurityPass`; `ContactFormAdminAccessSubscriber` enforces roles on admin CRUD (demo may use allow-all).
 
 ### Entities & repositories
 

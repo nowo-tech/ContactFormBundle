@@ -2,7 +2,33 @@
 
 This document describes how to upgrade between versions of Contact Form Bundle.
 
+## Table of contents
+
+- [Unreleased](#unreleased)
+- [1.0.11 (2026-07-28)](#1011-2026-07-28)
+- [1.0.10 (2026-07-27)](#1010-2026-07-27)
+- [1.0.9 (2026-07-27)](#109-2026-07-27)
+- [1.0.8 (2026-07-24)](#108-2026-07-24)
+- [1.0.7 (2026-07-22)](#107-2026-07-22)
+- [1.0.6 (2026-07-22)](#106-2026-07-22)
+- [1.0.5 (2026-07-20)](#105-2026-07-20)
+- [1.0.4 (2026-07-20)](#104-2026-07-20)
+- [1.0.3 (2026-07-20)](#103-2026-07-20)
+- [1.0.2 (2026-07-13)](#102-2026-07-13)
+- [1.0.1 (2026-07-13)](#101-2026-07-13)
+- [1.0.0 (2026-07-13)](#100-2026-07-13)
+  - [Fresh install checklist](#fresh-install-checklist)
+  - [Optional integrations](#optional-integrations)
+- [Unreleased / 1.x](#unreleased-1x)
+
 ## Unreleased
+
+## 1.0.11 (2026-07-28)
+
+No schema changes. Backward compatible for typical DI installs.
+
+- **Application installs**: Prefer pulling this release so admin/time-sensitive services receive `Psr\Clock\ClockInterface` (usually auto-wired as `symfony/clock`). If you instantiate `ContactSubmissionProcessor`, `ContactFormSubmissionRateLimiter`, or `SubmissionRetentionCleanupService` manually, pass a clock implementation.
+- **Contributors**: PHPUnit / CI fail on direct Symfony deprecations (`SYMFONY_DEPRECATIONS_HELPER=max[direct]=0`). Coverage exclusions are documented in [COVERAGE.md](COVERAGE.md).
 
 ## 1.0.10 (2026-07-27)
 

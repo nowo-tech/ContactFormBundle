@@ -55,6 +55,7 @@ Run Doctrine migrations after mapping entities (bundle registers ORM mappings au
 - [Upgrading](docs/UPGRADING.md)
 - [Release](docs/RELEASE.md)
 - [Security](docs/SECURITY.md)
+- [Coverage policy](docs/COVERAGE.md)
 - [Engram](docs/ENGRAM.md)
 - [Spec-driven development](docs/SPEC-DRIVEN-DEVELOPMENT.md)
 - [GitHub Spec Kit](docs/SPEC-KIT.md)
@@ -92,7 +93,7 @@ make release-check
 
 | Language | Coverage |
 | --- | --- |
-| PHP | **99.45%** line coverage (run `make test-coverage` to refresh) |
+| PHP | **99.45%** line coverage on the includable `src/` set (run `make test-coverage` to refresh). See [`docs/COVERAGE.md`](docs/COVERAGE.md). |
 | TS/JS | N/A |
 | Python | N/A |
 

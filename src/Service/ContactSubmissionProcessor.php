@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\Service;
 
-use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactSubmission;
@@ -13,6 +12,7 @@ use Nowo\ContactFormBundle\Event\ContactSubmissionCreatedEvent;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotification;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Repository\ContactFormFieldRepository;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -30,6 +30,7 @@ final readonly class ContactSubmissionProcessor
         private EventDispatcherInterface $eventDispatcher,
         private ContactSubmissionNotifierInterface $notifier,
         private ContactFormSubmissionValueNormalizer $valueNormalizer,
+        private ClockInterface $clock,
         private ?string $defaultNotificationRecipient = null,
     ) {
     }
@@ -50,7 +51,7 @@ final readonly class ContactSubmissionProcessor
         $submission->setIpHash($this->ipAnonymizer->anonymize($request->getClientIp()));
 
         if ($form->isRequireConsent() && $symfonyForm->has('gdpr_consent') && $symfonyForm->get('gdpr_consent')->getData() === true) {
-            $submission->setConsentGivenAt(new DateTimeImmutable());
+            $submission->setConsentGivenAt($this->clock->now());
         }
 
         if ($client !== null) {

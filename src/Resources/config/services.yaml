@@ -37,6 +37,7 @@ services:
     Nowo\ContactFormBundle\Service\ContactSubmissionProcessor:
         arguments:
             $valueNormalizer: '@Nowo\ContactFormBundle\Service\ContactFormSubmissionValueNormalizer'
+            $clock: '@clock'
             $defaultNotificationRecipient: '%nowo_contact_form.notifications.default_recipient%'
 
     Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface:

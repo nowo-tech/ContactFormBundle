@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Service;
 
 use Psr\Cache\CacheItemPoolInterface;
+use Psr\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 use function hash;
 use function sprintf;
-use function time;
 
 /**
  * Rate limiter for public contact form submissions (per IP and form slug).
@@ -23,6 +23,7 @@ final readonly class ContactFormSubmissionRateLimiter
         private ?CacheItemPoolInterface $cachePool,
         private int $limit,
         private int $intervalSeconds,
+        private ClockInterface $clock,
     ) {
     }
 
@@ -34,7 +35,7 @@ final readonly class ContactFormSubmissionRateLimiter
 
         $key  = self::CACHE_KEY_PREFIX . hash('sha256', $formSlug . '|' . ($request->getClientIp() ?? 'unknown'));
         $item = $this->cachePool->getItem($key);
-        $now  = time();
+        $now  = $this->clock->now()->getTimestamp();
         $data = $item->isHit() ? $item->get() : null;
 
         if ($data === null || !isset($data['s'], $data['c']) || ($now - (int) $data['s']) >= $this->intervalSeconds) {

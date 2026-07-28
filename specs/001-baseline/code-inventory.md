@@ -2,7 +2,7 @@
 
 **Baseline spec**: [`spec.md`](spec.md)  
 **Package**: `nowo-tech/contact-form-bundle`  
-**Last audited**: 2026-07-07
+**Last audited**: 2026-07-28
 
 ## Symfony config
 
@@ -20,6 +20,15 @@
 | `DependencyInjection/Configuration.php` | Config tree | FR-CFG-001 |
 | `DependencyInjection/NowoContactFormExtension.php` | DI extension | FR-CFG-002 |
 | `DependencyInjection/Compiler/TwigPathsPass.php` | Twig paths | FR-TWIG-001 |
+| `DependencyInjection/Compiler/ContactFormSecurityPass.php` | Security wiring | FR-SEC-001 |
+
+## Security
+
+| Source file | Spec section | Requirement IDs |
+| --- | --- | --- |
+| `Security/ContactFormAccessCheckerInterface.php` | Admin access contract | FR-SEC-001 |
+| `Security/ConfigurableContactFormAccessChecker.php` | Role-based checker | FR-SEC-001 |
+| `Security/AllowAllContactFormAccessChecker.php` | Demo allow-all checker | FR-SEC-001 |
 
 ## Entities
 
@@ -51,6 +60,7 @@
 | `Enum/ContactPhoneWidget.php` | Phone widgets | FR-ENUM-001 |
 | `Event/ContactSubmissionCreatedEvent.php` | Submission event | FR-EVT-001 |
 | `EventSubscriber/ContactFormAdminLocaleSubscriber.php` | Admin locale | FR-EVT-001 |
+| `EventSubscriber/ContactFormAdminAccessSubscriber.php` | Admin access gate | FR-SEC-001 |
 
 ## Controllers
 
@@ -144,6 +154,7 @@
 | --- | --- | --- |
 | `Resources/views/admin/layout.html.twig` | Admin layout | FR-TWIG-002 |
 | `Resources/views/admin/_locale_switch.html.twig` | Locale switch | FR-TWIG-002 |
+| `Resources/views/admin/_pagination.html.twig` | List pagination | FR-TWIG-002 |
 | `Resources/views/admin/form/index.html.twig` | Form list | FR-TWIG-002 |
 | `Resources/views/admin/form/form.html.twig` | Form edit | FR-TWIG-002 |
 | `Resources/views/admin/form/_translation_tabs.html.twig` | Form i18n tabs | FR-TWIG-002 |
@@ -166,10 +177,11 @@
 | Category | Files | Mapped |
 | --- | ---: | ---: |
 | Symfony config | 3 | 3 |
-| Bundle & DI | 4 | 4 |
+| Bundle & DI | 5 | 5 |
+| Security | 3 | 3 |
 | Entities | 6 | 6 |
 | Repositories | 6 | 6 |
-| Enums & events | 4 | 4 |
+| Enums & events | 5 | 5 |
 | Controllers | 5 | 5 |
 | Forms | 10 | 10 |
 | Services | 17 | 17 |
@@ -178,6 +190,6 @@
 | CLI | 1 | 1 |
 | Twig PHP | 1 | 1 |
 | Translations | 7 | 7 |
-| Twig admin | 10 | 10 |
+| Twig admin | 11 | 11 |
 | Twig public | 3 | 3 |
-| **Total production sources** | **82** | **82** |
+| **Total production sources** | **88** | **88** |

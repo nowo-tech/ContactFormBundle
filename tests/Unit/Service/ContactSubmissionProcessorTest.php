@@ -20,6 +20,7 @@ use Nowo\ContactFormBundle\Service\IpAnonymizer;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -84,6 +85,7 @@ final class ContactSubmissionProcessorTest extends TestCase
             $eventDispatcher,
             $notifier,
             new ContactFormSubmissionValueNormalizer($this->createMock(ContactFormFileUploadHandlerInterface::class)),
+            new MockClock(),
             'default@example.com',
         );
 
@@ -134,6 +136,7 @@ final class ContactSubmissionProcessorTest extends TestCase
             $this->createMock(EventDispatcherInterface::class),
             $this->createMock(ContactSubmissionNotifierInterface::class),
             new ContactFormSubmissionValueNormalizer($this->createMock(ContactFormFileUploadHandlerInterface::class)),
+            new MockClock(),
         );
 
         $submission = $processor->process(

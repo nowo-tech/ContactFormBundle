@@ -4,7 +4,62 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Table of contents
+
+- [[Unreleased]](#unreleased)
+- [[1.0.11] - 2026-07-28](#1011-2026-07-28)
+  - [Added](#added)
+  - [Changed](#changed)
+- [[1.0.10] - 2026-07-27](#1010-2026-07-27)
+  - [Added](#added)
+  - [Changed](#changed)
+- [[1.0.9] - 2026-07-27](#109-2026-07-27)
+  - [Added](#added)
+  - [Changed](#changed)
+- [[1.0.8] - 2026-07-24](#108-2026-07-24)
+  - [Added](#added)
+  - [Changed](#changed)
+  - [Removed](#removed)
+- [[1.0.7] - 2026-07-22](#107-2026-07-22)
+  - [Added](#added)
+  - [Changed](#changed)
+- [[1.0.6] - 2026-07-22](#106-2026-07-22)
+  - [Fixed](#fixed)
+  - [Changed](#changed)
+- [[1.0.5] - 2026-07-20](#105-2026-07-20)
+  - [Fixed](#fixed)
+- [[1.0.4] - 2026-07-20](#104-2026-07-20)
+  - [Changed](#changed)
+  - [Fixed](#fixed)
+- [[1.0.3] - 2026-07-20](#103-2026-07-20)
+  - [Added](#added)
+  - [Changed](#changed)
+- [[1.0.2] - 2026-07-13](#102-2026-07-13)
+  - [Fixed](#fixed)
+  - [Changed](#changed)
+- [[1.0.1] - 2026-07-13](#101-2026-07-13)
+  - [Fixed](#fixed)
+- [[1.0.0] - 2026-07-13](#100-2026-07-13)
+  - [Added](#added)
+  - [Fixed](#fixed)
+  - [Changed](#changed)
+
 ## [Unreleased]
+
+## [1.0.11] - 2026-07-28
+
+### Added
+
+- **Docs (REQ-DOCS-005 / REQ-TEST-003)**: Table of contents on long docs; `docs/COVERAGE.md` documents PHPUnit coverage exclusions.
+- **Spec Kit (REQ-SPECKIT-001 / REQ-SPECKIT-003)**: Code inventory + `FR-SEC-001` for admin access checker / security compiler pass / access subscriber; pagination Twig partial mapped.
+- **Dependencies**: Direct `psr/clock` requirement for clock-injected services.
+
+### Changed
+
+- **DI (REQ-DI-001)**: `Psr\Clock\ClockInterface` injected into submission rate limiter, submission processor, and retention cleanup (tests use `MockClock`).
+- **CI / PHPUnit (REQ-SF-005)**: `SYMFONY_DEPRECATIONS_HELPER=max[direct]=0` in `phpunit.xml.dist` and CI test jobs.
+- **GitHub About (REQ-DOCS-018)**: Topic `frankenphp` added.
+- **Tooling**: `check-open-prs` resolves `owner/repo` from `origin` when `gh` cannot map the git remote.
 
 ## [1.0.10] - 2026-07-27
 

@@ -10,6 +10,7 @@ use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Bundle\SecurityBundle\SecurityBundle;
 use Symfony\Bundle\TwigBundle\TwigBundle;
+use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Kernel;
@@ -19,6 +20,8 @@ use Symfony\Component\Security\Csrf\TokenGenerator\UriSafeTokenGenerator;
 use Symfony\Component\Security\Csrf\TokenStorage\SessionTokenStorage;
 
 use function dirname;
+use function is_dir;
+use function mkdir;
 
 final class TestKernel extends Kernel
 {
@@ -96,6 +99,10 @@ final class TestKernel extends Kernel
                 new Reference('security.csrf.token_storage'),
             ])
             ->setPublic(true);
+
+        if (!$container->hasDefinition('clock') && !$container->hasAlias('clock')) {
+            $container->register('clock', NativeClock::class);
+        }
 
         if ($container->hasDefinition('twig.form.renderer')) {
             $container->getDefinition('twig.form.renderer')

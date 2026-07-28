@@ -34,6 +34,16 @@ Extension alias: `nowo_contact_form`.
 | `public_submission_rate_limit.limit` | `5` | Max submissions per interval |
 | `public_submission_rate_limit.interval_seconds` | `60` | Rate-limit window in seconds |
 
+## Table of contents
+
+- [CSRF (public forms)](#csrf-public-forms)
+- [Admin Web UI (layout and CSS)](#admin-web-ui-layout-and-css)
+- [Admin security](#admin-security)
+- [Public submission rate limiting](#public-submission-rate-limiting)
+- [Client linking (public submissions)](#client-linking-public-submissions)
+- [GDPR retention cleanup](#gdpr-retention-cleanup)
+- [Notifications without symfony/mailer](#notifications-without-symfonymailer)
+
 ## CSRF (public forms)
 
 The bundle does not force CSRF options on dynamic forms. In the host Symfony application, enable form CSRF protection and install `symfony/security-csrf`:
