@@ -1,6 +1,9 @@
 # Makefile for Contact Form Bundle Demo
 # Demo has its own docker-compose.yml and can be run independently
 
+# Prefer Compose V2 plugin (GitHub Actions / modern Docker Desktop); fall back to docker-compose V1 (REQ-MAKE-010).
+COMPOSE ?= $(shell docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
+
 DEMOS := symfony8
 
 .PHONY: help clean test-all test-coverage-all verify-all release-check release-verify
@@ -72,7 +75,7 @@ endef
 
 define logs-target-template
 logs-$(1):
-	@cd $(1) && docker-compose logs -f
+	@cd $(1) && $(COMPOSE) logs -f
 endef
 
 define test-target-template
@@ -194,4 +197,5 @@ clean:
 	@echo "✅ Cleaned vendor and cache from demo."
 
 BUNDLE_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
-include $(BUNDLE_ROOT)/../.scripts/Makefile.demo-aggregate-update-deps.mk
+# Optional: monorepo helper absent on standalone GitHub Actions checkout (REQ-MAKE-009).
+-include $(BUNDLE_ROOT)/../.scripts/Makefile.demo-aggregate-update-deps.mk

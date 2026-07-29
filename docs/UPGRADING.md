@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [1.0.12 (2026-07-29)](#1012-2026-07-29)
 - [1.0.11 (2026-07-28)](#1011-2026-07-28)
 - [1.0.10 (2026-07-27)](#1010-2026-07-27)
 - [1.0.9 (2026-07-27)](#109-2026-07-27)
@@ -22,6 +23,13 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 - [Unreleased / 1.x](#unreleased-1x)
 
 ## Unreleased
+
+## 1.0.12 (2026-07-29)
+
+No breaking changes for application installs.
+
+- **Application installs**: No action required. Package API and configuration are unchanged.
+- **Contributors / demo**: Makefiles detect Compose V2 first and fall back to V1. Soft `-include` of monorepo `update-deps` helpers means `make` works in a standalone clone without `bundles/.scripts/`. Prefer `docker compose` if both CLIs are available.
 
 ## 1.0.11 (2026-07-28)
 

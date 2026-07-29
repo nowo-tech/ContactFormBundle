@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.0.12] - 2026-07-29](#1012-2026-07-29)
+  - [Changed](#changed)
 - [[1.0.11] - 2026-07-28](#1011-2026-07-28)
   - [Added](#added)
   - [Changed](#changed)
@@ -45,6 +47,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [Changed](#changed)
 
 ## [Unreleased]
+
+## [1.0.12] - 2026-07-29
+
+### Changed
+
+- **Makefiles (REQ-MAKE-010)**: Prefer Docker Compose V2 (`docker compose`) with fallback to `docker-compose` V1 in root, demo aggregate, and `demo/symfony8` Makefiles; demo uses absolute `docker` path to avoid shadowing by a local `docker/` directory.
+- **Makefiles (REQ-MAKE-009)**: Monorepo `update-deps` helpers use soft `-include` so standalone clones and GitHub Actions checkouts no longer fail on missing `../.scripts/` paths.
 
 ## [1.0.11] - 2026-07-28
 
