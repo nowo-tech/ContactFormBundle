@@ -43,27 +43,6 @@ nowo_contact_form:
 
 Run Doctrine migrations after mapping entities (bundle registers ORM mappings automatically).
 
-## Documentation
-
-- [GitHub Actions CI requirements](docs/GITHUB_CI.md)
-- [Installation](docs/INSTALLATION.md)
-- [Configuration](docs/CONFIGURATION.md)
-- [Usage](docs/USAGE.md)
-- [Contributing](docs/CONTRIBUTING.md)
-- [Code of Conduct](CODE_OF_CONDUCT.md)
-- [Changelog](docs/CHANGELOG.md)
-- [Upgrading](docs/UPGRADING.md)
-- [Release](docs/RELEASE.md)
-- [Security](docs/SECURITY.md)
-- [Coverage policy](docs/COVERAGE.md)
-- [Engram](docs/ENGRAM.md)
-- [Spec-driven development](docs/SPEC-DRIVEN-DEVELOPMENT.md)
-- [GitHub Spec Kit](docs/SPEC-KIT.md)
-
-### Additional documentation
-
-- [Demo FrankenPHP](docs/DEMO-FRANKENPHP.md) (when using the FrankenPHP demo)
-
 ## Requirements
 
 - PHP 8.2+
@@ -88,6 +67,27 @@ make test
 make qa
 make release-check
 ```
+
+## Documentation
+
+- [GitHub Actions CI requirements](docs/GITHUB_CI.md)
+- [Installation](docs/INSTALLATION.md)
+- [Configuration](docs/CONFIGURATION.md)
+- [Usage](docs/USAGE.md)
+- [Contributing](docs/CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Changelog](docs/CHANGELOG.md)
+- [Upgrading](docs/UPGRADING.md)
+- [Release](docs/RELEASE.md)
+- [Security](docs/SECURITY.md)
+- [Coverage policy](docs/COVERAGE.md)
+- [Engram](docs/ENGRAM.md)
+- [Spec-driven development](docs/SPEC-DRIVEN-DEVELOPMENT.md)
+- [GitHub Spec Kit](docs/SPEC-KIT.md)
+
+### Additional documentation
+
+- [Demo FrankenPHP](docs/DEMO-FRANKENPHP.md) (when using the FrankenPHP demo)
 
 ## Tests and coverage
 
