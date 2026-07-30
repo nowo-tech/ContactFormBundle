@@ -32,7 +32,7 @@ security:
         - { path: ^/admin/contact-forms, roles: ROLE_ADMIN }
 ```
 
-Point `web_ui.layout_template` at your project layout to embed admin pages in host chrome (see [Configuration](CONFIGURATION.md)).
+Point `web_ui.layout_template` at your project layout to embed admin pages in host chrome; pages go through `admin/base.html.twig` (see [Configuration](CONFIGURATION.md)).
 
 ## Public form
 

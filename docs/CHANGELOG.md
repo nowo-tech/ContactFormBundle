@@ -7,6 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.0.13] - 2026-07-30](#1013-2026-07-30)
+  - [Added](#added)
+  - [Changed](#changed)
 - [[1.0.12] - 2026-07-29](#1012-2026-07-29)
   - [Changed](#changed)
 - [[1.0.11] - 2026-07-28](#1011-2026-07-28)
@@ -47,6 +50,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [Changed](#changed)
 
 ## [Unreleased]
+
+## [1.0.13] - 2026-07-30
+
+### Added
+
+- **Admin Twig (REQ-UI-001)**: `admin/base.html.twig` page shell extends configurable `web_ui.layout_template` and stacks `nowo_ui_styles` / `nowo_ui_scripts` with `{{ parent() }}`.
+
+### Changed
+
+- **Admin Twig**: Form/field/submission templates extend `admin/base.html.twig` instead of the layout global directly; default `admin/layout.html.twig` remains a full HTML root (no `parent()`).
+- **Docs**: README documentation links section reorder; Configuration / Usage / inventory updated for the base layout stack.
 
 ## [1.0.12] - 2026-07-29
 

@@ -1,0 +1,19 @@
+{# Page shell (REQ-UI-001): extends configurable layout and stacks admin extras with parent(). #}
+{% extends nowo_contact_form_layout_template|default('@NowoContactFormBundle/admin/layout.html.twig') %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    {% block nowo_ui_styles %}{% endblock %}
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    {% block nowo_ui_scripts %}
+        <script>
+            document.getElementById('admin-locale-switch')?.addEventListener('change', function () {
+                const locale = this.checked ? this.dataset.secondaryLocale : this.dataset.primaryLocale;
+                window.location.href = this.dataset.switchUrl.replace('__LOCALE__', locale);
+            });
+        </script>
+    {% endblock %}
+{% endblock %}

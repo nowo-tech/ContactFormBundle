@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [1.0.13 (2026-07-30)](#1013-2026-07-30)
 - [1.0.12 (2026-07-29)](#1012-2026-07-29)
 - [1.0.11 (2026-07-28)](#1011-2026-07-28)
 - [1.0.10 (2026-07-27)](#1010-2026-07-27)
@@ -23,6 +24,14 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 - [Unreleased / 1.x](#unreleased-1x)
 
 ## Unreleased
+
+## 1.0.13 (2026-07-30)
+
+No schema changes. Backward compatible for typical `web_ui.layout_template` installs.
+
+- **Application installs**: Prefer this release if you embed admin UI in a host layout. Bundle admin pages now extend `@NowoContactFormBundle/admin/base.html.twig`, which extends your `web_ui.layout_template` and calls `{{ parent() }}` for styles/scripts. Keep the host (or bridge) layout as a full HTML document without `parent()` in those blocks.
+- **Template overrides**: If you override individual admin page templates, extend `@NowoContactFormBundle/admin/base.html.twig` (or an equivalent shell) instead of the layout global alone.
+- **Otherwise**: Config keys and defaults are unchanged.
 
 ## 1.0.12 (2026-07-29)
 

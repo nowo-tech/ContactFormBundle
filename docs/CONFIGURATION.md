@@ -17,7 +17,7 @@ Extension alias: `nowo_contact_form`.
 | `notifications.mailer.subject` | `New contact submission: {form}` | Mailer subject template |
 | `admin_route_prefix` | `/admin/contact-forms` | URL prefix for bundle admin CRUD routes (host `access_control`) |
 | `web_ui.enabled` | `true` | Registers admin access enforcement when security is configured |
-| `web_ui.layout_template` | `@NowoContactFormBundle/admin/layout.html.twig` | Twig layout extended by admin pages (global `nowo_contact_form_layout_template`). Set to your app layout or a one-file bridge |
+| `web_ui.layout_template` | `@NowoContactFormBundle/admin/layout.html.twig` | Root Twig layout (global `nowo_contact_form_layout_template`) extended by `admin/base.html.twig`. Set to your app layout or a one-file bridge |
 | `web_ui.css_framework` | `bootstrap5` | Host CSS stack hint: `bootstrap5`, `bootstrap4`, `bootstrap`, `tailwind`, `foundation`, `tabler`, `custom`, `none` |
 | `web_ui.icon_set` | `bootstrap-icons` | Icon hint: `bootstrap-icons`, `tabler-icons`, `ux_icon`, `svg_inline`, `none` |
 | `web_ui.list_page_size` | `20` | Page size for admin form and submission lists |
@@ -60,7 +60,7 @@ See [Security](SECURITY.md) and [Upgrading](UPGRADING.md#101-2026-07-13).
 
 ## Admin Web UI (layout and CSS)
 
-Admin pages extend `web_ui.layout_template` (Twig global `nowo_contact_form_layout_template`). Prefer pointing that at your project layout (or a thin bridge that maps `nowo_ui_content` into your `body` block) instead of copying list/form templates.
+Admin pages extend `@NowoContactFormBundle/admin/base.html.twig`, which extends `web_ui.layout_template` (Twig global `nowo_contact_form_layout_template`) and stacks `nowo_ui_styles` / `nowo_ui_scripts` with `{{ parent() }}`. Prefer pointing `layout_template` at your project layout (or a thin bridge that maps `nowo_ui_content` into your `body` block) instead of copying list/form templates. The default `admin/layout.html.twig` is a full HTML document (no `parent()`).
 
 ```yaml
 nowo_contact_form:
@@ -70,7 +70,7 @@ nowo_contact_form:
         list_page_size: 20
 ```
 
-When using the project layout, load host CSS/JS in that layout. Bundle pages stack extras with `{{ parent() }}` in `stylesheets` / `javascripts` when they add assets. Semantic hooks use `nowo-ui-*` classes.
+When using the project layout, load host CSS/JS in that layout. Semantic hooks use `nowo-ui-*` classes.
 
 ## Admin security
 

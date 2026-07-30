@@ -152,7 +152,8 @@
 
 | Source file | Spec section | Requirement IDs |
 | --- | --- | --- |
-| `Resources/views/admin/layout.html.twig` | Admin layout | FR-TWIG-002 |
+| `Resources/views/admin/layout.html.twig` | Admin root layout (full HTML) | FR-TWIG-002 |
+| `Resources/views/admin/base.html.twig` | Admin page shell (`parent()` stack) | FR-TWIG-002 |
 | `Resources/views/admin/_locale_switch.html.twig` | Locale switch | FR-TWIG-002 |
 | `Resources/views/admin/_pagination.html.twig` | List pagination | FR-TWIG-002 |
 | `Resources/views/admin/form/index.html.twig` | Form list | FR-TWIG-002 |
