@@ -61,6 +61,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - **Admin Twig**: Form/field/submission templates extend `admin/base.html.twig` instead of the layout global directly; default `admin/layout.html.twig` remains a full HTML root (no `parent()`).
 - **Docs**: README documentation links section reorder; Configuration / Usage / inventory updated for the base layout stack.
+- **Dependencies (lock)**: Symfony 7.4.x patch bumps and `nowo-tech/phpstan-frankenphp` / `phpstan/phpstan` updates in `composer.lock`.
 
 ## [1.0.12] - 2026-07-29
 
