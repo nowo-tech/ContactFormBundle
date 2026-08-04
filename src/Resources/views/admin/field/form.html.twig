@@ -1,4 +1,6 @@
 {% extends '@NowoContactFormBundle/admin/base.html.twig' %}
+{% import '@NowoUiKitBundle/macros/ui.html.twig' as ui %}
+{% set _css_fw = nowo_contact_form_css_framework|default('bootstrap5') %}
 
 {% block title %}{{ isNew ? 'nowo_contact_form.admin.field.new_title'|trans({}, 'NowoContactFormBundle') : 'nowo_contact_form.admin.field.edit_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
 
@@ -73,22 +75,22 @@
                         {% if form.navigator.previous is defined %}
                             {{ form_widget(form.navigator.previous, {
                                 label: 'nowo_contact_form.admin.field.flow.previous'|trans({}, 'NowoContactFormBundle'),
-                                attr: { class: 'btn btn-outline-secondary' },
+                                attr: { class: ui.btn('secondary', null, _css_fw) },
                             }) }}
                         {% endif %}
                         {% if form.navigator.next is defined %}
                             {{ form_widget(form.navigator.next, {
                                 label: 'nowo_contact_form.admin.field.flow.next'|trans({}, 'NowoContactFormBundle'),
-                                attr: { class: 'btn btn-primary' },
+                                attr: { class: ui.btn('primary', null, _css_fw) },
                             }) }}
                         {% endif %}
                         {% if form.navigator.finish is defined %}
                             {{ form_widget(form.navigator.finish, {
                                 label: 'nowo_contact_form.admin.field.flow.finish'|trans({}, 'NowoContactFormBundle'),
-                                attr: { class: 'btn btn-primary' },
+                                attr: { class: ui.btn('primary', null, _css_fw) },
                             }) }}
                         {% endif %}
-                        <a href="{{ path('nowo_contact_form_fields_index', { formId: contactForm.id }) }}" class="btn btn-outline-secondary">
+                        <a href="{{ path('nowo_contact_form_fields_index', { formId: contactForm.id }) }}" class="{{ ui.btn('secondary', null, _css_fw) }} nowo-ui-action-cancel">
                             {{ 'nowo_contact_form.admin.back'|trans({}, 'NowoContactFormBundle') }}
                         </a>
                     </div>

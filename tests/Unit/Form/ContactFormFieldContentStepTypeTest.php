@@ -7,6 +7,7 @@ namespace Nowo\ContactFormBundle\Tests\Unit\Form;
 use Nowo\ContactFormBundle\Form\ContactFormFieldContentStepType;
 use Nowo\ContactFormBundle\Form\ContactFormFieldTranslationType;
 use Nowo\ContactFormBundle\Service\ContactFormFieldSelectOptionsSynchronizer;
+use Nowo\ContactFormBundle\Tests\Support\FormKitTestSupport;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Symfony\Component\Form\Test\TypeTestCase;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -22,8 +23,8 @@ final class ContactFormFieldContentStepTypeTest extends TypeTestCase
         $translator = $this->createMock(TranslatorInterface::class);
 
         return [
-            new ContactFormFieldContentStepType(new ContactFormFieldSelectOptionsSynchronizer(), $translator),
-            new ContactFormFieldTranslationType(),
+            FormKitTestSupport::withMerger(new ContactFormFieldContentStepType(new ContactFormFieldSelectOptionsSynchronizer(), $translator)),
+            FormKitTestSupport::withMerger(new ContactFormFieldTranslationType()),
         ];
     }
 

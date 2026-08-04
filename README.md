@@ -1,6 +1,6 @@
 # Contact Form Bundle
 
-[![CI](https://github.com/nowo-tech/ContactFormBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/ContactFormBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/contact-form-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/contact-form-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/contact-form-bundle.svg)](https://packagist.org/packages/nowo-tech/contact-form-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7.4%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/contact-form-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/ContactFormBundle) [![Coverage](https://img.shields.io/badge/Coverage-99.45%25-brightgreen)](#tests-and-coverage)
+[![CI](https://github.com/nowo-tech/ContactFormBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/ContactFormBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/contact-form-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/contact-form-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/contact-form-bundle.svg)](https://packagist.org/packages/nowo-tech/contact-form-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7.4%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/contact-form-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/ContactFormBundle) [![Coverage](https://img.shields.io/badge/Coverage-99.48%25-brightgreen)](#tests-and-coverage)
 
 > ⭐ **Found this useful?** [Install from Packagist](https://packagist.org/packages/nowo-tech/contact-form-bundle) · Give it a **star** on [GitHub](https://github.com/nowo-tech/ContactFormBundle) so more developers can find it.
 
@@ -48,6 +48,8 @@ Run Doctrine migrations after mapping entities (bundle registers ORM mappings au
 - PHP 8.2+
 - Symfony 7.4+ or 8.0+
 - Doctrine ORM 2.17+ or 3.x
+- [UiKitBundle](https://github.com/nowo-tech/UiKitBundle) ^1.4 and [FormKitBundle](https://github.com/nowo-tech/FormKitBundle) ^2.0 (pulled transitively)
+- `twig/extra-bundle` + `twig/string-extra` (pulled transitively)
 
 ## Demo
 

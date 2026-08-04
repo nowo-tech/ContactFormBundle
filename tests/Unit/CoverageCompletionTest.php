@@ -32,6 +32,7 @@ use Nowo\ContactFormBundle\Service\ContactPhonePrefixResolver;
 use Nowo\ContactFormBundle\Service\ContactPhoneValue;
 use Nowo\ContactFormBundle\Service\DynamicContactFormBuilder;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
+use Nowo\ContactFormBundle\Tests\Support\FormKitTestSupport;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 use stdClass;
@@ -519,7 +520,7 @@ final class CoverageCompletionTest extends TestCase
         $builder = new DynamicContactFormBuilder(
             Forms::createFormFactoryBuilder()
                 ->addExtension(new ValidatorExtension(Validation::createValidator()))
-                ->addType(new ContactPhoneType())
+                ->addType(FormKitTestSupport::withMerger(new ContactPhoneType()))
                 ->getFormFactory(),
             $fieldRepository,
             $translator,

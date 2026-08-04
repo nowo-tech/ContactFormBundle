@@ -1,5 +1,7 @@
+{% import '@NowoUiKitBundle/macros/ui.html.twig' as ui %}
+{% set _css_fw = nowo_contact_form_css_framework|default('bootstrap5') %}
 {% if pages is defined and pages > 1 %}
-    <nav class="nowo-ui-pagination d-flex justify-content-between align-items-center mt-3" aria-label="Pagination">
+    <nav class="{{ ui.pagination_wrap(_css_fw) }} mt-3" aria-label="Pagination">
         <div class="text-muted small">
             {{ 'nowo_contact_form.admin.pagination.summary'|trans({
                 '%page%': page,
@@ -7,14 +9,14 @@
                 '%total%': total
             }, 'NowoContactFormBundle') }}
         </div>
-        <div class="btn-group btn-group-sm" role="group">
+        <div class="{{ ui.row_actions(_css_fw) }}" role="group">
             {% if page > 1 %}
-                <a class="btn btn-outline-secondary nowo-ui-action-prev" href="{{ path(app.request.attributes.get('_route'), app.request.attributes.get('_route_params')|merge(app.request.query.all)|merge({ page: page - 1 })) }}">
+                <a class="{{ ui.btn('secondary', 'sm', _css_fw) }} nowo-ui-action-prev" href="{{ path(app.request.attributes.get('_route'), app.request.attributes.get('_route_params')|merge(app.request.query.all)|merge({ page: page - 1 })) }}">
                     {{ 'nowo_contact_form.admin.pagination.prev'|trans({}, 'NowoContactFormBundle') }}
                 </a>
             {% endif %}
             {% if page < pages %}
-                <a class="btn btn-outline-secondary nowo-ui-action-next" href="{{ path(app.request.attributes.get('_route'), app.request.attributes.get('_route_params')|merge(app.request.query.all)|merge({ page: page + 1 })) }}">
+                <a class="{{ ui.btn('secondary', 'sm', _css_fw) }} nowo-ui-action-next" href="{{ path(app.request.attributes.get('_route'), app.request.attributes.get('_route_params')|merge(app.request.query.all)|merge({ page: page + 1 })) }}">
                     {{ 'nowo_contact_form.admin.pagination.next'|trans({}, 'NowoContactFormBundle') }}
                 </a>
             {% endif %}

@@ -8,6 +8,7 @@ services:
         exclude:
             - '../../DependencyInjection/'
             - '../../Entity/'
+            - '../../Form/'
             - '../../NowoContactFormBundle.php'
             - '../../Notification/MailerContactSubmissionNotifier.php'
             - '../../Service/ContactFormSubmissionRateLimiter.php'
@@ -45,3 +46,9 @@ services:
 
     Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface:
         alias: Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler
+
+    # Form Kit injects FormOptionsMerger into tagged form types (FormOptionsMergerInjectorCompilerPass).
+    Nowo\ContactFormBundle\Form\:
+        resource: '../../Form/'
+        exclude: '../../Form/DataTransformer/'
+        tags: ['form.type']

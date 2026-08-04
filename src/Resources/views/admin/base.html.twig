@@ -1,9 +1,21 @@
 {# Page shell (REQ-UI-001): extends configurable layout and stacks admin extras with parent(). #}
 {% extends nowo_contact_form_layout_template|default('@NowoContactFormBundle/admin/layout.html.twig') %}
+{% import '@NowoUiKitBundle/macros/ui.html.twig' as ui %}
+{% set _css_fw = nowo_contact_form_css_framework|default('bootstrap5') %}
+
+{% block nowo_ui_flashes %}
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="{{ ui.flash(label == 'error' ? 'error' : label, _css_fw) }}" role="alert">{{ message }}</div>
+        {% endfor %}
+    {% endfor %}
+{% endblock %}
 
 {% block stylesheets %}
     {{ parent() }}
-    {% block nowo_ui_styles %}{% endblock %}
+    {% block nowo_ui_styles %}
+        <link rel="stylesheet" href="{{ asset('css/nowo-ui.css', 'nowo_ui_kit') }}">
+    {% endblock %}
 {% endblock %}
 
 {% block javascripts %}

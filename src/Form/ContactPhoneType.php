@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Form;
 
 use Nowo\ContactFormBundle\Service\ContactPhoneValue;
+use Nowo\FormKitBundle\Attribute\FormKitConfig;
+use Nowo\FormKitBundle\Form\FormOptionsTrait;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\CallbackTransformer;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -20,8 +21,11 @@ use function is_array;
  *
  * @extends AbstractType<string|null>
  */
+#[FormKitConfig('contact_form')]
 class ContactPhoneType extends AbstractType
 {
+    use FormOptionsTrait;
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         /** @var array<string, string> $prefixes */
@@ -34,31 +38,28 @@ class ContactPhoneType extends AbstractType
             $choices[$label] = $code;
         }
 
-        $builder
-            ->add('prefix', ChoiceType::class, [
-                'label'    => false,
-                'choices'  => $choices,
-                'data'     => $defaultPrefix,
-                'required' => true,
-                'attr'     => [
-                    'class' => 'form-select',
-                ],
-            ])
-            ->add('number', TelType::class, [
-                'label'    => false,
-                'required' => false,
-                'attr'     => [
-                    'class'        => 'form-control',
-                    'inputmode'    => 'tel',
-                    'autocomplete' => 'tel-national',
-                ],
-                'constraints' => [
-                    new Regex(
-                        pattern: '/^[\d\s().-]*$/',
-                        message: 'nowo_contact_form.public.phone_number_invalid',
-                    ),
-                ],
-            ]);
+        $this->addChoice($builder, 'prefix', [
+            'label'    => false,
+            'choices'  => $choices,
+            'data'     => $defaultPrefix,
+            'required' => true,
+            'attr'     => ['class' => 'form-select'],
+        ]);
+        $this->addWithDefaults($builder, 'number', TelType::class, [
+            'label'    => false,
+            'required' => false,
+            'attr'     => [
+                'class'        => 'form-control',
+                'inputmode'    => 'tel',
+                'autocomplete' => 'tel-national',
+            ],
+            'constraints' => [
+                new Regex(
+                    pattern: '/^[\d\s().-]*$/',
+                    message: 'nowo_contact_form.public.phone_number_invalid',
+                ),
+            ],
+        ]);
 
         $builder->addModelTransformer(new CallbackTransformer(
             static function (?string $combined) use ($prefixCodes): array {

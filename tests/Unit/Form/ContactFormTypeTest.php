@@ -6,13 +6,26 @@ namespace Nowo\ContactFormBundle\Tests\Unit\Form;
 
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormTranslation;
+use Nowo\ContactFormBundle\Form\ContactFormTranslationType;
 use Nowo\ContactFormBundle\Form\ContactFormType;
+use Nowo\ContactFormBundle\Tests\Support\FormKitTestSupport;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Symfony\Component\Form\Test\TypeTestCase;
 
 #[CoversClass(ContactFormType::class)]
 final class ContactFormTypeTest extends TypeTestCase
 {
+    /**
+     * @return list<object>
+     */
+    protected function getTypes(): array
+    {
+        return [
+            FormKitTestSupport::withMerger(new ContactFormType()),
+            FormKitTestSupport::withMerger(new ContactFormTranslationType()),
+        ];
+    }
+
     public function testSubmitValidData(): void
     {
         $form = (new ContactForm())

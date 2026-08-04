@@ -6,11 +6,9 @@ namespace Nowo\ContactFormBundle\Form;
 
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
+use Nowo\FormKitBundle\Attribute\FormKitConfig;
+use Nowo\FormKitBundle\Form\FormOptionsTrait;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\IntegerType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -19,8 +17,11 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  *
  * @extends AbstractType<ContactFormField>
  */
+#[FormKitConfig('contact_form')]
 class ContactFormFieldDefinitionStepType extends AbstractType
 {
+    use FormOptionsTrait;
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $prefix = $options['label_prefix'];
@@ -30,25 +31,26 @@ class ContactFormFieldDefinitionStepType extends AbstractType
             $typeChoices[$options['type_label_prefix'] . $case->value] = $case;
         }
 
-        $builder
-            ->add('name', TextType::class, [
+        $this->withBuilder($builder, function () use ($prefix, $typeChoices): void {
+            $this->addTextField('name', [
                 'label' => $prefix . 'name',
                 'help'  => $prefix . 'name_help',
-            ])
-            ->add('type', ChoiceType::class, [
+            ]);
+            $this->addChoiceField('type', [
                 'label'   => $prefix . 'type',
                 'help'    => $prefix . 'type_help',
                 'choices' => $typeChoices,
-            ])
-            ->add('required', CheckboxType::class, [
+            ]);
+            $this->addCheckboxField('required', [
                 'label'    => $prefix . 'required',
                 'help'     => $prefix . 'required_help',
                 'required' => false,
-            ])
-            ->add('sortOrder', IntegerType::class, [
+            ]);
+            $this->addIntegerField('sortOrder', [
                 'label' => $prefix . 'sort_order',
                 'help'  => $prefix . 'sort_order_help',
             ]);
+        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void

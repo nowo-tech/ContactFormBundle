@@ -1,4 +1,6 @@
 {% extends '@NowoContactFormBundle/admin/base.html.twig' %}
+{% import '@NowoUiKitBundle/macros/ui.html.twig' as ui %}
+{% set _css_fw = nowo_contact_form_css_framework|default('bootstrap5') %}
 
 {% block title %}{{ 'nowo_contact_form.admin.field.index_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
 
@@ -8,7 +10,7 @@
             <p class="text-muted mb-1">{{ contactForm.name }}</p>
             <h1 class="h2 mb-0">{{ 'nowo_contact_form.admin.field.index_title'|trans({}, 'NowoContactFormBundle') }}</h1>
         </div>
-        <a href="{{ path('nowo_contact_form_fields_new', { formId: contactForm.id, step: 'definition' }) }}" class="btn btn-primary">
+        <a href="{{ path('nowo_contact_form_fields_new', { formId: contactForm.id, step: 'definition' }) }}" class="{{ ui.btn('primary', null, _css_fw) }} nowo-ui-action-create">
             {{ 'nowo_contact_form.admin.field.new'|trans({}, 'NowoContactFormBundle') }}
         </a>
     </div>
@@ -37,9 +39,11 @@
                                 {% endif %}
                             </td>
                             <td class="text-end">
-                                <a href="{{ path('nowo_contact_form_fields_edit', { formId: contactForm.id, id: field.id, step: 'definition' }) }}" class="btn btn-sm btn-outline-primary">
-                                    {{ 'nowo_contact_form.admin.actions.edit'|trans({}, 'NowoContactFormBundle') }}
-                                </a>
+                                <div class="{{ ui.row_actions(_css_fw) }}">
+                                    <a href="{{ path('nowo_contact_form_fields_edit', { formId: contactForm.id, id: field.id, step: 'definition' }) }}" class="{{ ui.btn('secondary', 'sm', _css_fw) }} nowo-ui-action-edit">
+                                        {{ 'nowo_contact_form.admin.actions.edit'|trans({}, 'NowoContactFormBundle') }}
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     {% else %}
@@ -60,9 +64,11 @@
                                 <span class="badge text-bg-success">{{ 'nowo_contact_form.admin.yes'|trans({}, 'NowoContactFormBundle') }}</span>
                             </td>
                             <td class="text-end">
-                                <a href="{{ path('nowo_contact_form_admin_edit', { id: contactForm.id }) }}" class="btn btn-sm btn-outline-secondary">
-                                    {{ 'nowo_contact_form.admin.field.consent_row.edit'|trans({}, 'NowoContactFormBundle') }}
-                                </a>
+                                <div class="{{ ui.row_actions(_css_fw) }}">
+                                    <a href="{{ path('nowo_contact_form_admin_edit', { id: contactForm.id }) }}" class="{{ ui.btn('secondary', 'sm', _css_fw) }} nowo-ui-action-edit">
+                                        {{ 'nowo_contact_form.admin.field.consent_row.edit'|trans({}, 'NowoContactFormBundle') }}
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     {% endif %}
@@ -71,7 +77,7 @@
         </div>
     </div>
 
-    <a href="{{ path('nowo_contact_form_admin_index') }}" class="btn btn-outline-secondary">
+    <a href="{{ path('nowo_contact_form_admin_index') }}" class="{{ ui.btn('secondary', null, _css_fw) }} nowo-ui-action-cancel">
         {{ 'nowo_contact_form.admin.back'|trans({}, 'NowoContactFormBundle') }}
     </a>
 {% endblock %}

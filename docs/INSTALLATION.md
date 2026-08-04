@@ -13,9 +13,13 @@
 
 ## Requirements
 
+- **FormKitBundle** (`nowo-tech/form-kit-bundle` ^2.0) — dashboard/admin Symfony forms (`FormOptionsTrait`, profile `contact_form`). Register `NowoFormKitBundle` in `config/bundles.php` (Flex / demo). Optional host YAML: `config/packages/nowo_form_kit.yaml`.
+- **UiKitBundle** (`nowo-tech/ui-kit-bundle` ^1.4) — admin Twig macros / `nowo-ui.css` asset package. Register `NowoUiKitBundle` and run `assets:install`.
 - PHP `>=8.2` (<8.6). Symfony **8.0** and **8.1** require **PHP 8.4+**.
 - Symfony **7.4**, **8.0**, or **8.1** (minimum tested minors).
 - Doctrine ORM + `doctrine/doctrine-bundle`.
+- `symfony/clock` (direct dependency; FrameworkBundle `clock` service preferred when present).
+- `twig/extra-bundle` + `twig/string-extra` (REQ-TWIG-004; see below).
 - `symfony/security-bundle` recommended for admin CRUD protection (see [Security](SECURITY.md)).
 
 ## Composer
@@ -84,3 +88,13 @@ php bin/console nowo:contact-form:cleanup-submissions
 ```
 
 See [`CONFIGURATION.md`](CONFIGURATION.md).
+
+## Twig Extra Bundle (REQ-TWIG-004)
+
+This package ships Twig templates. Host applications **must** install and enable Twig Extra:
+
+```bash
+composer require twig/extra-bundle twig/string-extra
+```
+
+Register `Twig\Extra\TwigExtraBundle\TwigExtraBundle` in `config/bundles.php` (Flex usually does this). Demos already include the same stack. The package `release-check` runs `make check-twig-extra` to guard this contract.

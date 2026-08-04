@@ -6,12 +6,23 @@ namespace Nowo\ContactFormBundle\Tests\Unit\Form;
 
 use Nowo\ContactFormBundle\Entity\ContactFormTranslation;
 use Nowo\ContactFormBundle\Form\ContactFormTranslationType;
+use Nowo\ContactFormBundle\Tests\Support\FormKitTestSupport;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Symfony\Component\Form\Test\TypeTestCase;
 
 #[CoversClass(ContactFormTranslationType::class)]
 final class ContactFormTranslationTypeTest extends TypeTestCase
 {
+    /**
+     * @return list<object>
+     */
+    protected function getTypes(): array
+    {
+        return [
+            FormKitTestSupport::withMerger(new ContactFormTranslationType()),
+        ];
+    }
+
     public function testSubmitWithHiddenLocale(): void
     {
         $translation = (new ContactFormTranslation())->setLocale('en');

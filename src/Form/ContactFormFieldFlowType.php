@@ -6,6 +6,8 @@ namespace Nowo\ContactFormBundle\Form;
 
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
+use Nowo\FormKitBundle\Attribute\FormKitConfig;
+use Nowo\FormKitBundle\Form\FormOptionsTrait;
 use Symfony\Component\Form\Flow\AbstractFlowType;
 use Symfony\Component\Form\Flow\FormFlowBuilderInterface;
 use Symfony\Component\Form\Flow\Type\NavigatorFlowType;
@@ -16,8 +18,11 @@ use function in_array;
 /**
  * Admin wizard for contact form fields.
  */
+#[FormKitConfig('contact_form')]
 class ContactFormFieldFlowType extends AbstractFlowType
 {
+    use FormOptionsTrait;
+
     public const STEP_DEFINITION = 'definition';
 
     public const STEP_SELECT_OPTIONS = 'select_options';
@@ -55,7 +60,7 @@ class ContactFormFieldFlowType extends AbstractFlowType
             skip: static fn (ContactFormField $field): bool => $field->getType() !== ContactFieldType::Phone,
         );
         $builder->addStep('content', ContactFormFieldContentStepType::class);
-        $builder->add('navigator', NavigatorFlowType::class);
+        $this->addWithDefaults($builder, 'navigator', NavigatorFlowType::class, []);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

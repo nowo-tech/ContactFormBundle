@@ -9,10 +9,9 @@ use Nowo\ContactFormBundle\Enum\ContactFieldType;
 use Nowo\ContactFormBundle\Enum\ContactPhoneWidget;
 use Nowo\ContactFormBundle\Phone\ContactFormFieldPhoneOptions;
 use Nowo\ContactFormBundle\Service\ContactPhoneInputAvailability;
+use Nowo\FormKitBundle\Attribute\FormKitConfig;
+use Nowo\FormKitBundle\Form\FormOptionsTrait;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
-use Symfony\Component\Form\Extension\Core\Type\TextareaType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvent;
@@ -28,9 +27,11 @@ use function count;
  *
  * @extends AbstractType<ContactFormField>
  */
+#[FormKitConfig('contact_form')]
 class ContactFormFieldPhonePrefixesStepType extends AbstractType
 {
     use ContactFormFieldWizardStepTrait;
+    use FormOptionsTrait;
 
     public function __construct(
         private readonly TranslatorInterface $translator,
@@ -53,36 +54,35 @@ class ContactFormFieldPhonePrefixesStepType extends AbstractType
             $widgetChoices[$prefix . 'phone_widget_phone_input'] = ContactPhoneWidget::PhoneInput->value;
         }
 
-        $builder
-            ->add('phoneWidget', ChoiceType::class, [
-                'label'              => $prefix . 'phone_widget',
-                'help'               => $prefix . 'phone_widget_help',
-                'choices'            => $widgetChoices,
-                'required'           => true,
-                'mapped'             => false,
-                'translation_domain' => $options['translation_domain'],
-            ])
-            ->add('phonePrefixesLines', TextareaType::class, [
-                'label'              => $prefix . 'phone_prefixes',
-                'help'               => $prefix . 'phone_prefixes_help',
-                'required'           => false,
-                'mapped'             => false,
-                'translation_domain' => $options['translation_domain'],
-            ])
-            ->add('phoneDefaultCountry', TextType::class, [
-                'label'              => $prefix . 'phone_default_country',
-                'help'               => $prefix . 'phone_default_country_help',
-                'required'           => false,
-                'mapped'             => false,
-                'translation_domain' => $options['translation_domain'],
-            ])
-            ->add('phoneAllowedCountriesLines', TextareaType::class, [
-                'label'              => $prefix . 'phone_allowed_countries',
-                'help'               => $prefix . 'phone_allowed_countries_help',
-                'required'           => false,
-                'mapped'             => false,
-                'translation_domain' => $options['translation_domain'],
-            ]);
+        $this->addChoice($builder, 'phoneWidget', [
+            'label'              => $prefix . 'phone_widget',
+            'help'               => $prefix . 'phone_widget_help',
+            'choices'            => $widgetChoices,
+            'required'           => true,
+            'mapped'             => false,
+            'translation_domain' => $options['translation_domain'],
+        ]);
+        $this->addTextarea($builder, 'phonePrefixesLines', [
+            'label'              => $prefix . 'phone_prefixes',
+            'help'               => $prefix . 'phone_prefixes_help',
+            'required'           => false,
+            'mapped'             => false,
+            'translation_domain' => $options['translation_domain'],
+        ]);
+        $this->addText($builder, 'phoneDefaultCountry', [
+            'label'              => $prefix . 'phone_default_country',
+            'help'               => $prefix . 'phone_default_country_help',
+            'required'           => false,
+            'mapped'             => false,
+            'translation_domain' => $options['translation_domain'],
+        ]);
+        $this->addTextarea($builder, 'phoneAllowedCountriesLines', [
+            'label'              => $prefix . 'phone_allowed_countries',
+            'help'               => $prefix . 'phone_allowed_countries_help',
+            'required'           => false,
+            'mapped'             => false,
+            'translation_domain' => $options['translation_domain'],
+        ]);
 
         $builder->addEventListener(FormEvents::POST_SET_DATA, function (FormEvent $event): void {
             $field = $this->resolveField($event);

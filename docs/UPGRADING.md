@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [1.0.14 (2026-08-04)](#1014-2026-08-04)
 - [1.0.13 (2026-07-30)](#1013-2026-07-30)
 - [1.0.12 (2026-07-29)](#1012-2026-07-29)
 - [1.0.11 (2026-07-28)](#1011-2026-07-28)
@@ -21,9 +22,43 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 - [1.0.0 (2026-07-13)](#100-2026-07-13)
   - [Fresh install checklist](#fresh-install-checklist)
   - [Optional integrations](#optional-integrations)
-- [Unreleased / 1.x](#unreleased-1x)
 
 ## Unreleased
+
+## 1.0.14 (2026-08-04)
+
+Notable dependency and admin UI stack updates. No schema changes.
+
+### UiKitBundle (admin UI)
+
+Admin UI now depends on **[UiKitBundle](https://github.com/nowo-tech/UiKitBundle)** (`nowo-tech/ui-kit-bundle` `^1.4`).
+
+1. Require the package (pulled transitively once you update this bundle) and run `assets:install`.
+2. Stylesheet package: `asset('css/nowo-ui.css', 'nowo_ui_kit')` via `admin/base.html.twig`.
+3. Optional: set `nowo_ui_kit.css_framework` / `icon_set` in the host. If unset, ContactForm seeds those keys from `web_ui.css_framework` / `icon_set`.
+4. Template overrides: extend `@NowoContactFormBundle/admin/base.html.twig` and use UiKit macros (`ui.flash`, `ui.btn`) instead of hard-coded Bootstrap alert/button classes where applicable.
+
+### FormKitBundle (admin forms)
+
+Ensure `nowo-tech/form-kit-bundle` ^2.0 is installed (pulled transitively) and `Nowo\FormKitBundle\NowoFormKitBundle` is registered. Form types use profile `contact_form` via `#[FormKitConfig]`; the bundle prepends that profile when the host has not defined it. Optional host YAML: `config/packages/nowo_form_kit.yaml`.
+
+### Twig Extra Bundle (REQ-TWIG-004)
+
+Hosts that render this bundle's Twig templates must install:
+
+```bash
+composer require twig/extra-bundle twig/string-extra
+```
+
+and enable `Twig\Extra\TwigExtraBundle\TwigExtraBundle`. Flex recipes usually register it automatically (also pulled as a direct dependency of this package).
+
+### Clock
+
+`symfony/clock` is now a direct dependency for the `NativeClock` fallback when the host has no `clock` service. No action if FrameworkBundle already provides `clock`.
+
+### Twig-CS-Fixer (maintainers)
+
+Package maintainers: `composer twig:lint` / `composer twig:fix` use `.twig-cs-fixer.php` over `src/` (and `templates/` when present).
 
 ## 1.0.13 (2026-07-30)
 
@@ -146,7 +181,3 @@ First stable release. No upgrade steps when installing for the first time.
 - **symfony/mailer** — email notifications (`notifications.mailer.enabled`).
 - **nowo-tech/phone-input-bundle** — rich phone fields with country selector.
 - **symfony/security-bundle** — automatic client linking for authenticated users.
-
-## Unreleased / 1.x
-
-When breaking or notable changes ship in future 1.x releases, they will be documented here.

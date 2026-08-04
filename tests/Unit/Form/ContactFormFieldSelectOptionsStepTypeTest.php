@@ -7,6 +7,7 @@ namespace Nowo\ContactFormBundle\Tests\Unit\Form;
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
 use Nowo\ContactFormBundle\Form\ContactFormFieldSelectOptionsStepType;
+use Nowo\ContactFormBundle\Tests\Support\FormKitTestSupport;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\Form\Test\TypeTestCase;
@@ -24,7 +25,7 @@ final class ContactFormFieldSelectOptionsStepTypeTest extends TypeTestCase
         $translator->method('trans')->willReturnArgument(0);
 
         return [
-            new ContactFormFieldSelectOptionsStepType($translator),
+            FormKitTestSupport::withMerger(new ContactFormFieldSelectOptionsStepType($translator)),
         ];
     }
 

@@ -1,4 +1,6 @@
 {% extends '@NowoContactFormBundle/admin/base.html.twig' %}
+{% import '@NowoUiKitBundle/macros/ui.html.twig' as ui %}
+{% set _css_fw = nowo_contact_form_css_framework|default('bootstrap5') %}
 
 {% block title %}{{ 'nowo_contact_form.admin.submission.show_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
 
@@ -69,11 +71,11 @@
     <div class="d-flex flex-wrap gap-2 mt-4">
         <form method="post" action="{{ path('nowo_contact_form_submissions_delete', { formId: contactForm.id, id: submission.id }) }}" onsubmit="return confirm('{{ 'nowo_contact_form.admin.submission.delete_confirm'|trans({}, 'NowoContactFormBundle')|e('js') }}');">
             <input type="hidden" name="_token" value="{{ csrf_token('delete-submission-' ~ submission.id) }}">
-            <button type="submit" class="btn btn-danger">
+            <button type="submit" class="{{ ui.btn('danger', null, _css_fw) }} nowo-ui-action-delete">
                 {{ 'nowo_contact_form.admin.submission.delete'|trans({}, 'NowoContactFormBundle') }}
             </button>
         </form>
-        <a href="{{ path('nowo_contact_form_submissions_index', { formId: contactForm.id }) }}" class="btn btn-outline-secondary">
+        <a href="{{ path('nowo_contact_form_submissions_index', { formId: contactForm.id }) }}" class="{{ ui.btn('secondary', null, _css_fw) }} nowo-ui-action-cancel">
             {{ 'nowo_contact_form.admin.back'|trans({}, 'NowoContactFormBundle') }}
         </a>
     </div>

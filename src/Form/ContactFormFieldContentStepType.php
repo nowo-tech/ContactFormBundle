@@ -8,6 +8,8 @@ use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Entity\ContactFormFieldTranslation;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
 use Nowo\ContactFormBundle\Service\ContactFormFieldSelectOptionsSynchronizer;
+use Nowo\FormKitBundle\Attribute\FormKitConfig;
+use Nowo\FormKitBundle\Form\FormOptionsTrait;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\TextareaType;
@@ -29,9 +31,11 @@ use function is_string;
  *
  * @extends AbstractType<ContactFormField>
  */
+#[FormKitConfig('contact_form')]
 class ContactFormFieldContentStepType extends AbstractType
 {
     use ContactFormFieldWizardStepTrait;
+    use FormOptionsTrait;
 
     public function __construct(
         private readonly ContactFormFieldSelectOptionsSynchronizer $selectOptionsSynchronizer,
@@ -45,7 +49,7 @@ class ContactFormFieldContentStepType extends AbstractType
 
         $this->addPreservedDefinitionFields($builder);
 
-        $builder->add('translations', CollectionType::class, [
+        $this->addWithDefaults($builder, 'translations', CollectionType::class, [
             'entry_type'    => ContactFormFieldTranslationType::class,
             'allow_add'     => false,
             'allow_delete'  => false,

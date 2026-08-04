@@ -7,6 +7,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.0.14] - 2026-08-04](#1014-2026-08-04)
+  - [Added](#added)
+  - [Changed](#changed)
 - [[1.0.13] - 2026-07-30](#1013-2026-07-30)
   - [Added](#added)
   - [Changed](#changed)
@@ -50,6 +53,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [Changed](#changed)
 
 ## [Unreleased]
+
+### Changed
+
+- **UiKit:** Admin templates use `ui.btn` / `ui.row_actions` macros with `nowo_contact_form_css_framework` instead of hard-coded Bootstrap button classes.
+
+## [1.0.14] - 2026-08-04
+
+### Added
+
+- **REQ-TWIG-004:** require `twig/extra-bundle` + `twig/string-extra`; `make check-twig-extra` in `release-check`; demos register `TwigExtraBundle`.
+- **Twig-CS-Fixer:** `vincentlanglet/twig-cs-fixer`, `.twig-cs-fixer.php`, `composer twig:lint` / `twig:fix`.
+
+### Changed
+
+- **REQ-UI-001-kit:** Requires **[UiKitBundle](https://github.com/nowo-tech/UiKitBundle)** (`nowo-tech/ui-kit-bundle` `^1.4`). Admin `base.html.twig` loads `asset('css/nowo-ui.css', 'nowo_ui_kit')` and imports `@NowoUiKitBundle/macros/ui.html.twig` (flashes via `ui.flash`, primary list toolbar via `ui.btn` on form index). Extension implements `PrependExtensionInterface` and seeds `nowo_ui_kit` from `web_ui.css_framework` / `icon_set` when the host has not configured UiKit.
+- **FormKitBundle:** depend on [`nowo-tech/form-kit-bundle`](https://github.com/nowo-tech/FormKitBundle) ^2.0. Admin form types use `FormOptionsTrait` + profile `contact_form` (`#[FormKitConfig]`). Extension prepends that profile when missing; form types are tagged `form.type` so `FormOptionsMerger` is injected.
+- **Dependencies:** require `symfony/clock` (`^7.4 || ^8.0`) for the `NativeClock` fallback when the host has no `clock` service (was only `psr/clock`).
 
 ## [1.0.13] - 2026-07-30
 

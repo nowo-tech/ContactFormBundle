@@ -1,5 +1,7 @@
+{% import '@NowoUiKitBundle/macros/ui.html.twig' as ui %}
+{% set _css_fw = nowo_contact_form_css_framework|default('bootstrap5') %}
 <!DOCTYPE html>
-<html lang="{{ app.request.locale }}" class="nowo-ui-root nowo-ui-css-{{ nowo_contact_form_css_framework|default('bootstrap5') }}">
+<html lang="{{ app.request.locale }}" class="nowo-ui-root nowo-ui-css-{{ _css_fw }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -27,10 +29,7 @@
         {% block nowo_ui_flashes %}
             {% for label, messages in app.flashes %}
                 {% for message in messages %}
-                    <div class="alert alert-{{ label == 'error' ? 'danger' : label }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
+                    <div class="{{ ui.flash(label == 'error' ? 'error' : label, _css_fw) }}" role="alert">{{ message }}</div>
                 {% endfor %}
             {% endfor %}
         {% endblock %}

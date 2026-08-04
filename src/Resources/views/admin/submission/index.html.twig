@@ -1,4 +1,6 @@
 {% extends '@NowoContactFormBundle/admin/base.html.twig' %}
+{% import '@NowoUiKitBundle/macros/ui.html.twig' as ui %}
+{% set _css_fw = nowo_contact_form_css_framework|default('bootstrap5') %}
 
 {% block title %}{{ 'nowo_contact_form.admin.submission.index_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
 
@@ -32,9 +34,11 @@
                             </td>
                             <td><span class="badge text-bg-light border">{{ submission.locale }}</span></td>
                             <td class="text-end">
-                                <a href="{{ path('nowo_contact_form_submissions_show', { formId: contactForm.id, id: submission.id }) }}" class="btn btn-sm btn-outline-primary nowo-ui-action-view">
-                                    {{ 'nowo_contact_form.admin.actions.view'|trans({}, 'NowoContactFormBundle') }}
-                                </a>
+                                <div class="{{ ui.row_actions(_css_fw) }}">
+                                    <a href="{{ path('nowo_contact_form_submissions_show', { formId: contactForm.id, id: submission.id }) }}" class="{{ ui.btn('secondary', 'sm', _css_fw) }} nowo-ui-action-view">
+                                        {{ 'nowo_contact_form.admin.actions.view'|trans({}, 'NowoContactFormBundle') }}
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     {% else %}
@@ -51,7 +55,7 @@
 
     {% include '@NowoContactFormBundle/admin/_pagination.html.twig' %}
 
-    <a href="{{ path('nowo_contact_form_admin_index') }}" class="btn btn-outline-secondary">
+    <a href="{{ path('nowo_contact_form_admin_index') }}" class="{{ ui.btn('secondary', null, _css_fw) }} nowo-ui-action-cancel">
         {{ 'nowo_contact_form.admin.back'|trans({}, 'NowoContactFormBundle') }}
     </a>
 {% endblock %}

@@ -1,11 +1,13 @@
 {% extends '@NowoContactFormBundle/admin/base.html.twig' %}
+{% import '@NowoUiKitBundle/macros/ui.html.twig' as ui %}
+{% set _css_fw = nowo_contact_form_css_framework|default('bootstrap5') %}
 
 {% block title %}{{ 'nowo_contact_form.admin.form.index_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
 
 {% block content %}
     <div class="nowo-ui-page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
         <h1 class="h2 mb-0">{{ 'nowo_contact_form.admin.form.index_title'|trans({}, 'NowoContactFormBundle') }}</h1>
-        <a href="{{ path('nowo_contact_form_admin_new') }}" class="btn btn-primary nowo-ui-action-create">
+        <a href="{{ path('nowo_contact_form_admin_new') }}" class="{{ ui.btn('primary', null, _css_fw) }} nowo-ui-action-create">
             {{ 'nowo_contact_form.admin.form.new'|trans({}, 'NowoContactFormBundle') }}
         </a>
     </div>
@@ -34,14 +36,14 @@
                                 {% endif %}
                             </td>
                             <td class="text-end">
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <a href="{{ path('nowo_contact_form_admin_edit', { id: contactForm.id }) }}" class="btn btn-outline-primary nowo-ui-action-edit">
+                                <div class="{{ ui.row_actions(_css_fw) }}" role="group">
+                                    <a href="{{ path('nowo_contact_form_admin_edit', { id: contactForm.id }) }}" class="{{ ui.btn('secondary', 'sm', _css_fw) }} nowo-ui-action-edit">
                                         {{ 'nowo_contact_form.admin.actions.edit'|trans({}, 'NowoContactFormBundle') }}
                                     </a>
-                                    <a href="{{ path('nowo_contact_form_fields_index', { formId: contactForm.id }) }}" class="btn btn-outline-secondary">
+                                    <a href="{{ path('nowo_contact_form_fields_index', { formId: contactForm.id }) }}" class="{{ ui.btn('secondary', 'sm', _css_fw) }}">
                                         {{ 'nowo_contact_form.admin.actions.fields'|trans({}, 'NowoContactFormBundle') }}
                                     </a>
-                                    <a href="{{ path('nowo_contact_form_submissions_index', { formId: contactForm.id }) }}" class="btn btn-outline-secondary">
+                                    <a href="{{ path('nowo_contact_form_submissions_index', { formId: contactForm.id }) }}" class="{{ ui.btn('secondary', 'sm', _css_fw) }}">
                                         {{ 'nowo_contact_form.admin.actions.submissions'|trans({}, 'NowoContactFormBundle') }}
                                     </a>
                                 </div>

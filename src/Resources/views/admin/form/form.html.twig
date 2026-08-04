@@ -1,4 +1,6 @@
 {% extends '@NowoContactFormBundle/admin/base.html.twig' %}
+{% import '@NowoUiKitBundle/macros/ui.html.twig' as ui %}
+{% set _css_fw = nowo_contact_form_css_framework|default('bootstrap5') %}
 
 {% block title %}{{ isNew ? 'nowo_contact_form.admin.form.new_title'|trans({}, 'NowoContactFormBundle') : 'nowo_contact_form.admin.form.edit_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
 
@@ -23,10 +25,10 @@
                 {% include '@NowoContactFormBundle/admin/form/_translation_tabs.html.twig' with { form: form } only %}
 
                 <div class="d-flex flex-wrap gap-2 mt-4">
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="{{ ui.btn('primary', null, _css_fw) }} nowo-ui-action-save">
                         {{ 'nowo_contact_form.admin.form.save'|trans({}, 'NowoContactFormBundle') }}
                     </button>
-                    <a href="{{ path('nowo_contact_form_admin_index') }}" class="btn btn-outline-secondary">
+                    <a href="{{ path('nowo_contact_form_admin_index') }}" class="{{ ui.btn('secondary', null, _css_fw) }} nowo-ui-action-cancel">
                         {{ 'nowo_contact_form.admin.back'|trans({}, 'NowoContactFormBundle') }}
                     </a>
                 </div>

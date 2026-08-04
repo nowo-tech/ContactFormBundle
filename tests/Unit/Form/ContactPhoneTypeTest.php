@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Tests\Unit\Form;
 
 use Nowo\ContactFormBundle\Form\ContactPhoneType;
+use Nowo\ContactFormBundle\Tests\Support\FormKitTestSupport;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\Test\TypeTestCase;
@@ -18,6 +19,16 @@ final class ContactPhoneTypeTest extends TypeTestCase
     {
         return [
             new ValidatorExtension(Validation::createValidator()),
+        ];
+    }
+
+    /**
+     * @return list<object>
+     */
+    protected function getTypes(): array
+    {
+        return [
+            FormKitTestSupport::withMerger(new ContactPhoneType()),
         ];
     }
 

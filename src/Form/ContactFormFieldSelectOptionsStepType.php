@@ -6,8 +6,9 @@ namespace Nowo\ContactFormBundle\Form;
 
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
+use Nowo\FormKitBundle\Attribute\FormKitConfig;
+use Nowo\FormKitBundle\Form\FormOptionsTrait;
 use Symfony\Component\Form\AbstractType;
-use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvent;
@@ -23,9 +24,11 @@ use function count;
  *
  * @extends AbstractType<ContactFormField>
  */
+#[FormKitConfig('contact_form')]
 class ContactFormFieldSelectOptionsStepType extends AbstractType
 {
     use ContactFormFieldWizardStepTrait;
+    use FormOptionsTrait;
 
     public function __construct(
         private readonly TranslatorInterface $translator,
@@ -39,7 +42,7 @@ class ContactFormFieldSelectOptionsStepType extends AbstractType
         $this->addPreservedDefinitionFields($builder);
         $this->addPreservedDefinitionFieldsPreSubmitListener($builder);
 
-        $builder->add('optionsMachineNamesLines', TextareaType::class, [
+        $this->addTextarea($builder, 'optionsMachineNamesLines', [
             'label'              => $prefix . 'options_machine_names',
             'help'               => $prefix . 'options_machine_names_help',
             'required'           => false,

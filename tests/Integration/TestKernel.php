@@ -6,6 +6,8 @@ namespace Nowo\ContactFormBundle\Tests\Integration;
 
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use Nowo\ContactFormBundle\NowoContactFormBundle;
+use Nowo\FormKitBundle\NowoFormKitBundle;
+use Nowo\UiKitBundle\NowoUiKitBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
 use Symfony\Bundle\SecurityBundle\SecurityBundle;
@@ -18,6 +20,7 @@ use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 use Symfony\Component\Security\Csrf\CsrfTokenManager;
 use Symfony\Component\Security\Csrf\TokenGenerator\UriSafeTokenGenerator;
 use Symfony\Component\Security\Csrf\TokenStorage\SessionTokenStorage;
+use Twig\Extra\TwigExtraBundle\TwigExtraBundle;
 
 use function dirname;
 use function is_dir;
@@ -32,7 +35,10 @@ final class TestKernel extends Kernel
         yield new FrameworkBundle();
         yield new SecurityBundle();
         yield new TwigBundle();
+        yield new TwigExtraBundle();
         yield new DoctrineBundle();
+        yield new NowoFormKitBundle();
+        yield new NowoUiKitBundle();
         yield new NowoContactFormBundle();
     }
 
@@ -47,6 +53,7 @@ final class TestKernel extends Kernel
             'secret'          => 'test_secret',
             'test'            => true,
             'csrf_protection' => true,
+            'assets'          => true,
             'form'            => [
                 'enabled'         => true,
                 'csrf_protection' => ['enabled' => true],
