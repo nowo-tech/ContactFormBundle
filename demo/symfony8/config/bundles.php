@@ -11,6 +11,7 @@ return [
     Nowo\ContactFormBundle\NowoContactFormBundle::class => ['all' => true],
     Nowo\UiKitBundle\NowoUiKitBundle::class => ['all' => true],
     Nowo\PhoneInputBundle\NowoPhoneInputBundle::class => ['all' => true],
+    Nowo\HotReloadBundle\NowoHotReloadBundle::class => ['dev' => true, 'test' => true],
     Nowo\TwigInspectorBundle\NowoTwigInspectorBundle::class => ['dev' => true, 'test' => true],
     Nowo\FormKitBundle\NowoFormKitBundle::class => ['all' => true],
 ];
