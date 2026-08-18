@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.0.15] - 2026-08-18](#1015-2026-08-18)
 - [[1.0.14] - 2026-08-04](#1014-2026-08-04)
   - [Added](#added)
   - [Changed](#changed)
@@ -54,8 +55,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.15] - 2026-08-18
+
 ### Changed
 
+- **Demos:** pin `nowo-tech/hot-reload-bundle` to `^1.4` with FrankenPHP Mercure/`hot_reload` (`dev`/`test` only).
 - **UiKit:** Admin templates use `ui.btn` / `ui.row_actions` macros with `nowo_contact_form_css_framework` instead of hard-coded Bootstrap button classes.
 
 ## [1.0.14] - 2026-08-04

@@ -25,6 +25,10 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 
 ## Unreleased
 
+## 1.0.15 (Symfony 8 demos / Hot Reload 1.4)
+
+- **No application upgrade steps.** No application upgrade steps. **Demos only:** Hot Reload Bundle `^1.4` (FrankenPHP Mercure/`hot_reload`, `dev`/`test`).
+
 ## 1.0.14 (2026-08-04)
 
 Notable dependency and admin UI stack updates. No schema changes.
