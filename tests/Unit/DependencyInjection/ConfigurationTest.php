@@ -28,6 +28,7 @@ final class ConfigurationTest extends TestCase
         self::assertFalse($config['security']['allow_unauthenticated']);
         self::assertFalse($config['notifications']['enabled']);
         self::assertFalse($config['notifications']['mailer']['enabled']);
+        self::assertSame('', $config['doctrine']['table_prefix']);
     }
 
     public function testCustomConfiguration(): void
@@ -38,11 +39,15 @@ final class ConfigurationTest extends TestCase
             'client_label_property'  => 'name',
             'ip_anonymization_salt'  => 'custom-salt',
             'default_retention_days' => 30,
+            'doctrine'               => [
+                'table_prefix' => 'app_',
+            ],
         ]]);
 
         self::assertSame('App\\Entity\\Client', $config['client_entity_class']);
         self::assertSame('name', $config['client_label_property']);
         self::assertSame('custom-salt', $config['ip_anonymization_salt']);
         self::assertSame(30, $config['default_retention_days']);
+        self::assertSame('app_', $config['doctrine']['table_prefix']);
     }
 }

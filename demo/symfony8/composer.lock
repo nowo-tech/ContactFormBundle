@@ -1118,15 +1118,15 @@
         },
         {
             "name": "nowo-tech/contact-form-bundle",
-            "version": "dev-master",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "/var/contact-form-bundle",
-                "reference": "145b072f383c073a23ca0551bbcca2a9cc70ac6c"
+                "reference": "69df6f4f0648f691e26d8c38eaee50b3bd61806e"
             },
             "require": {
                 "doctrine/doctrine-bundle": "^2.13 || ^3.0",
-                "doctrine/orm": "^2.17 || ^3.0",
+                "doctrine/orm": "^2.17 || >=3.0 <3.6.8",
                 "nowo-tech/form-kit-bundle": "^2.0",
                 "nowo-tech/ui-kit-bundle": "^1.4",
                 "php": ">=8.2 <8.6",

@@ -33,9 +33,11 @@ Extension alias: `nowo_contact_form`.
 | `public_submission_rate_limit.enabled` | `true` | Enable per-IP rate limiting on public POST |
 | `public_submission_rate_limit.limit` | `5` | Max submissions per interval |
 | `public_submission_rate_limit.interval_seconds` | `60` | Rate-limit window in seconds |
+| `doctrine.table_prefix` | `""` | Prefix prepended to entity table names (`nowo_contact_form`, …). Empty = no prefix |
 
 ## Table of contents
 
+- [Doctrine table prefix](#doctrine-table-prefix)
 - [CSRF (public forms)](#csrf-public-forms)
 - [Admin Web UI (layout and CSS)](#admin-web-ui-layout-and-css)
 - [Admin security](#admin-security)
@@ -43,6 +45,18 @@ Extension alias: `nowo_contact_form`.
 - [Client linking (public submissions)](#client-linking-public-submissions)
 - [GDPR retention cleanup](#gdpr-retention-cleanup)
 - [Notifications without symfony/mailer](#notifications-without-symfonymailer)
+
+## Doctrine table prefix
+
+Optional prefix for all ContactFormBundle entity tables (same pattern as BlogKit / CookieConsent):
+
+```yaml
+nowo_contact_form:
+    doctrine:
+        table_prefix: 'app_'   # yields app_nowo_contact_form, app_nowo_contact_submission, …
+```
+
+Leave empty (default) to keep the hardcoded table names from the entities. If you change the prefix after data exists, migrate/rename tables (or regenerate schema) accordingly.
 
 ## CSRF (public forms)
 

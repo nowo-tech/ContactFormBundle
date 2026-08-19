@@ -183,6 +183,15 @@ class Configuration implements ConfigurationInterface
                         ->integerNode('interval_seconds')->defaultValue(60)->min(1)->end()
                     ->end()
                 ->end()
+                ->arrayNode('doctrine')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->scalarNode('table_prefix')
+                            ->defaultValue('')
+                            ->info('Prefix prepended to table names (nowo_contact_form, nowo_contact_submission, …). Empty = no prefix.')
+                        ->end()
+                    ->end()
+                ->end()
             ->end();
 
         return $treeBuilder;

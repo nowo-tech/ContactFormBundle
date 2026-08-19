@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.0.16] - 2026-08-19](#1016-2026-08-19)
 - [[1.0.15] - 2026-08-18](#1015-2026-08-18)
 - [[1.0.14] - 2026-08-04](#1014-2026-08-04)
   - [Added](#added)
@@ -54,6 +55,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [Changed](#changed)
 
 ## [Unreleased]
+
+## [1.0.16] - 2026-08-19
+
+### Added
+
+- `nowo_contact_form.doctrine.table_prefix` — optional prefix for entity tables (`nowo_contact_form`, `nowo_contact_submission`, …), same pattern as BlogKit / CookieConsent. Empty (default) keeps hardcoded table names.
+
+### Changed
+
+- Constrain `doctrine/orm` to `^2.17 || >=3.0 <3.6.8` until `doctrine/dbal` ^4.5 is available (ORM 3.6.8 schema tooling breaks integration tests on DBAL 4.4).
 
 ## [1.0.15] - 2026-08-18
 

@@ -3,6 +3,8 @@ nowo_contact_form:
     security:
         allow_unauthenticated: true
         access_roles: [ROLE_ADMIN]
+    doctrine:
+        table_prefix: ''
     file_upload:
         service: App\Service\DemoContactFormFileUploadHandler
     notifications:

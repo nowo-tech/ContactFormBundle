@@ -5,6 +5,8 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [1.0.16 (2026-08-19)](#1016-2026-08-19)
+- [1.0.15 (Symfony 8 demos / Hot Reload 1.4)](#1015-symfony-8-demos--hot-reload-14)
 - [1.0.14 (2026-08-04)](#1014-2026-08-04)
 - [1.0.13 (2026-07-30)](#1013-2026-07-30)
 - [1.0.12 (2026-07-29)](#1012-2026-07-29)
@@ -24,6 +26,19 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## 1.0.16 (2026-08-19)
+
+Optional Doctrine table prefix. Backward compatible when left empty.
+
+```yaml
+nowo_contact_form:
+    doctrine:
+        table_prefix: ''   # default — keep nowo_contact_form, nowo_contact_submission, …
+        # table_prefix: 'app_'  # → app_nowo_contact_form, …
+```
+
+If you set a non-empty prefix on an existing database, rename tables (or migrate) to match before deploying.
 
 ## 1.0.15 (Symfony 8 demos / Hot Reload 1.4)
 

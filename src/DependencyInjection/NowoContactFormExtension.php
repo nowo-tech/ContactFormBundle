@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\DependencyInjection;
 
+use Doctrine\ORM\Events;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier;
@@ -233,6 +234,24 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
         $this->registerNotifier($container, $config);
         $this->registerFileUploadHandler($container, $config);
         $this->registerSubmissionRateLimiter($container, $config);
+        $this->registerTablePrefixListener($container, $config);
+    }
+
+    /**
+     * @param array<string, mixed> $config
+     */
+    private function registerTablePrefixListener(ContainerBuilder $container, array $config): void
+    {
+        $tablePrefix = trim((string) ($config['doctrine']['table_prefix'] ?? ''));
+        $container->setParameter('nowo_contact_form.doctrine.table_prefix', $tablePrefix);
+
+        if ($tablePrefix === '') {
+            return;
+        }
+
+        $definition = new Definition(TablePrefixListener::class, [$tablePrefix]);
+        $definition->addTag('doctrine.event_listener', ['event' => Events::loadClassMetadata]);
+        $container->setDefinition(TablePrefixListener::class, $definition);
     }
 
     /**

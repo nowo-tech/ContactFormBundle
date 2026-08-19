@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Tests\Unit\DependencyInjection;
 
 use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
+use Nowo\ContactFormBundle\DependencyInjection\TablePrefixListener;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier;
@@ -60,6 +61,23 @@ final class NowoContactFormExtensionTest extends TestCase
         );
         self::assertTrue($container->hasParameter('nowo_contact_form.web_ui.layout_template'));
         self::assertSame(['ROLE_ADMIN'], $container->getParameter('nowo_contact_form.security.access_roles'));
+        self::assertSame('', $container->getParameter('nowo_contact_form.doctrine.table_prefix'));
+        self::assertFalse($container->hasDefinition(TablePrefixListener::class));
+    }
+
+    public function testLoadRegistersTablePrefixListenerWhenConfigured(): void
+    {
+        $container = new ContainerBuilder();
+        $extension = new NowoContactFormExtension();
+        $extension->load([array_merge($this->baseConfig(), [
+            'doctrine' => ['table_prefix' => 'cf_'],
+        ])], $container);
+
+        self::assertSame('cf_', $container->getParameter('nowo_contact_form.doctrine.table_prefix'));
+        self::assertTrue($container->hasDefinition(TablePrefixListener::class));
+        $definition = $container->getDefinition(TablePrefixListener::class);
+        self::assertSame(['cf_'], $definition->getArguments());
+        self::assertTrue($definition->hasTag('doctrine.event_listener'));
     }
 
     public function testLoadRegistersAllowAllAccessCheckerWithoutSecurity(): void
