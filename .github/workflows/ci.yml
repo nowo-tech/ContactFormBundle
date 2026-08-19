@@ -107,6 +107,9 @@ jobs:
 
           # Update Symfony + Doctrine so locked doctrine-bundle 2.x can move to 3.x on SF8.
           composer update "symfony/*" "doctrine/*" --with-all-dependencies --no-interaction --prefer-dist --no-progress
+      - name: Composer audit (Critical/High)
+        run: composer audit --locked
+
 
       - name: Run tests
         env:
