@@ -58,6 +58,11 @@ final class TestKernel extends Kernel
                 'enabled'         => true,
                 'csrf_protection' => ['enabled' => true],
             ],
+            // Array cache avoids DoctrineDbalCacheAdapterSchemaListener (needs DBAL Schema::edit / ^4.5).
+            'cache' => [
+                'app'    => 'cache.adapter.array',
+                'system' => 'cache.adapter.array',
+            ],
             'session'         => ['storage_factory_id' => 'session.storage.factory.mock_file'],
             'router'          => ['utf8' => true],
             'translator'      => ['enabled' => true, 'fallbacks' => ['en']],

@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.0.17] - 2026-08-19](#1017-2026-08-19)
 - [[1.0.16] - 2026-08-19](#1016-2026-08-19)
 - [[1.0.15] - 2026-08-18](#1015-2026-08-18)
 - [[1.0.14] - 2026-08-04](#1014-2026-08-04)
@@ -56,6 +57,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.17] - 2026-08-19
+
+### Fixed
+
+- Allow `doctrine/orm` 3.6.8 again (removed the temporary `<3.6.8` constraint from 1.0.16).
+- Integration TestKernel uses array cache adapters so SchemaTool does not hit `DoctrineDbalCacheAdapterSchemaListener` / DBAL `Schema::edit` on DBAL 4.4.
+
 ## [1.0.16] - 2026-08-19
 
 ### Added
@@ -64,7 +72,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
-- Constrain `doctrine/orm` to `^2.17 || >=3.0 <3.6.8` until `doctrine/dbal` ^4.5 is available (ORM 3.6.8 schema tooling breaks integration tests on DBAL 4.4).
+- Temporarily constrained `doctrine/orm` below 3.6.8 in 1.0.16 CI; lifted in **1.0.17** (prefer upgrading to 1.0.17).
 
 ## [1.0.15] - 2026-08-18
 

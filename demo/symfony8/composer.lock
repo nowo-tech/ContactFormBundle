@@ -1122,11 +1122,11 @@
             "dist": {
                 "type": "path",
                 "url": "/var/contact-form-bundle",
-                "reference": "69df6f4f0648f691e26d8c38eaee50b3bd61806e"
+                "reference": "d6f6c78f0adbad70149bc45e7092290c3e9f1fe4"
             },
             "require": {
                 "doctrine/doctrine-bundle": "^2.13 || ^3.0",
-                "doctrine/orm": "^2.17 || >=3.0 <3.6.8",
+                "doctrine/orm": "^2.17 || ^3.0",
                 "nowo-tech/form-kit-bundle": "^2.0",
                 "nowo-tech/ui-kit-bundle": "^1.4",
                 "php": ">=8.2 <8.6",
