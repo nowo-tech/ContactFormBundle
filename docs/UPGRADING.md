@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [1.0.18 (2026-08-19)](#1018-2026-08-19)
 - [1.0.17 (2026-08-19)](#1017-2026-08-19)
 - [1.0.16 (2026-08-19)](#1016-2026-08-19)
 - [1.0.15 (Symfony 8 demos / Hot Reload 1.4)](#1015-symfony-8-demos--hot-reload-14)
@@ -27,6 +28,14 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## 1.0.18 (2026-08-19)
+
+No application upgrade steps.
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
 
 ## 1.0.17 (2026-08-19)
 
