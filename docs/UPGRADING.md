@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [1.0.19 (2026-08-20)](#1019-2026-08-20)
 - [1.0.18 (2026-08-19)](#1018-2026-08-19)
 - [1.0.17 (2026-08-19)](#1017-2026-08-19)
 - [1.0.16 (2026-08-19)](#1016-2026-08-19)
@@ -28,6 +29,14 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## 1.0.19 (2026-08-20)
+
+Review Flex `when@prod` rate limits and `security_nowo_contact_form.yaml` after update. Prefer **`^1.0.19`**.
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
 
 ## 1.0.18 (2026-08-19)
 

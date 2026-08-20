@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.0.19] - 2026-08-20](#1019-2026-08-20)
 - [[1.0.17] - 2026-08-19](#1017-2026-08-19)
 - [[1.0.16] - 2026-08-19](#1016-2026-08-19)
 - [[1.0.15] - 2026-08-18](#1015-2026-08-18)
@@ -56,6 +57,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [Changed](#changed)
 
 ## [Unreleased]
+
+## [1.0.19] - 2026-08-20
+
+### Security
+
+- **Flex recipe:** `when@prod` keeps `ROLE_ADMIN`, `allow_unauthenticated: false`, and tighter public rate limits; ship `security_nowo_contact_form.yaml` (`access_control` for `/admin/contact-forms`). Prefer **`^1.0.19`**.
+
+[1.0.19]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.0.19
 
 ## [1.0.18] - 2026-08-19
 

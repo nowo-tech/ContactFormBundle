@@ -31,7 +31,7 @@ The bundle provides:
 - **Optional notifications** via `ContactSubmissionNotifierInterface`, Symfony Mailer, or `ContactSubmissionCreatedEvent`.
 - **Retention cleanup** via `nowo:contact-form:cleanup-submissions`.
 
-The bundle ships a **default admin access checker** (`security.access_roles`, default `ROLE_ADMIN`) enforced on admin routes. The host application must still protect the admin path with a firewall / `access_control`. Set `security.allow_unauthenticated: true` only in demos.
+The bundle ships a **default admin access checker** (`security.access_roles`, default `ROLE_ADMIN`) enforced on admin routes. Flex also copies `security_nowo_contact_form.yaml` (`access_control` for `/admin/contact-forms`) and `when@prod` hardening. Set `security.allow_unauthenticated: true` only in demos.
 
 ## Attack surface
 
@@ -115,10 +115,10 @@ Before each tagged release, maintainers confirm (tick in the release PR or tag n
 
 | Field | Value |
 | --- | --- |
-| Grade | **Pass (conditional)** |
-| Risk | **Medium** |
-| Date | 2026-07-28 |
-| Method | Nowo monorepo static re-review |
-| Residual | Consent `label_html` after `ContactFormRichTextSanitizer`; demo `allow_unauthenticated` must stay off in production |
+| Grade | **Pass (good)** |
+| Risk | **Low** |
+| Date | 2026-08-20 (re-audit; prior 2026-07-28) |
+| Method | Nowo monorepo static re-review; Flex `when@prod` + `security_nowo_contact_form.yaml` |
+| Residual | Consent `label_html` after `ContactFormRichTextSanitizer`; keep demo `allow_unauthenticated` off in production |
 
 Recorded in the Nowo monorepo `BUNDLES_SECURITY_ANALYSIS.md`.
