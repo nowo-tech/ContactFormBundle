@@ -12,6 +12,7 @@ use Nowo\ContactFormBundle\Enum\ContactPhoneWidget;
 use Nowo\ContactFormBundle\Form\ContactPhoneType;
 use Nowo\ContactFormBundle\Phone\ContactFormFieldPhoneOptions;
 use Nowo\ContactFormBundle\Repository\ContactFormFieldRepository;
+use Nowo\FormKitBundle\Form\FormOptionsMerger;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
@@ -34,14 +35,25 @@ use Symfony\Component\Validator\Constraints\Url;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function array_is_list;
+use function array_key_exists;
 use function count;
 use function is_array;
+use function is_subclass_of;
 
 /**
  * Builds dynamic Symfony forms from ContactForm entity definitions.
+ *
+ * Field chrome (attr / row_attr / …) comes from the FormKit profile {@see self::FORM_KIT_PROFILE}
+ * so hosts can tune spacing and classes in {@code nowo_form_kit.profiles.contact_form} without
+ * relying on Twig theme fallbacks.
  */
 final readonly class DynamicContactFormBuilder
 {
+    public const FORM_KIT_PROFILE = 'contact_form';
+
+    /** Stable FormKit {@code by_form} key for public dynamic fields. */
+    public const FORM_KIT_FORM_NAME = 'public_contact';
+
     public function __construct(
         private FormFactoryInterface $formFactory,
         private ContactFormFieldRepository $fieldRepository,
@@ -50,6 +62,7 @@ final readonly class DynamicContactFormBuilder
         private ContactPhonePrefixResolver $phonePrefixResolver,
         private ContactPhoneInputOptionsResolver $phoneInputOptionsResolver,
         private ContactPhoneInputAvailability $phoneInputAvailability,
+        private FormOptionsMerger $formOptionsMerger,
     ) {
     }
 
@@ -81,11 +94,12 @@ final readonly class DynamicContactFormBuilder
                 $locale,
             );
 
-            $builder->add('gdpr_consent', CheckboxType::class, [
+            $builder->add('gdpr_consent', CheckboxType::class, $this->withProfileOptions('gdpr_consent', CheckboxType::class, [
                 'label'       => $this->richTextSanitizer->sanitize($consentLabel),
                 'label_html'  => true,
                 'mapped'      => false,
                 'required'    => false,
+                'help'        => false,
                 'constraints' => [
                     new IsTrue(message: $this->translator->trans(
                         'nowo_contact_form.public.consent_required',
@@ -94,7 +108,7 @@ final readonly class DynamicContactFormBuilder
                         $locale,
                     )),
                 ],
-            ]);
+            ]));
         }
 
         return $builder->getForm();
@@ -137,35 +151,105 @@ final readonly class DynamicContactFormBuilder
         }
 
         match ($field->getType()) {
-            ContactFieldType::Email => $builder->add($field->getName(), EmailType::class, array_merge($options, [
-                'constraints' => array_merge($constraints, [new Email()]),
-            ])),
+            ContactFieldType::Email => $builder->add($field->getName(), EmailType::class, $this->withProfileOptions(
+                $field->getName(),
+                EmailType::class,
+                array_merge($options, [
+                    'constraints' => array_merge($constraints, [new Email()]),
+                ]),
+            )),
             ContactFieldType::Phone    => $this->addPhoneField($builder, $field, $options),
-            ContactFieldType::Textarea => $builder->add($field->getName(), TextareaType::class, $options),
-            ContactFieldType::Select   => $builder->add($field->getName(), ChoiceType::class, array_merge($options, [
-                'choices'     => $this->buildSelectChoices($field, $translation),
-                'placeholder' => $translation->getPlaceholder(),
-            ])),
-            ContactFieldType::Checkbox => $builder->add($field->getName(), CheckboxType::class, [
-                'label'        => $translation->getLabel(),
-                'required'     => false,
-                'false_values' => [null, '', false],
-                'help'         => $translation->getHelp(),
-                'constraints'  => $constraints,
-            ]),
-            ContactFieldType::Number => $builder->add($field->getName(), NumberType::class, array_merge($options, [
-                'html5' => true,
-            ])),
-            ContactFieldType::Date => $builder->add($field->getName(), DateType::class, array_merge($options, [
-                'widget' => 'single_text',
-            ])),
-            ContactFieldType::Url => $builder->add($field->getName(), UrlType::class, array_merge($options, [
-                'default_protocol' => 'https',
-                'constraints'      => array_merge($constraints, [new Url()]),
-            ])),
-            ContactFieldType::File => $builder->add($field->getName(), FileType::class, $options),
-            ContactFieldType::Text => $builder->add($field->getName(), TextType::class, $options),
+            ContactFieldType::Textarea => $builder->add($field->getName(), TextareaType::class, $this->withProfileOptions(
+                $field->getName(),
+                TextareaType::class,
+                $options,
+            )),
+            ContactFieldType::Select => $builder->add($field->getName(), ChoiceType::class, $this->withProfileOptions(
+                $field->getName(),
+                ChoiceType::class,
+                array_merge($options, [
+                    'choices'     => $this->buildSelectChoices($field, $translation),
+                    'placeholder' => $translation->getPlaceholder(),
+                ]),
+            )),
+            ContactFieldType::Checkbox => $builder->add($field->getName(), CheckboxType::class, $this->withProfileOptions(
+                $field->getName(),
+                CheckboxType::class,
+                [
+                    'label'        => $translation->getLabel(),
+                    'required'     => false,
+                    'false_values' => [null, '', false],
+                    'help'         => $translation->getHelp() ?? false,
+                    'constraints'  => $constraints,
+                ],
+            )),
+            ContactFieldType::Number => $builder->add($field->getName(), NumberType::class, $this->withProfileOptions(
+                $field->getName(),
+                NumberType::class,
+                array_merge($options, [
+                    'html5' => true,
+                ]),
+            )),
+            ContactFieldType::Date => $builder->add($field->getName(), DateType::class, $this->withProfileOptions(
+                $field->getName(),
+                DateType::class,
+                array_merge($options, [
+                    'widget' => 'single_text',
+                ]),
+            )),
+            ContactFieldType::Url => $builder->add($field->getName(), UrlType::class, $this->withProfileOptions(
+                $field->getName(),
+                UrlType::class,
+                array_merge($options, [
+                    'default_protocol' => 'https',
+                    'constraints'      => array_merge($constraints, [new Url()]),
+                ]),
+            )),
+            ContactFieldType::File => $builder->add($field->getName(), FileType::class, $this->withProfileOptions(
+                $field->getName(),
+                FileType::class,
+                $options,
+            )),
+            ContactFieldType::Text => $builder->add($field->getName(), TextType::class, $this->withProfileOptions(
+                $field->getName(),
+                TextType::class,
+                $options,
+            )),
         };
+    }
+
+    /**
+     * Merge FormKit {@code contact_form} profile defaults (attr / row_attr / field_types).
+     * Labels, help and placeholders stay CMS strings — conventions are disabled.
+     *
+     * @param class-string $type
+     * @param array<string, mixed> $options
+     *
+     * @return array<string, mixed>
+     */
+    private function withProfileOptions(string $fieldName, string $type, array $options): array
+    {
+        if (!array_key_exists('translation_domain', $options)) {
+            $options['translation_domain'] = false;
+        }
+
+        if (!array_key_exists('help', $options)) {
+            $options['help'] = false;
+        }
+
+        $hasPlaceholder = array_key_exists('placeholder', $options)
+            || (isset($options['attr']) && is_array($options['attr']) && array_key_exists('placeholder', $options['attr']));
+        if (!$hasPlaceholder) {
+            $options['placeholder'] = false;
+        }
+
+        return $this->formOptionsMerger->resolve(
+            self::FORM_KIT_FORM_NAME,
+            $fieldName,
+            $type,
+            $options,
+            self::FORM_KIT_PROFILE,
+        );
     }
 
     /**
@@ -189,7 +273,11 @@ final readonly class DynamicContactFormBuilder
             $builder->add(
                 $field->getName(),
                 $phoneInputType,
-                array_merge($options, $this->phoneInputOptionsResolver->resolveForField($field)),
+                $this->withProfileOptions(
+                    $field->getName(),
+                    $phoneInputType,
+                    array_merge($options, $this->phoneInputOptionsResolver->resolveForField($field)),
+                ),
             );
 
             return;
@@ -198,14 +286,22 @@ final readonly class DynamicContactFormBuilder
         $prefixes = $this->phonePrefixResolver->resolveForField($field);
 
         if ($prefixes === []) {
-            $builder->add($field->getName(), TelType::class, $options);
+            $builder->add($field->getName(), TelType::class, $this->withProfileOptions(
+                $field->getName(),
+                TelType::class,
+                $options,
+            ));
 
             return;
         }
 
-        $builder->add($field->getName(), ContactPhoneType::class, array_merge($options, [
-            'prefixes' => $prefixes,
-        ]));
+        $builder->add($field->getName(), ContactPhoneType::class, $this->withProfileOptions(
+            $field->getName(),
+            ContactPhoneType::class,
+            array_merge($options, [
+                'prefixes' => $prefixes,
+            ]),
+        ));
     }
 
     /**

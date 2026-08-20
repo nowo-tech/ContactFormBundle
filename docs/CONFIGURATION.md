@@ -131,6 +131,24 @@ php bin/console nowo:contact-form:cleanup-submissions --dry-run
 
 Each form's `retention_days` defines when its submissions are eligible for deletion.
 
+## FormKit profile (`contact_form`)
+
+Admin form types use `#[FormKitConfig('contact_form')]`. Public fields from
+`DynamicContactFormBuilder` use the same profile with form name `public_contact`
+(so `by_form.public_contact` overrides work). The bundle prepends a Bootstrap-oriented
+seed when the host has not defined `profiles.contact_form`. Override in the host:
+
+```yaml
+# config/packages/nowo_form_kit.yaml
+nowo_form_kit:
+    profiles:
+        contact_form:
+            defaults:
+                attr: {}
+                row_attr:
+                    class: mb-5
+```
+
 ## Notifications without symfony/mailer
 
 Three integration options:

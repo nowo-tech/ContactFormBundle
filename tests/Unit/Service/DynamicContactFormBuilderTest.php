@@ -83,6 +83,7 @@ final class DynamicContactFormBuilderTest extends TestCase
             $this->phonePrefixResolver,
             $this->phoneInputOptionsResolver,
             $this->phoneInputAvailability,
+            FormKitTestSupport::merger(),
         );
     }
 
@@ -119,6 +120,15 @@ final class DynamicContactFormBuilderTest extends TestCase
         self::assertTrue($form->has('gdpr_consent'));
         self::assertSame('I agree', $form->get('gdpr_consent')->getConfig()->getOption('label'));
         self::assertTrue($form->get('gdpr_consent')->getConfig()->getOption('label_html'));
+        self::assertSame(
+            'mb-2',
+            $form->get('email')->getConfig()->getOption('row_attr')['class'] ?? null,
+            'Public fields must inherit contact_form FormKit row_attr',
+        );
+        self::assertStringContainsString(
+            'nowo-ui-input',
+            (string) ($form->get('email')->getConfig()->getOption('attr')['class'] ?? ''),
+        );
     }
 
     public function testConsentLabelSupportsSanitizedHtml(): void

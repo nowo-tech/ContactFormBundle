@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.0.20] - 2026-08-20](#1020-2026-08-20)
 - [[1.0.19] - 2026-08-20](#1019-2026-08-20)
 - [[1.0.17] - 2026-08-19](#1017-2026-08-19)
 - [[1.0.16] - 2026-08-19](#1016-2026-08-19)
@@ -57,6 +58,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [Changed](#changed)
 
 ## [Unreleased]
+
+## [1.0.20] - 2026-08-20
+
+### Fixed
+
+- **Public dynamic forms:** `DynamicContactFormBuilder` applies FormKit profile `contact_form` (`FormOptionsMerger`) so host `nowo_form_kit.profiles.contact_form.defaults.row_attr` / `attr` affect public fields (form name `public_contact`). CMS labels/help/placeholders stay as plain strings.
+
+[1.0.20]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.0.20
 
 ## [1.0.19] - 2026-08-20
 

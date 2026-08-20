@@ -528,6 +528,7 @@ final class CoverageCompletionTest extends TestCase
             new ContactPhonePrefixResolver([]),
             new ContactPhoneInputOptionsResolver(['value_format' => 'CONCATENATED']),
             new ContactPhoneInputAvailability(),
+            FormKitTestSupport::merger(),
         );
 
         $form = $builder->createForm($contactForm, 'en');
