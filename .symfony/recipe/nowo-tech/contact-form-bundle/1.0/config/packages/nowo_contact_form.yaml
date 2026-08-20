@@ -17,3 +17,13 @@ nowo_contact_form:
         enabled: true
         limit: 5
         interval_seconds: 60
+
+when@prod:
+    nowo_contact_form:
+        security:
+            access_roles: [ROLE_ADMIN]
+            allow_unauthenticated: false
+        public_submission_rate_limit:
+            enabled: true
+            limit: 3
+            interval_seconds: 60
