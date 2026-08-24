@@ -59,6 +59,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+
+## [1.0.21] - 2026-08-24
+
+### Changed
+
+- **Demos:** MySQL env policy in FrankenPHP stack (REQ-DEMO-011).
+- **Docs:** PHP-FIG PSR evaluation (REQ-CS-007).
+
+### Notes
+
+- **No API or configuration changes** for integrators unless noted above.
+
+[1.0.21]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.0.21
+
 ## [1.0.20] - 2026-08-20
 
 ### Fixed

@@ -4,6 +4,8 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 
 ## Table of contents
 
+
+- [From 1.0.20 to 1.0.21](#from-1020-to-1021)
 - [Unreleased](#unreleased)
 - [1.0.20 (2026-08-20)](#1020-2026-08-20)
 - [1.0.19 (2026-08-20)](#1019-2026-08-20)
