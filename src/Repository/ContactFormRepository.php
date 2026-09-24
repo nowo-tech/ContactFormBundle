@@ -4,25 +4,42 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\Repository;
 
-use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 
 use function max;
 
 /**
- * @extends ServiceEntityRepository<ContactForm>
+ * @extends WorkerSafeServiceEntityRepository<ContactForm>
  */
-class ContactFormRepository extends ServiceEntityRepository
+class ContactFormRepository extends WorkerSafeServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, ContactForm::class);
     }
 
+    /**
+     * Refreshes an already managed form and its translations so admin edits made in another
+     * worker are visible when the identity map survives between requests (worker mode without
+     * kernel reset). The slug is unique, so no row limit is needed with the collection join.
+     */
     public function findOneEnabledBySlug(string $slug): ?ContactForm
     {
-        return $this->findOneBy(['slug' => $slug, 'enabled' => true]);
+        /** @var ContactForm|null $form */
+        $form = $this->createQueryBuilder('f')
+            ->leftJoin('f.translations', 't')
+            ->addSelect('t')
+            ->andWhere('f.slug = :slug')
+            ->andWhere('f.enabled = :enabled')
+            ->setParameter('slug', $slug)
+            ->setParameter('enabled', true)
+            ->getQuery()
+            ->setHint(Query::HINT_REFRESH, true)
+            ->getOneOrNullResult();
+
+        return $form;
     }
 
     /**

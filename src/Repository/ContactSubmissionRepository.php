@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Repository;
 
 use DateTimeImmutable;
-use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactSubmission;
 
+use function array_map;
 use function max;
 
 /**
- * @extends ServiceEntityRepository<ContactSubmission>
+ * @extends WorkerSafeServiceEntityRepository<ContactSubmission>
  */
-class ContactSubmissionRepository extends ServiceEntityRepository
+class ContactSubmissionRepository extends WorkerSafeServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {

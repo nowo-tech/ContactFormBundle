@@ -1,6 +1,6 @@
 # Contact Form Bundle
 
-[![CI](https://github.com/nowo-tech/ContactFormBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/ContactFormBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/contact-form-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/contact-form-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/contact-form-bundle.svg)](https://packagist.org/packages/nowo-tech/contact-form-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7.4%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/contact-form-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/ContactFormBundle) [![Coverage](https://img.shields.io/badge/Coverage-99.48%25-brightgreen)](#tests-and-coverage)
+[![CI](https://github.com/nowo-tech/ContactFormBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/ContactFormBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/contact-form-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/contact-form-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/contact-form-bundle.svg)](https://packagist.org/packages/nowo-tech/contact-form-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7.4%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/contact-form-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/ContactFormBundle) [![Coverage](https://img.shields.io/badge/Coverage-99.53%25-brightgreen)](#tests-and-coverage)
 
 > ⭐ **Found this useful?** [Install from Packagist](https://packagist.org/packages/nowo-tech/contact-form-bundle) · Give it a **star** on [GitHub](https://github.com/nowo-tech/ContactFormBundle) so more developers can find it.
 
@@ -8,7 +8,7 @@
 
 ![FrankenPHP Friendly Worker Mode](docs/images/frankenphp-friendly.png)
 
-This bundle is **FrankenPHP worker mode friendly**.
+This bundle is **FrankenPHP worker mode friendly**, including when the kernel is **not** reset between requests (`reset_kernel` / services resetter off). Audit: [docs/FRANKENPHP-WORKER-AUDIT.md](docs/FRANKENPHP-WORKER-AUDIT.md).
 
 ## Features
 
@@ -91,12 +91,13 @@ make release-check
 ### Additional documentation
 
 - [Demo FrankenPHP](docs/DEMO-FRANKENPHP.md) (when using the FrankenPHP demo)
+- [FrankenPHP worker audit (no kernel reset)](docs/FRANKENPHP-WORKER-AUDIT.md)
 
 ## Tests and coverage
 
 | Language | Coverage |
 | --- | --- |
-| PHP | **99.45%** line coverage on the includable `src/` set (run `make test-coverage` to refresh). See [`docs/COVERAGE.md`](docs/COVERAGE.md). |
+| PHP | **99.53%** line coverage on the includable `src/` set (run `make test-coverage` to refresh). See [`docs/COVERAGE.md`](docs/COVERAGE.md). |
 | TS/JS | N/A |
 | Python | N/A |
 

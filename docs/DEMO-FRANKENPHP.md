@@ -43,3 +43,4 @@ The `Dockerfile` and `docker-compose.yml` at the **repository root** are for **d
 - Composer DNS fallbacks in demo compose (`dns: 8.8.8.8, 8.8.4.4`) for Docker/WSL
 - `make update-bundle` syncs the mounted bundle before release verification (`REQ-DEMO-007`)
 - Runtime mode via `FRANKENPHP_MODE` and `docker/entrypoint.sh` (`REQ-DEMO-010`)
+- MySQL Compose service (`db`, no host ports) for Doctrine (`REQ-DEMO-011`); image installs `pdo_mysql`

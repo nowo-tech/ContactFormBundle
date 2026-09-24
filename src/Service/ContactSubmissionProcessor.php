@@ -16,6 +16,7 @@ use Psr\Clock\ClockInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Throwable;
 
 /**
  * Persists contact form submissions with GDPR metadata and optional client linkage.
@@ -32,6 +33,7 @@ final readonly class ContactSubmissionProcessor
         private ContactFormSubmissionValueNormalizer $valueNormalizer,
         private ClockInterface $clock,
         private ?string $defaultNotificationRecipient = null,
+        private ?ContactFormEntityManagerResolver $entityManagerResolver = null,
     ) {
     }
 
@@ -79,15 +81,47 @@ final readonly class ContactSubmissionProcessor
             );
         }
 
-        $this->entityManager->persist($submission);
-        $this->entityManager->flush();
+        $entityManager = $this->entityManagerResolver?->get() ?? $this->entityManager;
 
-        $this->eventDispatcher->dispatch(new ContactSubmissionCreatedEvent($submission));
+        try {
+            $entityManager->persist($submission);
+            $entityManager->flush();
+        } catch (Throwable $exception) {
+            $this->entityManagerResolver?->resetClosed();
 
-        $this->notifier->notify(
-            ContactSubmissionNotification::fromSubmission($submission, $this->defaultNotificationRecipient),
-        );
+            throw $exception;
+        }
+
+        try {
+            $this->eventDispatcher->dispatch(new ContactSubmissionCreatedEvent($submission));
+
+            $this->notifier->notify(
+                ContactSubmissionNotification::fromSubmission($submission, $this->defaultNotificationRecipient),
+            );
+        } finally {
+            $this->detachSubmission($entityManager, $submission);
+        }
 
         return $submission;
+    }
+
+    /**
+     * Submissions hold personal data; they must not stay in a long-lived identity map (worker mode).
+     */
+    private function detachSubmission(EntityManagerInterface $entityManager, ContactSubmission $submission): void
+    {
+        if (!$entityManager->isOpen()) {
+            return;
+        }
+
+        foreach ($submission->getValues() as $value) {
+            if ($entityManager->contains($value)) {
+                $entityManager->detach($value);
+            }
+        }
+
+        if ($entityManager->contains($submission)) {
+            $entityManager->detach($submission);
+        }
     }
 }

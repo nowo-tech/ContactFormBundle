@@ -97,6 +97,10 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 
 - **FR-DI-001**: `services.yaml`, routes, default package YAML.
 
+### FrankenPHP worker mode
+
+- **FR-WORKER-001**: Safe under FrankenPHP worker with kernel **not** reset between requests (scenario B): no mutable service state; closed EntityManager recovered via `ContactFormEntityManagerResolver` + `ContactFormEntityManagerSubscriber`; submissions detached after process; public form/field reads use `HINT_REFRESH`; repositories extend `WorkerSafeServiceEntityRepository` so they always use the current manager after `resetManager()`.
+
 ---
 
 ## Success Criteria

@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\Repository;
 
-use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\ContactFormBundle\Entity\ContactFormFieldTranslation;
 
 /**
- * @extends ServiceEntityRepository<ContactFormFieldTranslation>
+ * @extends WorkerSafeServiceEntityRepository<ContactFormFieldTranslation>
  */
-class ContactFormFieldTranslationRepository extends ServiceEntityRepository
+class ContactFormFieldTranslationRepository extends WorkerSafeServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {

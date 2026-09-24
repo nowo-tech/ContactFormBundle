@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 
+- [From 1.0.21 to 1.0.22](#from-1021-to-1022)
 - [From 1.0.20 to 1.0.21](#from-1020-to-1021)
 - [Unreleased](#unreleased)
 - [1.0.20 (2026-08-20)](#1020-2026-08-20)
@@ -32,6 +33,19 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## From 1.0.21 to 1.0.22
+
+No configuration changes. Behaviour changes relevant to worker runtimes (FrankenPHP, kernel not reset between requests):
+
+- `ContactSubmissionProcessor::process()` returns a **detached** `ContactSubmission` (id set, values loaded). `ContactSubmissionCreatedEvent` listeners still receive the managed entity. Code that modified the returned submission and relied on a later `flush()` must re-fetch it first.
+- `ContactFormRepository::findOneEnabledBySlug()` and `ContactFormFieldRepository::findByFormOrdered()` refresh already managed entities from the database. Do not call them between changing a form/field and flushing it in the same request.
+- `ContactSubmissionProcessor` has a new optional trailing constructor argument (`$entityManagerResolver`); manual construction keeps working. Autowired installs receive it from the extension.
+- All bundle repositories now extend `WorkerSafeServiceEntityRepository` (same public API). See [FRANKENPHP-WORKER-AUDIT.md](FRANKENPHP-WORKER-AUDIT.md).
+
+## From 1.0.20 to 1.0.21
+
+No application upgrade steps. Demo MySQL env policy and PSR docs only.
 
 ## 1.0.20 (2026-08-20)
 

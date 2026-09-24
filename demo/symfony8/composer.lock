@@ -1120,11 +1120,11 @@
         },
         {
             "name": "nowo-tech/contact-form-bundle",
-            "version": "dev-master",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "/var/contact-form-bundle",
-                "reference": "6d8d194c87577812c3b6224ee44f91ea9ea395e5"
+                "reference": "d6f6c78f0adbad70149bc45e7092290c3e9f1fe4"
             },
             "require": {
                 "doctrine/doctrine-bundle": "^2.13 || ^3.0",

@@ -45,12 +45,13 @@
 
 | Source file | Spec section | Requirement IDs |
 | --- | --- | --- |
-| `Repository/ContactFormRepository.php` | Form repo | FR-ORM-002 |
-| `Repository/ContactFormTranslationRepository.php` | Form i18n repo | FR-ORM-002 |
-| `Repository/ContactFormFieldRepository.php` | Field repo | FR-ORM-002 |
-| `Repository/ContactFormFieldTranslationRepository.php` | Field i18n repo | FR-ORM-002 |
-| `Repository/ContactSubmissionRepository.php` | Submission repo | FR-ORM-002 |
-| `Repository/ContactSubmissionValueRepository.php` | Values repo | FR-ORM-002 |
+| `Repository/WorkerSafeServiceEntityRepository.php` | Worker-safe repo base | FR-WORKER-001 |
+| `Repository/ContactFormRepository.php` | Form repo | FR-ORM-002 / FR-WORKER-001 |
+| `Repository/ContactFormTranslationRepository.php` | Form i18n repo | FR-ORM-002 / FR-WORKER-001 |
+| `Repository/ContactFormFieldRepository.php` | Field repo | FR-ORM-002 / FR-WORKER-001 |
+| `Repository/ContactFormFieldTranslationRepository.php` | Field i18n repo | FR-ORM-002 / FR-WORKER-001 |
+| `Repository/ContactSubmissionRepository.php` | Submission repo | FR-ORM-002 / FR-WORKER-001 |
+| `Repository/ContactSubmissionValueRepository.php` | Values repo | FR-ORM-002 / FR-WORKER-001 |
 
 ## Enums & events
 
@@ -61,6 +62,7 @@
 | `Event/ContactSubmissionCreatedEvent.php` | Submission event | FR-EVT-001 |
 | `EventSubscriber/ContactFormAdminLocaleSubscriber.php` | Admin locale | FR-EVT-001 |
 | `EventSubscriber/ContactFormAdminAccessSubscriber.php` | Admin access gate | FR-SEC-001 |
+| `EventSubscriber/ContactFormEntityManagerSubscriber.php` | Closed EM recovery (worker) | FR-WORKER-001 |
 
 ## Controllers
 
@@ -91,7 +93,8 @@
 
 | Source file | Spec section | Requirement IDs |
 | --- | --- | --- |
-| `Service/ContactSubmissionProcessor.php` | Submit pipeline | FR-SVC-001 |
+| `Service/ContactSubmissionProcessor.php` | Submit pipeline | FR-SVC-001 / FR-WORKER-001 |
+| `Service/ContactFormEntityManagerResolver.php` | Open EM for worker | FR-WORKER-001 |
 | `Service/DynamicContactFormBuilder.php` | Runtime form | FR-SVC-001 |
 | `Service/ContactFormSubmissionValueNormalizer.php` | Value normalize | FR-SVC-001 |
 | `Service/ContactFormSubmissionRateLimiter.php` | Rate limit | FR-SVC-001 |

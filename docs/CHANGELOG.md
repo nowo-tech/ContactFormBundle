@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.0.22] - 2026-09-24](#1022-2026-09-24)
+  - [Added](#added)
+  - [Fixed](#fixed)
+- [[1.0.21] - 2026-08-24](#1021-2026-08-24)
 - [[1.0.20] - 2026-08-20](#1020-2026-08-20)
 - [[1.0.19] - 2026-08-20](#1019-2026-08-20)
 - [[1.0.17] - 2026-08-19](#1017-2026-08-19)
@@ -59,6 +63,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.0.22] - 2026-09-24
+
+### Added
+
+- **FrankenPHP worker (FR-WORKER-001)**: `ContactFormEntityManagerResolver`, `ContactFormEntityManagerSubscriber`, and `WorkerSafeServiceEntityRepository`; audit doc [`docs/FRANKENPHP-WORKER-AUDIT.md`](FRANKENPHP-WORKER-AUDIT.md).
+- Optional trailing `$entityManagerResolver` on `ContactSubmissionProcessor` (wired by the extension).
+
+### Fixed
+
+- **FrankenPHP worker mode (no kernel reset):** closed EntityManager recovered on bundle routes (`kernel.request` / `kernel.exception`) and after a failed submission flush, so one DB error no longer breaks later requests on the worker.
+- **FrankenPHP worker mode:** submissions (and values) are detached after event + notification so personal data does not accumulate in a long-lived identity map.
+- **FrankenPHP worker mode:** `findOneEnabledBySlug()` / `findByFormOrdered()` fetch-join translations with `Query::HINT_REFRESH` so cross-worker admin edits are visible on the next public request.
+- **FrankenPHP worker mode:** repositories always resolve the current manager from the registry (ORM 3 `ServiceEntityRepositoryProxy` no longer keeps a closed EM after `resetManager()`).
+- **Demo (REQ-DEMO-011):** FrankenPHP image installs `pdo_mysql`; demo Doctrine migrations rewritten for MySQL (were SQLite `AUTOINCREMENT`).
+
+[1.0.22]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.0.22
 
 ## [1.0.21] - 2026-08-24
 

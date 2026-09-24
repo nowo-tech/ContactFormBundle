@@ -13,6 +13,7 @@ use Nowo\ContactFormBundle\Security\ConfigurableContactFormAccessChecker;
 use Nowo\ContactFormBundle\Security\ContactFormAccessCheckerInterface;
 use Nowo\ContactFormBundle\Service\ClientLabelResolver;
 use Nowo\ContactFormBundle\Service\ClientResolverInterface;
+use Nowo\ContactFormBundle\Service\ContactFormEntityManagerResolver;
 use Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface;
 use Nowo\ContactFormBundle\Service\ContactFormSubmissionRateLimiter;
 use Nowo\ContactFormBundle\Service\ContactSubmissionProcessor;
@@ -221,7 +222,8 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
 
         $container->getDefinition(ContactSubmissionProcessor::class)
             ->setArgument('$clock', new Reference('clock'))
-            ->setArgument('$defaultNotificationRecipient', $config['notifications']['default_recipient']);
+            ->setArgument('$defaultNotificationRecipient', $config['notifications']['default_recipient'])
+            ->setArgument('$entityManagerResolver', new Reference(ContactFormEntityManagerResolver::class));
 
         if ($container->hasDefinition(ContactFormAdminTwigExtension::class)) {
             $container->getDefinition(ContactFormAdminTwigExtension::class)

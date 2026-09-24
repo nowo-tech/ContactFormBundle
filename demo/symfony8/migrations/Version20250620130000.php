@@ -25,6 +25,6 @@ final class Version20250620130000 extends AbstractMigration
 
     public function down(Schema $schema): void
     {
-        $this->throwIrreversibleMigrationException('SQLite demo migrations cannot be reverted safely.');
+        $this->throwIrreversibleMigrationException('Demo migrations cannot be reverted safely.');
     }
 }
