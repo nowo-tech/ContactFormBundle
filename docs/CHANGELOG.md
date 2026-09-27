@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.0.23] - 2026-09-27](#1023-2026-09-27)
 - [[1.0.22] - 2026-09-24](#1022-2026-09-24)
   - [Added](#added)
   - [Fixed](#fixed)
@@ -62,6 +63,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [Changed](#changed)
 
 ## [Unreleased]
+
+## [1.0.23] - 2026-09-27
+
+### Added
+
+- **REQ-CS-008:** `igor-php/igor-php` (require-dev only), root `igor.json`, Composer/`Makefile` `igor` target, and `release-check` wiring for FrankenPHP worker-state audit.
+
+### Changed
+
+- **Worker safety (Igor):** justified `// @igor-ignore` annotations and/or `ResetInterface` / request-scoped fixes so `make igor` passes on package `src/`.
+
+[1.0.23]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.0.23
 
 ## [1.0.22] - 2026-09-24
 

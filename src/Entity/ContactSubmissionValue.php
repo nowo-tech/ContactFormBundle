@@ -43,6 +43,7 @@ class ContactSubmissionValue
 
     public function setFieldName(string $fieldName): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->fieldName = $fieldName;
 
         return $this;
@@ -55,6 +56,7 @@ class ContactSubmissionValue
 
     public function setValue(string $value): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->value = $value;
 
         return $this;
@@ -67,6 +69,7 @@ class ContactSubmissionValue
 
     public function setSubmission(?ContactSubmission $submission): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->submission = $submission;
 
         return $this;

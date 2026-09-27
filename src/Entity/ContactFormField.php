@@ -69,6 +69,7 @@ class ContactFormField
     public function setName(?string $name): self
     {
         if ($name !== null) {
+            // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
             $this->name = $name;
         }
 
@@ -83,6 +84,7 @@ class ContactFormField
     public function setType(?ContactFieldType $type): self
     {
         if ($type instanceof ContactFieldType) {
+            // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
             $this->type = $type;
         }
 
@@ -96,6 +98,7 @@ class ContactFormField
 
     public function setRequired(bool $required): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->required = $required;
 
         return $this;
@@ -109,6 +112,7 @@ class ContactFormField
     public function setSortOrder(?int $sortOrder): self
     {
         if ($sortOrder !== null) {
+            // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
             $this->sortOrder = $sortOrder;
         }
 
@@ -128,6 +132,7 @@ class ContactFormField
      */
     public function setOptions(?array $options): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->options = $options;
 
         return $this;
@@ -140,6 +145,7 @@ class ContactFormField
 
     public function setForm(?ContactForm $form): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->form = $form;
 
         return $this;
@@ -213,6 +219,7 @@ class ContactFormField
 
     public function setFlowStep(?string $flowStep): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->flowStep = $flowStep;
 
         return $this;

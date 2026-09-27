@@ -68,6 +68,7 @@ class ContactSubmission
 
     public function setForm(?ContactForm $form): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->form = $form;
 
         return $this;
@@ -80,6 +81,7 @@ class ContactSubmission
 
     public function setClientId(?int $clientId): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->clientId = $clientId;
 
         return $this;
@@ -92,6 +94,7 @@ class ContactSubmission
 
     public function setClientLabel(?string $clientLabel): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->clientLabel = $clientLabel;
 
         return $this;
@@ -109,6 +112,7 @@ class ContactSubmission
 
     public function setLocale(string $locale): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->locale = $locale;
 
         return $this;
@@ -121,6 +125,7 @@ class ContactSubmission
 
     public function setIpHash(?string $ipHash): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->ipHash = $ipHash;
 
         return $this;
@@ -133,6 +138,7 @@ class ContactSubmission
 
     public function setConsentGivenAt(?DateTimeImmutable $consentGivenAt): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->consentGivenAt = $consentGivenAt;
 
         return $this;
@@ -145,6 +151,7 @@ class ContactSubmission
 
     public function setCreatedAt(DateTimeImmutable $createdAt): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->createdAt = $createdAt;
 
         return $this;

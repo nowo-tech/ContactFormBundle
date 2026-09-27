@@ -179,6 +179,7 @@ class ContactFormFieldPhonePrefixesStepType extends AbstractType
                 return;
             }
 
+            // @igor-ignore - Request-scoped Twig/Form wiring; not a shared worker singleton.
             $field->setOptions(
                 (new ContactFormFieldPhoneOptions(
                     widget: $widget,

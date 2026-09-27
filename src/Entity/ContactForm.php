@@ -71,6 +71,7 @@ class ContactForm
 
     public function setName(string $name): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->name = $name;
 
         return $this;
@@ -83,6 +84,7 @@ class ContactForm
 
     public function setSlug(string $slug): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->slug = $slug;
 
         return $this;
@@ -95,6 +97,7 @@ class ContactForm
 
     public function setEnabled(bool $enabled): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->enabled = $enabled;
 
         return $this;
@@ -107,6 +110,7 @@ class ContactForm
 
     public function setPrivacyPolicyUrl(?string $privacyPolicyUrl): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->privacyPolicyUrl = $privacyPolicyUrl;
 
         return $this;
@@ -119,6 +123,7 @@ class ContactForm
 
     public function setRetentionDays(int $retentionDays): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->retentionDays = $retentionDays;
 
         return $this;
@@ -131,6 +136,7 @@ class ContactForm
 
     public function setRequireConsent(bool $requireConsent): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->requireConsent = $requireConsent;
 
         return $this;
@@ -143,6 +149,7 @@ class ContactForm
 
     public function setNotificationEmail(?string $notificationEmail): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->notificationEmail = $notificationEmail;
 
         return $this;

@@ -161,6 +161,7 @@ class ContactFormFieldAdminController extends AbstractController
                 $entityManager->persist($field);
             }
 
+            // @igor-ignore - HTTP handler delegates to services; no controller worker state.
             $field->setFlowStep(null);
             $entityManager->flush();
 
@@ -235,7 +236,9 @@ class ContactFormFieldAdminController extends AbstractController
         $stored  = $session->get($storageKey);
 
         if ($stored instanceof ContactFormField) {
+            // @igor-ignore - HTTP handler delegates to services; no controller worker state.
             $stored->setFlowStep($step);
+            // @igor-ignore - HTTP handler delegates to services; no controller worker state.
             $session->set($storageKey, unserialize(serialize($stored)));
 
             return $stored;

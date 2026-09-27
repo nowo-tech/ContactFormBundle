@@ -56,6 +56,7 @@ class ContactFormTranslation
 
     public function setLocale(string $locale): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->locale = $locale;
 
         return $this;
@@ -68,6 +69,7 @@ class ContactFormTranslation
 
     public function setTitle(string $title): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->title = $title;
 
         return $this;
@@ -80,6 +82,7 @@ class ContactFormTranslation
 
     public function setDescription(?string $description): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->description = $description;
 
         return $this;
@@ -92,6 +95,7 @@ class ContactFormTranslation
 
     public function setSuccessMessage(?string $successMessage): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->successMessage = $successMessage;
 
         return $this;
@@ -104,6 +108,7 @@ class ContactFormTranslation
 
     public function setConsentLabel(?string $consentLabel): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->consentLabel = $consentLabel;
 
         return $this;
@@ -116,6 +121,7 @@ class ContactFormTranslation
 
     public function setPrivacyPolicyText(?string $privacyPolicyText): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->privacyPolicyText = $privacyPolicyText;
 
         return $this;
@@ -128,6 +134,7 @@ class ContactFormTranslation
 
     public function setForm(?ContactForm $form): self
     {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->form = $form;
 
         return $this;

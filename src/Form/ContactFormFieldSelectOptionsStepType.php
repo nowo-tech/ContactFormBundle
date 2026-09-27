@@ -80,6 +80,7 @@ class ContactFormFieldSelectOptionsStepType extends AbstractType
                 return;
             }
 
+            // @igor-ignore - Request-scoped Twig/Form wiring; not a shared worker singleton.
             $field->setOptions($values === [] ? null : $values);
         });
     }
