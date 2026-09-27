@@ -17,6 +17,7 @@ use Doctrine\ORM\Query\ResultSetMappingBuilder;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 use LogicException;
+use SortDirection;
 
 /**
  * ServiceEntityRepository that always uses the current EntityManager from the registry.
@@ -84,7 +85,7 @@ abstract class WorkerSafeServiceEntityRepository extends ServiceEntityRepository
 
     /**
      * @param array<string, mixed> $criteria
-     * @param array<string, \SortDirection|'ASC'|'asc'|'DESC'|'desc'>|null $orderBy
+     * @param array<string, 'ASC'|'asc'|'DESC'|'desc'|SortDirection>|null $orderBy
      *
      * @return list<T>
      */
@@ -98,7 +99,7 @@ abstract class WorkerSafeServiceEntityRepository extends ServiceEntityRepository
 
     /**
      * @param array<string, mixed> $criteria
-     * @param array<string, \SortDirection|'ASC'|'asc'|'DESC'|'desc'>|null $orderBy
+     * @param array<string, 'ASC'|'asc'|'DESC'|'desc'|SortDirection>|null $orderBy
      *
      * @return T|null
      */
