@@ -8,6 +8,7 @@ use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormField;
+use SortDirection;
 
 /**
  * @extends WorkerSafeServiceEntityRepository<ContactFormField>
@@ -32,8 +33,8 @@ class ContactFormFieldRepository extends WorkerSafeServiceEntityRepository
             ->addSelect('t')
             ->andWhere('f.form = :form')
             ->setParameter('form', $form)
-            ->orderBy('f.sortOrder', 'ASC')
-            ->addOrderBy('f.id', 'ASC')
+            ->orderBy('f.sortOrder', SortDirection::Ascending)
+            ->addOrderBy('f.id', SortDirection::Ascending)
             ->getQuery()
             ->setHint(Query::HINT_REFRESH, true)
             ->getResult();

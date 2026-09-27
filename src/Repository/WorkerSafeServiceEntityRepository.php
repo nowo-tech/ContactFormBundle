@@ -84,7 +84,7 @@ abstract class WorkerSafeServiceEntityRepository extends ServiceEntityRepository
 
     /**
      * @param array<string, mixed> $criteria
-     * @param array<string, 'ASC'|'asc'|'DESC'|'desc'>|null $orderBy
+     * @param array<string, \SortDirection|'ASC'|'asc'|'DESC'|'desc'>|null $orderBy
      *
      * @return list<T>
      */
@@ -98,7 +98,7 @@ abstract class WorkerSafeServiceEntityRepository extends ServiceEntityRepository
 
     /**
      * @param array<string, mixed> $criteria
-     * @param array<string, 'ASC'|'asc'|'DESC'|'desc'>|null $orderBy
+     * @param array<string, \SortDirection|'ASC'|'asc'|'DESC'|'desc'>|null $orderBy
      *
      * @return T|null
      */
