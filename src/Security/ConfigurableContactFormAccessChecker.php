@@ -22,8 +22,9 @@ final readonly class ConfigurableContactFormAccessChecker implements ContactForm
 
     public function canAccess(): bool
     {
+        // Empty access_roles = deny (fail-closed). Use allow_unauthenticated or AllowAll* for demos.
         if ($this->accessRoles === []) {
-            return true;
+            return false;
         }
 
         foreach ($this->accessRoles as $role) {

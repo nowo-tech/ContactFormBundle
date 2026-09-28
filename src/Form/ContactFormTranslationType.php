@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Form;
 
 use Nowo\ContactFormBundle\Entity\ContactFormTranslation;
+use Nowo\ContactFormBundle\Service\ContactFormRichTextSanitizer;
 use Nowo\FormKitBundle\Attribute\FormKitConfig;
 use Nowo\FormKitBundle\Form\FormOptionsTrait;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -22,6 +24,11 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 class ContactFormTranslationType extends AbstractType
 {
     use FormOptionsTrait;
+
+    public function __construct(
+        private readonly ContactFormRichTextSanitizer $richTextSanitizer = new ContactFormRichTextSanitizer(),
+    ) {
+    }
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
@@ -56,6 +63,18 @@ class ContactFormTranslationType extends AbstractType
                 'required' => false,
             ]);
         });
+
+        // Persist sanitized HTML so XSS payloads never rest in the DB (defense in depth with render-time sanitize).
+        $builder->get('consentLabel')->addModelTransformer(new CallbackTransformer(
+            static fn (?string $value): ?string => $value,
+            function (?string $value): ?string {
+                if ($value === null || $value === '') {
+                    return $value;
+                }
+
+                return $this->richTextSanitizer->sanitize($value);
+            },
+        ));
     }
 
     public function configureOptions(OptionsResolver $resolver): void

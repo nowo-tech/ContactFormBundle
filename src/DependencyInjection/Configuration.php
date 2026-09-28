@@ -123,7 +123,7 @@ class Configuration implements ConfigurationInterface
                         ->arrayNode('access_roles')
                             ->scalarPrototype()->end()
                             ->defaultValue(['ROLE_ADMIN'])
-                            ->info('Roles that may access admin CRUD. Empty disables bundle-level role checks.')
+                            ->info('Roles that may access admin CRUD. Empty list is fail-closed (deny via access checker). Use allow_unauthenticated for demos only.')
                         ->end()
                         ->booleanNode('allow_unauthenticated')
                             ->defaultFalse()

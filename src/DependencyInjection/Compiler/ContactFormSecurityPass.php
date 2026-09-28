@@ -37,12 +37,7 @@ final class ContactFormSecurityPass implements CompilerPassInterface
             return;
         }
 
-        /** @var list<string> $accessRoles */
-        $accessRoles = $container->getParameter(Configuration::ALIAS . '.security.access_roles');
-        if ($accessRoles === []) {
-            return;
-        }
-
+        // Always register when !allow_unauthenticated. Empty access_roles is fail-closed via the checker.
         if ($container->hasDefinition(ContactFormAdminAccessSubscriber::class)) {
             return;
         }

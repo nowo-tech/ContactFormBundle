@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.1.0] - 2026-09-28](#110-2026-09-28)
 - [[1.0.23] - 2026-09-27](#1023-2026-09-27)
 - [[1.0.22] - 2026-09-24](#1022-2026-09-24)
   - [Added](#added)
@@ -64,6 +65,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-28
+
+### Security
+
+- Consent HTML is sanitized on admin persist (and again on render).
+- Empty `security.access_roles` is fail-closed (deny) unless `allow_unauthenticated` or a custom `access_checker` is set.
+
 ### Changed
 
 - **Doctrine ORM SortDirection:** replace string `'ASC'`/`'DESC'` in `#[ORM\OrderBy]` and QueryBuilder `orderBy`/`addOrderBy` with `SortDirection::Ascending`/`Descending` (doctrine/orm deprecation, https://github.com/doctrine/orm/issues/11313); require `doctrine/orm` `^3.7` where applicable.
@@ -78,6 +86,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - **Worker safety (Igor):** justified `// @igor-ignore` annotations and/or `ResetInterface` / request-scoped fixes so `make igor` passes on package `src/`.
 
+[1.1.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.1.0
 [1.0.23]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.0.23
 
 ## [1.0.22] - 2026-09-24

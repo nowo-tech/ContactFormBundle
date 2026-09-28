@@ -8,6 +8,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 - [From 1.0.21 to 1.0.22](#from-1021-to-1022)
 - [From 1.0.20 to 1.0.21](#from-1020-to-1021)
 - [Unreleased](#unreleased)
+- [To 1.1.0](#to-110)
 - [To 1.0.23](#to-1023)
 - [1.0.20 (2026-08-20)](#1020-2026-08-20)
 - [1.0.19 (2026-08-20)](#1019-2026-08-20)
@@ -34,6 +35,19 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## To 1.1.0
+
+From **1.0.23** — consent sanitize + `access_roles` fail-closed; Doctrine `SortDirection`.
+
+```bash
+composer update nowo-tech/contact-form-bundle
+php bin/console cache:clear
+```
+
+- Empty `security.access_roles` denies admin routes. Set roles / custom checker, or demo-only `allow_unauthenticated`.
+- Consent HTML is sanitized on persist — review custom admin templates if you relied on raw HTML.
+- Ensure `doctrine/orm` is `^3.7` (SortDirection).
 
 ## To 1.0.23
 

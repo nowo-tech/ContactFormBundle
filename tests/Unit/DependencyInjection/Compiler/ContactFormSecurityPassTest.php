@@ -57,14 +57,14 @@ final class ContactFormSecurityPassTest extends TestCase
         self::assertTrue($container->hasDefinition(ContactFormAdminAccessSubscriber::class));
     }
 
-    public function testNoopWhenAccessRolesEmpty(): void
+    public function testRegistersSubscriberWhenAccessRolesEmpty(): void
     {
         $container = $this->baseContainer(allowUnauthenticated: false, accessRoles: []);
         $container->setDefinition('security.authorization_checker', new Definition());
 
         (new ContactFormSecurityPass())->process($container);
 
-        self::assertFalse($container->hasDefinition(ContactFormAdminAccessSubscriber::class));
+        self::assertTrue($container->hasDefinition(ContactFormAdminAccessSubscriber::class));
     }
 
     public function testDoesNotDuplicateExistingSubscriber(): void

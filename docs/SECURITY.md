@@ -119,6 +119,6 @@ Before each tagged release, maintainers confirm (tick in the release PR or tag n
 | Risk | **Low** |
 | Date | 2026-08-20 (re-audit; prior 2026-07-28) |
 | Method | Nowo monorepo static re-review; Flex `when@prod` + `security_nowo_contact_form.yaml` |
-| Residual | Consent `label_html` after `ContactFormRichTextSanitizer`; keep demo `allow_unauthenticated` off in production |
+| Residual | Demo `allow_unauthenticated` must stay off in production; consent HTML is sanitized on admin persist and again at public render |
 
 Recorded in the Nowo monorepo `BUNDLES_SECURITY_ANALYSIS.md`.
