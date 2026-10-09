@@ -15,6 +15,7 @@ This document describes the **attack surface**, **threats**, and **controls** fo
   - [Cross-site scripting (Twig output)](#cross-site-scripting-twig-output)
   - [Notification content leakage](#notification-content-leakage)
   - [Dependency vulnerabilities](#dependency-vulnerabilities)
+- [Content Security Policy (CSP)](#content-security-policy-csp)
 - [Logging and secrets](#logging-and-secrets)
 - [Cryptography](#cryptography)
 - [Reporting](#reporting)
@@ -83,6 +84,10 @@ The bundle ships a **default admin access checker** (`security.access_roles`, de
 ### Dependency vulnerabilities
 
 - **Mitigation**: Run `composer audit` before releases; keep Symfony and Doctrine updated.
+
+## Content Security Policy (CSP)
+
+Every inline `<script>` / `<style>` rendered by the bundle templates carries `nonce="…"` taken from the request attribute **`csp_nonce`** when it is present (nothing is emitted otherwise). Your CSP listener should set it before rendering, e.g. `$request->attributes->set('csp_nonce', $nonce)`, and send the same value in `script-src 'nonce-…'` / `style-src 'nonce-…'`. External scripts (`src=…`) and JSON islands need no nonce, and templates use no inline event handlers (`onclick`, `onsubmit`, …). `tests/Unit/Templates/InlineBlocksDeclareNonceTest.php` enforces this.
 
 ## Logging and secrets
 

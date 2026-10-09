@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+
+- [[1.1.2] - 2026-10-09](#112---2026-10-09)
 - [[1.1.1] - 2026-10-09](#111-2026-10-09)
 - [[1.1.0] - 2026-09-28](#110-2026-09-28)
 - [[1.0.23] - 2026-09-27](#1023-2026-09-27)
@@ -66,6 +68,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-10-09
+
+### Changed
+
+- CSP: the inline `<script>` in `admin/base.html.twig` now carries `nonce="…"` from the request attribute `csp_nonce` when it is set. The submission delete form (`admin/submission/show.html.twig`) no longer uses an inline `onsubmit` handler: it declares `data-confirm` and the admin base script confirms via a delegated `submit` listener. Added a template scan test (inline blocks must declare the nonce; no inline event handlers).
+
 ## [1.1.1] - 2026-10-09
 
 ### Fixed
@@ -99,6 +107,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - **Worker safety (Igor):** justified `// @igor-ignore` annotations and/or `ResetInterface` / request-scoped fixes so `make igor` passes on package `src/`.
 
+[1.1.2]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.1.2
 [1.1.1]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.1.1
 [1.1.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.1.0
 [1.0.23]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.0.23

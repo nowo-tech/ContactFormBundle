@@ -91,6 +91,7 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 
 - **FR-TWIG-001**: `ContactFormAdminTwigExtension`.
 - **FR-TWIG-002**: Admin and public Twig templates.
+- **FR-TWIG-003**: CSP — inline `<script>`/`<style>` in bundle templates emit `nonce` from request attribute `csp_nonce` when set; no inline event handlers (delete confirmation uses `data-confirm` + delegated listener in `admin/base.html.twig`); enforced by `InlineBlocksDeclareNonceTest`.
 - **FR-I18N-001**: Seven locale YAML files.
 
 ### DI

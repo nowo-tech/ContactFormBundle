@@ -21,10 +21,18 @@
 {% block javascripts %}
     {{ parent() }}
     {% block nowo_ui_scripts %}
-        <script>
+        {% set _csp_nonce = app.request is defined and app.request ? app.request.attributes.get('csp_nonce')|default('') : '' %}
+        <script{% if _csp_nonce %} nonce="{{ _csp_nonce }}"{% endif %}>
             document.getElementById('admin-locale-switch')?.addEventListener('change', function () {
                 const locale = this.checked ? this.dataset.secondaryLocale : this.dataset.primaryLocale;
                 window.location.href = this.dataset.switchUrl.replace('__LOCALE__', locale);
+            });
+            {#- CSP: confirmation prompts via data-confirm instead of inline onsubmit handlers. -#}
+            document.addEventListener('submit', function (event) {
+                const form = event.target instanceof HTMLFormElement ? event.target : null;
+                if (form && form.dataset.confirm && !window.confirm(form.dataset.confirm)) {
+                    event.preventDefault();
+                }
             });
         </script>
     {% endblock %}

@@ -7,7 +7,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 
 - [From 1.0.21 to 1.0.22](#from-1021-to-1022)
 - [From 1.0.20 to 1.0.21](#from-1020-to-1021)
-- [Unreleased](#unreleased)
+- [To 1.1.2](#to-112)
 - [To 1.1.1](#to-111)
 - [To 1.1.0](#to-110)
 - [To 1.0.23](#to-1023)
@@ -35,7 +35,12 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Fresh install checklist](#fresh-install-checklist)
   - [Optional integrations](#optional-integrations)
 
-## Unreleased
+## To 1.1.2
+
+No action required unless you override admin templates (see [Security — CSP](SECURITY.md#content-security-policy-csp)):
+
+- **`admin/base.html.twig`** (or its `nowo_ui_scripts` block): if you overrode it only to add the nonce, delete the override. Otherwise copy the new delegated `submit` listener (forms with `data-confirm`), or the submission delete confirmation stops prompting.
+- **`admin/submission/show.html.twig`**: replace `onsubmit="return confirm(…)"` with `data-confirm="…"`.
 
 ## To 1.1.1
 

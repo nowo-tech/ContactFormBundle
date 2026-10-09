@@ -69,7 +69,7 @@
     </div>
 
     <div class="d-flex flex-wrap gap-2 mt-4">
-        <form method="post" action="{{ path('nowo_contact_form_submissions_delete', { formId: contactForm.id, id: submission.id }) }}" onsubmit="return confirm('{{ 'nowo_contact_form.admin.submission.delete_confirm'|trans({}, 'NowoContactFormBundle')|e('js') }}');">
+        <form method="post" action="{{ path('nowo_contact_form_submissions_delete', { formId: contactForm.id, id: submission.id }) }}" data-confirm="{{ 'nowo_contact_form.admin.submission.delete_confirm'|trans({}, 'NowoContactFormBundle') }}">
             <input type="hidden" name="_token" value="{{ csrf_token('delete-submission-' ~ submission.id) }}">
             <button type="submit" class="{{ ui.btn('danger', null, _css_fw) }} nowo-ui-action-delete">
                 {{ 'nowo_contact_form.admin.submission.delete'|trans({}, 'NowoContactFormBundle') }}
