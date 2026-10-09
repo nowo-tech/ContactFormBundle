@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.1.1] - 2026-10-09](#111-2026-10-09)
 - [[1.1.0] - 2026-09-28](#110-2026-09-28)
 - [[1.0.23] - 2026-09-27](#1023-2026-09-27)
 - [[1.0.22] - 2026-09-24](#1022-2026-09-24)
@@ -65,6 +66,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-10-09
+
+### Fixed
+
+- PHPStan 2.3 / doctrine/orm 3.7.4: `WorkerSafeServiceEntityRepository::findBy()`/`findOneBy()` forward `SortDirection` order values without a static-analysis error (ORM 3.7 accepts them at runtime).
+
+### Dependencies
+
+- Dependabot: `doctrine/orm` 3.7.3, `nowo-tech/form-kit-bundle` 2.5.4, `nowo-tech/ui-kit-bundle` 1.8.4, dev `igor-php/igor-php` 0.10, `nowo-tech/phpstan-frankenphp` 1.2.1, `phpstan/phpstan-phpunit`.
+- Lock refresh: `doctrine/orm` 3.7.4, FormKitBundle 2.6.0, UiKitBundle 1.9.1; dev PHPStan 2.3.1, PHPUnit 11.5.57, Rector 2.7.0.
+- Demo (Symfony 8): Symfony 8.1.8, `doctrine/dbal` 4.5.0, PhoneInputBundle 1.4.2, Twig 3.30.0.
+
 ## [1.1.0] - 2026-09-28
 
 ### Security
@@ -86,6 +99,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - **Worker safety (Igor):** justified `// @igor-ignore` annotations and/or `ResetInterface` / request-scoped fixes so `make igor` passes on package `src/`.
 
+[1.1.1]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.1.1
 [1.1.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.1.0
 [1.0.23]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.0.23
 

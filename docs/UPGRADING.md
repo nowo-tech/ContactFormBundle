@@ -8,6 +8,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 - [From 1.0.21 to 1.0.22](#from-1021-to-1022)
 - [From 1.0.20 to 1.0.21](#from-1020-to-1021)
 - [Unreleased](#unreleased)
+- [To 1.1.1](#to-111)
 - [To 1.1.0](#to-110)
 - [To 1.0.23](#to-1023)
 - [1.0.20 (2026-08-20)](#1020-2026-08-20)
@@ -35,6 +36,14 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## To 1.1.1
+
+From **1.1.0** — dependency refresh and a PHPStan-only fix. No breaking changes. No application upgrade steps.
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
 
 ## To 1.1.0
 
