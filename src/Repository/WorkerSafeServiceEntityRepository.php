@@ -92,7 +92,8 @@ abstract class WorkerSafeServiceEntityRepository extends ServiceEntityRepository
     public function findBy(array $criteria, ?array $orderBy = null, ?int $limit = null, ?int $offset = null): array
     {
         /** @var list<T> $result */
-        $result = $this->freshRepository()->findBy($criteria, $orderBy, $limit, $offset);
+        // ORM 3.7 accepts SortDirection at runtime (BasicEntityPersister); the inherited phpdoc still lists strings only.
+        $result = $this->freshRepository()->findBy($criteria, $orderBy, $limit, $offset); // @phpstan-ignore argument.type
 
         return $result;
     }
@@ -106,7 +107,8 @@ abstract class WorkerSafeServiceEntityRepository extends ServiceEntityRepository
     public function findOneBy(array $criteria, ?array $orderBy = null): ?object
     {
         /** @var T|null $result */
-        $result = $this->freshRepository()->findOneBy($criteria, $orderBy);
+        // ORM 3.7 accepts SortDirection at runtime (BasicEntityPersister); the inherited phpdoc still lists strings only.
+        $result = $this->freshRepository()->findOneBy($criteria, $orderBy); // @phpstan-ignore argument.type
 
         return $result;
     }
