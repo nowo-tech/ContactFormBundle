@@ -79,6 +79,11 @@ final class ContactFormRichTextSanitizer
                 $tag = strtolower($child->nodeName);
 
                 if (!isset(self::ALLOWED_ELEMENTS[$tag])) {
+                    // Unwrapped children must be sanitized too: resume the walk at the first moved child.
+                    if ($child->firstChild instanceof DOMNode) {
+                        $next = $child->firstChild;
+                    }
+
                     while ($child->firstChild instanceof DOMNode) {
                         $node->insertBefore($child->firstChild, $child);
                     }

@@ -6,6 +6,7 @@ namespace Nowo\ContactFormBundle\Tests\Unit\Service;
 
 use Nowo\ContactFormBundle\Service\ContactFormRichTextSanitizer;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 #[CoversClass(ContactFormRichTextSanitizer::class)]
@@ -31,6 +32,43 @@ final class ContactFormRichTextSanitizerTest extends TestCase
         self::assertStringContainsString('<strong>World</strong>', $result);
         self::assertStringNotContainsString('<script>', $result);
         self::assertStringContainsString('Hello', $result);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function nestedPayloadProvider(): iterable
+    {
+        yield 'img in p' => ['<p><img src=x onerror=alert(1)></p>'];
+        yield 'svg onload in div' => ['<div><svg onload=alert(1)></svg></div>'];
+        yield 'deeply nested' => ['<div><p><section><img src=x onerror=alert(1)></section></p></div>'];
+        yield 'allowed inside unwrap' => ['<p><a href="javascript:alert(1)" onclick="alert(1)">x</a></p>'];
+        yield 'span attrs in p' => ['<p><span onmouseover="alert(1)" style="x">t</span></p>'];
+        yield 'iframe in strong in p' => ['<p><strong><iframe src="https://evil"></iframe></strong></p>'];
+    }
+
+    #[DataProvider('nestedPayloadProvider')]
+    public function testSanitizeStripsDisallowedMarkupNestedInUnwrappedElements(string $payload): void
+    {
+        $result = $this->sanitizer->sanitize($payload);
+
+        self::assertDoesNotMatchRegularExpression('/<(img|svg|iframe|p|div|section)\b/i', $result);
+        self::assertStringNotContainsStringIgnoringCase('onerror', $result);
+        self::assertStringNotContainsStringIgnoringCase('onload', $result);
+        self::assertStringNotContainsStringIgnoringCase('onclick', $result);
+        self::assertStringNotContainsStringIgnoringCase('onmouseover', $result);
+        self::assertStringNotContainsStringIgnoringCase('style=', $result);
+        self::assertStringNotContainsStringIgnoringCase('javascript:', $result);
+    }
+
+    public function testSanitizeKeepsTextAndAllowedTagsFromUnwrappedElements(): void
+    {
+        $result = $this->sanitizer->sanitize('<p>I accept the <a href="/privacy" onclick="x()">policy</a> <b>now</b></p>');
+
+        self::assertSame(
+            'I accept the <a href="/privacy" rel="noopener noreferrer" target="_blank">policy</a> <b>now</b>',
+            $result,
+        );
     }
 
     public function testSanitizeHardensExternalLinks(): void
