@@ -6,6 +6,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 
 - [From 1.0.21 to 1.0.22](#from-1021-to-1022)
 - [From 1.0.20 to 1.0.21](#from-1020-to-1021)
+- [To 1.2.0](#to-120)
 - [To 1.1.3](#to-113)
 - [To 1.1.2](#to-112)
 - [To 1.1.1](#to-111)
@@ -34,6 +35,18 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 - [1.0.0 (2026-07-13)](#100-2026-07-13)
   - [Fresh install checklist](#fresh-install-checklist)
   - [Optional integrations](#optional-integrations)
+
+## To 1.2.0
+
+From **1.1.3** — security: admin access enforced, cross-bundle services wired, nested rich-text sanitized.
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
+
+- **Behaviour change:** admin CRUD routes now enforce `security.access_roles` (default `ROLE_ADMIN`) or the custom `access_checker`; before, only the host firewall protected them. Users without the role now get 403.
+- Admin routes return 404 when `web_ui.enabled: false`.
+- The public submission rate limit (enabled by default) now really applies via `cache.app`; excess requests get 429. Mailer notifications are sent when `notifications.mailer.enabled` is set. The bundle no longer overrides the app's `clock` service.
 
 ## To 1.1.3
 

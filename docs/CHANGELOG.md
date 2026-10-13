@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - [[Unreleased]](#unreleased)
 
+- [[1.2.0] - 2026-10-13](#120---2026-10-13)
 - [[1.1.3] - 2026-10-13](#113---2026-10-13)
 - [[1.1.2] - 2026-10-09](#112---2026-10-09)
 - [[1.1.1] - 2026-10-09](#111-2026-10-09)
@@ -68,6 +69,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - [Changed](#changed)
 
 ## [Unreleased]
+
+## [1.2.0] - 2026-10-13
 
 ### Security
 
@@ -134,6 +137,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - **Worker safety (Igor):** justified `// @igor-ignore` annotations and/or `ResetInterface` / request-scoped fixes so `make igor` passes on package `src/`.
 
+[1.2.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.2.0
 [1.1.3]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.1.3
 [1.1.2]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.1.2
 [1.1.1]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.1.1
