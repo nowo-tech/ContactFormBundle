@@ -4,9 +4,9 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 
 ## Table of contents
 
-
 - [From 1.0.21 to 1.0.22](#from-1021-to-1022)
 - [From 1.0.20 to 1.0.21](#from-1020-to-1021)
+- [To 1.1.3](#to-113)
 - [To 1.1.2](#to-112)
 - [To 1.1.1](#to-111)
 - [To 1.1.0](#to-110)
@@ -34,6 +34,16 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 - [1.0.0 (2026-07-13)](#100-2026-07-13)
   - [Fresh install checklist](#fresh-install-checklist)
   - [Optional integrations](#optional-integrations)
+
+## To 1.1.3
+
+From **1.1.2** — dependency refresh and repository maintenance.
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
+
+- No breaking changes. No application upgrade steps.
 
 ## To 1.1.2
 
@@ -73,7 +83,6 @@ php bin/console cache:clear
 ```
 
 - No application upgrade steps for require-dev Igor tooling (REQ-CS-008). Consumers do not pull `igor-php/igor-php` transitively.
-
 
 ## From 1.0.21 to 1.0.22
 

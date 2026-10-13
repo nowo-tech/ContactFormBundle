@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - [[Unreleased]](#unreleased)
 
+- [[1.1.3] - 2026-10-13](#113---2026-10-13)
 - [[1.1.2] - 2026-10-09](#112---2026-10-09)
 - [[1.1.1] - 2026-10-09](#111-2026-10-09)
 - [[1.1.0] - 2026-09-28](#110-2026-09-28)
@@ -68,6 +69,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-10-13
+
+### Changed
+
+- CI: GitHub Actions aligned with the org baseline (`actions/checkout` v7, `codecov/codecov-action` v7, `actions/cache` v6).
+- Repository: `.twig-cs-fixer.cache` is now git-ignored.
+
+### Dependencies
+
+- `doctrine/orm` 3.7.4 → 3.7.5 (development lock; #41).
+- `nowo-tech/form-kit-bundle` 2.6.0 → 2.7.1 (development lock; #42).
+- `nowo-tech/ui-kit-bundle` 1.9.1 → 1.11.0 (development lock; #43).
+
 ## [1.1.2] - 2026-10-09
 
 ### Changed
@@ -107,6 +121,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - **Worker safety (Igor):** justified `// @igor-ignore` annotations and/or `ResetInterface` / request-scoped fixes so `make igor` passes on package `src/`.
 
+[1.1.3]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.1.3
 [1.1.2]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.1.2
 [1.1.1]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.1.1
 [1.1.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.1.0
