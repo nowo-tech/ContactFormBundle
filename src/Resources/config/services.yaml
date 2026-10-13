@@ -24,6 +24,11 @@ services:
         arguments:
             $defaultPrefixes: '%nowo_contact_form.phone_prefixes%'
 
+    Nowo\ContactFormBundle\Service\DynamicContactFormBuilder:
+        arguments:
+            $fileMaxSize: '%nowo_contact_form.file_upload.max_size%'
+            $fileMimeTypes: '%nowo_contact_form.file_upload.mime_types%'
+
     Nowo\ContactFormBundle\Service\ContactPhoneInputOptionsResolver:
         arguments:
             $bundleDefaults: '%nowo_contact_form.phone_input%'

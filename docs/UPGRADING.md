@@ -36,6 +36,11 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Fresh install checklist](#fresh-install-checklist)
   - [Optional integrations](#optional-integrations)
 
+## Unreleased
+
+- **Behaviour change (file fields):** uploads are now validated with a `File` constraint — max `5M` and a MIME allow-list (PDF, text, Word/ODT, JPEG/PNG/GIF/WebP) by default. Forms accepting other types (e.g. ZIP, spreadsheets) or larger files must set `nowo_contact_form.file_upload.max_size` / `mime_types` (`null` / `[]` restore the previous unlimited behaviour) or override per field via `options.max_size` / `options.mime_types`.
+- With `security.allow_unauthenticated: true` **and** SecurityBundle installed, `ContactFormAccessCheckerInterface` is now the role-based checker (it was allow-all). The bundle's admin subscriber still skips the check in that mode; only host code injecting the interface is affected.
+
 ## To 1.2.0
 
 From **1.1.3** — security: admin access enforced, cross-bundle services wired, nested rich-text sanitized.

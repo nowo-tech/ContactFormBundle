@@ -30,6 +30,8 @@ Extension alias: `nowo_contact_form`.
 | `phone_input.country_prefix_selector` | `true` | Show prefix selector in PhoneInputBundle |
 | `phone_input.show_flag` | `true` | Show flags in PhoneInputBundle selector |
 | `file_upload.service` | `null` | Custom `ContactFormFileUploadHandlerInterface` service id (required for file fields) |
+| `file_upload.max_size` | `5M` | Default max size for file fields (`File` constraint format: bytes, `500k`, `5M`, `2Mi`). `null` = no bundle limit |
+| `file_upload.mime_types` | PDF, text, Word/ODT, JPEG/PNG/GIF/WebP | Default allowed MIME types for file fields (wildcards such as `image/*` allowed). `[]` = any type |
 | `public_submission_rate_limit.enabled` | `true` | Enable per-IP rate limiting on public POST |
 | `public_submission_rate_limit.limit` | `5` | Max submissions per interval |
 | `public_submission_rate_limit.interval_seconds` | `60` | Rate-limit window in seconds |
@@ -42,6 +44,7 @@ Extension alias: `nowo_contact_form`.
 - [Admin Web UI (layout and CSS)](#admin-web-ui-layout-and-css)
 - [Admin security](#admin-security)
 - [Public submission rate limiting](#public-submission-rate-limiting)
+- [File upload limits](#file-upload-limits)
 - [Client linking (public submissions)](#client-linking-public-submissions)
 - [GDPR retention cleanup](#gdpr-retention-cleanup)
 - [Notifications without symfony/mailer](#notifications-without-symfonymailer)
@@ -110,6 +113,35 @@ security:
 ## Public submission rate limiting
 
 When `public_submission_rate_limit.enabled` is `true` (default) and the app provides `cache.app` (FrameworkBundle always does), submissions are limited per client IP and form slug. Exceeding the limit returns HTTP 429. Set `enabled: false` or `limit: 0` to disable.
+
+## File upload limits
+
+Every `file` field gets a Symfony `File` constraint. Defaults come from `file_upload`:
+
+```yaml
+nowo_contact_form:
+    file_upload:
+        service: App\ContactForm\UploadHandler
+        max_size: 5M          # null = no bundle limit (PHP upload_max_filesize still applies)
+        mime_types:           # [] = any type; detected from content, not from the extension
+            - application/pdf
+            - text/plain
+            - application/msword
+            - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+            - application/vnd.oasis.opendocument.text
+            - image/jpeg
+            - image/png
+            - image/gif
+            - image/webp
+```
+
+SVG and HTML are not allowed by default (they can carry scripts). A single field can override the defaults through its
+`options` map (`ContactFormField::setOptions()`):
+
+```php
+$field->setOptions(['max_size' => '10M', 'mime_types' => ['application/pdf']]);
+// ['max_size' => null, 'mime_types' => []] removes both limits for that field
+```
 
 ## Client linking (public submissions)
 

@@ -11,9 +11,11 @@ use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Security\AllowAllContactFormAccessChecker;
+use Nowo\ContactFormBundle\Security\ConfigurableContactFormAccessChecker;
 use Nowo\ContactFormBundle\Security\ContactFormAccessCheckerInterface;
 use Nowo\ContactFormBundle\Service\ClientResolverInterface;
 use Nowo\ContactFormBundle\Service\ContactFormSubmissionRateLimiter;
+use Nowo\ContactFormBundle\Service\DynamicContactFormBuilder;
 use Nowo\ContactFormBundle\Service\IpAnonymizer;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -66,6 +68,8 @@ final class NowoContactFormExtensionTest extends TestCase
         self::assertSame(['ROLE_ADMIN'], $container->getParameter('nowo_contact_form.security.access_roles'));
         self::assertSame('', $container->getParameter('nowo_contact_form.doctrine.table_prefix'));
         self::assertFalse($container->hasDefinition(TablePrefixListener::class));
+        self::assertSame('5M', $container->getParameter('nowo_contact_form.file_upload.max_size'));
+        self::assertSame(DynamicContactFormBuilder::DEFAULT_FILE_MIME_TYPES, $container->getParameter('nowo_contact_form.file_upload.mime_types'));
     }
 
     public function testLoadRegistersTablePrefixListenerWhenConfigured(): void
@@ -83,23 +87,33 @@ final class NowoContactFormExtensionTest extends TestCase
         self::assertTrue($definition->hasTag('doctrine.event_listener'));
     }
 
-    public function testLoadRegistersAllowAllAccessCheckerWithoutSecurity(): void
+    public function testLoadRegistersDefaultAccessCheckerWithOptionalAuthorizationChecker(): void
     {
-        $container = new ContainerBuilder();
-        $extension = new NowoContactFormExtension();
-        $extension->load([array_merge($this->baseConfig(), [
-            'security' => [
-                'access_roles'          => ['ROLE_ADMIN'],
-                'access_checker'        => null,
-                'allow_unauthenticated' => true,
-            ],
-        ])], $container);
+        // load() never sees SecurityBundle: the checker must be wired by optional reference regardless.
+        foreach ([true, false] as $allowUnauthenticated) {
+            $container = new ContainerBuilder();
+            $extension = new NowoContactFormExtension();
+            $extension->load([array_merge($this->baseConfig(), [
+                'security' => [
+                    'access_roles'          => ['ROLE_ADMIN'],
+                    'access_checker'        => null,
+                    'allow_unauthenticated' => $allowUnauthenticated,
+                ],
+            ])], $container);
 
-        self::assertTrue($container->hasAlias(ContactFormAccessCheckerInterface::class));
-        self::assertSame(
-            'nowo_contact_form.access_checker.allow_all',
-            (string) $container->getAlias(ContactFormAccessCheckerInterface::class),
-        );
+            self::assertSame(
+                NowoContactFormExtension::DEFAULT_ACCESS_CHECKER_ID,
+                (string) $container->getAlias(ContactFormAccessCheckerInterface::class),
+            );
+            $definition = $container->getDefinition(NowoContactFormExtension::DEFAULT_ACCESS_CHECKER_ID);
+            self::assertSame(ConfigurableContactFormAccessChecker::class, $definition->getClass());
+            self::assertFalse($definition->isAutowired());
+            self::assertSame(['ROLE_ADMIN'], $definition->getArgument('$accessRoles'));
+            $reference = $definition->getArgument('$authorizationChecker');
+            self::assertInstanceOf(Reference::class, $reference);
+            self::assertSame('security.authorization_checker', (string) $reference);
+            self::assertSame(ContainerInterface::NULL_ON_INVALID_REFERENCE, $reference->getInvalidBehavior());
+        }
     }
 
     public function testLoadUsesCustomAccessCheckerService(): void

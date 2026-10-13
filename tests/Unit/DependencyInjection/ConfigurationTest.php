@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Tests\Unit\DependencyInjection;
 
 use Nowo\ContactFormBundle\DependencyInjection\Configuration;
+use Nowo\ContactFormBundle\Service\DynamicContactFormBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\Definition\Processor;
 
 #[CoversClass(Configuration::class)]
@@ -29,6 +31,31 @@ final class ConfigurationTest extends TestCase
         self::assertFalse($config['notifications']['enabled']);
         self::assertFalse($config['notifications']['mailer']['enabled']);
         self::assertSame('', $config['doctrine']['table_prefix']);
+        self::assertSame('5M', $config['file_upload']['max_size']);
+        self::assertSame(DynamicContactFormBuilder::DEFAULT_FILE_MIME_TYPES, $config['file_upload']['mime_types']);
+    }
+
+    public function testFileUploadLimitsAreConfigurable(): void
+    {
+        $config = (new Processor())->processConfiguration(new Configuration(), [[
+            'file_upload' => ['max_size' => '2Mi', 'mime_types' => ['application/pdf']],
+        ]]);
+        self::assertSame('2Mi', $config['file_upload']['max_size']);
+        self::assertSame(['application/pdf'], $config['file_upload']['mime_types']);
+
+        $config = (new Processor())->processConfiguration(new Configuration(), [[
+            'file_upload' => ['max_size' => null, 'mime_types' => []],
+        ]]);
+        self::assertNull($config['file_upload']['max_size']);
+        self::assertSame([], $config['file_upload']['mime_types']);
+    }
+
+    public function testInvalidFileUploadMaxSizeIsRejected(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        (new Processor())->processConfiguration(new Configuration(), [[
+            'file_upload' => ['max_size' => '5 megabytes'],
+        ]]);
     }
 
     public function testCustomConfiguration(): void

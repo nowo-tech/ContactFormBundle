@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\DependencyInjection;
 
+use Nowo\ContactFormBundle\Service\DynamicContactFormBuilder;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
+
+use function is_scalar;
 
 /**
  * Defines the configuration tree for the contact form bundle.
@@ -171,6 +174,19 @@ class Configuration implements ConfigurationInterface
                         ->scalarNode('service')
                             ->defaultNull()
                             ->info('Custom service id implementing ContactFormFileUploadHandlerInterface (required for file fields).')
+                        ->end()
+                        ->scalarNode('max_size')
+                            ->defaultValue(DynamicContactFormBuilder::DEFAULT_FILE_MAX_SIZE)
+                            ->info('Default maximum upload size for file fields (Symfony File constraint format: 500k, 5M, 2Mi, bytes). Null = no bundle limit (PHP upload_max_filesize still applies). Overridable per field via options.max_size.')
+                            ->validate()
+                                ->ifTrue(static fn (mixed $v): bool => $v !== null && (!is_scalar($v) || preg_match('/^\\d++(k|ki|m|mi)?$/i', (string) $v) !== 1))
+                                ->thenInvalid('Invalid file_upload.max_size %s: use bytes or a k/ki/M/Mi suffix (e.g. "5M").')
+                            ->end()
+                        ->end()
+                        ->arrayNode('mime_types')
+                            ->info('Default allowed MIME types for file fields (wildcards like "image/*" allowed). Empty list = any type. Overridable per field via options.mime_types.')
+                            ->scalarPrototype()->cannotBeEmpty()->end()
+                            ->defaultValue(DynamicContactFormBuilder::DEFAULT_FILE_MIME_TYPES)
                         ->end()
                     ->end()
                 ->end()

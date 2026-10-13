@@ -7,6 +7,9 @@ namespace Nowo\ContactFormBundle\Tests\Integration\DependencyInjection;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier;
+use Nowo\ContactFormBundle\Security\AllowAllContactFormAccessChecker;
+use Nowo\ContactFormBundle\Security\ConfigurableContactFormAccessChecker;
+use Nowo\ContactFormBundle\Security\ContactFormAccessCheckerInterface;
 use Nowo\ContactFormBundle\Service\ContactFormSubmissionRateLimiter;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
 use PHPUnit\Framework\TestCase;
@@ -18,6 +21,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\KernelInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 use function sys_get_temp_dir;
 
@@ -79,6 +83,50 @@ final class BundleWiringTest extends TestCase
         $resolver = $container->get(SecurityClientResolver::class);
         self::assertInstanceOf(SecurityClientResolver::class, $resolver);
         self::assertNull($this->property($resolver, 'tokenStorage'));
+    }
+
+    public function testAccessCheckerReceivesAuthorizationCheckerWithSecurityBundle(): void
+    {
+        $container = $this->boot(new WiringTestKernel())->getContainer();
+
+        $checker = $container->get(ContactFormAccessCheckerInterface::class);
+        self::assertInstanceOf(ConfigurableContactFormAccessChecker::class, $checker);
+        self::assertInstanceOf(AuthorizationCheckerInterface::class, $this->property($checker, 'authorizationChecker'));
+        self::assertSame(['ROLE_ADMIN'], $this->property($checker, 'accessRoles'));
+    }
+
+    public function testAccessCheckerKeepsRolesWithSecurityBundleEvenIfAllowUnauthenticated(): void
+    {
+        $container = $this->boot(new WiringTestKernel(
+            contactFormConfig: ['security' => ['allow_unauthenticated' => true]],
+        ))->getContainer();
+
+        $checker = $container->get(ContactFormAccessCheckerInterface::class);
+        self::assertInstanceOf(ConfigurableContactFormAccessChecker::class, $checker);
+        self::assertInstanceOf(AuthorizationCheckerInterface::class, $this->property($checker, 'authorizationChecker'));
+    }
+
+    public function testAccessCheckerWithoutSecurityBundleAllowUnauthenticated(): void
+    {
+        $container = $this->boot(new WiringTestKernel(
+            contactFormConfig: ['security' => ['allow_unauthenticated' => true]],
+            withSecurity: false,
+        ))->getContainer();
+
+        self::assertInstanceOf(AllowAllContactFormAccessChecker::class, $container->get(ContactFormAccessCheckerInterface::class));
+    }
+
+    public function testAccessCheckerWithoutSecurityBundleIsFailClosed(): void
+    {
+        $container = $this->boot(new WiringTestKernel(
+            contactFormConfig: ['web_ui' => ['enabled' => false]],
+            withSecurity: false,
+        ))->getContainer();
+
+        $checker = $container->get(ContactFormAccessCheckerInterface::class);
+        self::assertInstanceOf(ConfigurableContactFormAccessChecker::class, $checker);
+        self::assertNull($this->property($checker, 'authorizationChecker'));
+        self::assertFalse($checker->canAccess());
     }
 
     public function testMailerNotifierRegisteredWhenMailerExists(): void

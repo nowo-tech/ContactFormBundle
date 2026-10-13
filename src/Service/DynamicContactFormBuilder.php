@@ -29,15 +29,20 @@ use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormTypeInterface;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\Email;
+use Symfony\Component\Validator\Constraints\File;
 use Symfony\Component\Validator\Constraints\IsTrue;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Url;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+use function array_filter;
 use function array_is_list;
 use function array_key_exists;
+use function array_values;
 use function count;
 use function is_array;
+use function is_int;
+use function is_string;
 use function is_subclass_of;
 
 /**
@@ -54,6 +59,28 @@ final readonly class DynamicContactFormBuilder
     /** Stable FormKit {@code by_form} key for public dynamic fields. */
     public const FORM_KIT_FORM_NAME = 'public_contact';
 
+    /** Default max upload size for file fields (nowo_contact_form.file_upload.max_size). */
+    public const DEFAULT_FILE_MAX_SIZE = '5M';
+
+    /**
+     * Default allowed MIME types for file fields (nowo_contact_form.file_upload.mime_types):
+     * PDF, plain text, common office documents and raster images. SVG/HTML are deliberately excluded.
+     */
+    public const DEFAULT_FILE_MIME_TYPES = [
+        'application/pdf',
+        'text/plain',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.oasis.opendocument.text',
+        'image/jpeg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+    ];
+
+    /**
+     * @param list<string> $fileMimeTypes empty list = any MIME type
+     */
     public function __construct(
         private FormFactoryInterface $formFactory,
         private ContactFormFieldRepository $fieldRepository,
@@ -63,6 +90,8 @@ final readonly class DynamicContactFormBuilder
         private ContactPhoneInputOptionsResolver $phoneInputOptionsResolver,
         private ContactPhoneInputAvailability $phoneInputAvailability,
         private FormOptionsMerger $formOptionsMerger,
+        private ?string $fileMaxSize = self::DEFAULT_FILE_MAX_SIZE,
+        private array $fileMimeTypes = self::DEFAULT_FILE_MIME_TYPES,
     ) {
     }
 
@@ -208,7 +237,9 @@ final readonly class DynamicContactFormBuilder
             ContactFieldType::File => $builder->add($field->getName(), FileType::class, $this->withProfileOptions(
                 $field->getName(),
                 FileType::class,
-                $options,
+                array_merge($options, [
+                    'constraints' => array_merge($constraints, [$this->buildFileConstraint($field)]),
+                ]),
             )),
             ContactFieldType::Text => $builder->add($field->getName(), TextType::class, $this->withProfileOptions(
                 $field->getName(),
@@ -335,6 +366,34 @@ final readonly class DynamicContactFormBuilder
                 $locale,
             )),
         ];
+    }
+
+    /**
+     * File constraint from bundle defaults (file_upload.max_size / mime_types), overridable per field
+     * through ContactFormField::options keys {@code max_size} (string|int|null) and {@code mime_types} (list).
+     */
+    private function buildFileConstraint(ContactFormField $field): File
+    {
+        $maxSize   = $this->fileMaxSize;
+        $mimeTypes = $this->fileMimeTypes;
+        $raw       = $field->getOptions();
+
+        if (is_array($raw) && !array_is_list($raw)) {
+            if (array_key_exists('max_size', $raw) && ($raw['max_size'] === null || is_int($raw['max_size']) || is_string($raw['max_size']))) {
+                $maxSize = $raw['max_size'] === null ? null : (string) $raw['max_size'];
+            }
+            if (is_array($raw['mime_types'] ?? null)) {
+                $mimeTypes = array_values(array_filter(
+                    $raw['mime_types'],
+                    static fn (mixed $type): bool => is_string($type) && $type !== '',
+                ));
+            }
+        }
+
+        return new File(
+            maxSize: $maxSize === null || $maxSize === '' ? null : $maxSize,
+            mimeTypes: $mimeTypes === [] ? null : $mimeTypes,
+        );
     }
 
     /**

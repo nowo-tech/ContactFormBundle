@@ -24,6 +24,8 @@ nowo_contact_form:
             subject: 'New contact submission: {form}'
     file_upload:
         service: null
+        max_size: 5M
+        # mime_types: [application/pdf, image/jpeg, image/png]  # default: PDF, text, Word/ODT, JPEG/PNG/GIF/WebP; [] = any
     public_submission_rate_limit:
         enabled: true
         limit: 5

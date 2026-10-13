@@ -70,6 +70,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Security
+
+- File fields now carry a `File` constraint: max size `5M` and a document/image MIME allow-list by default (PDF, text, Word/ODT, JPEG/PNG/GIF/WebP; SVG/HTML excluded). Configurable via `file_upload.max_size` / `file_upload.mime_types` and per field via `options.max_size` / `options.mime_types`. Previously any file type and size reached the upload handler.
+
+### Fixed
+
+- Default admin access checker: `security.authorization_checker` is now injected through an optional reference instead of a `hasDefinition()` check in `load()` (always false in real apps, so the checker relied on autowiring and, with `allow_unauthenticated: true`, became allow-all even when SecurityBundle was installed). Without SecurityBundle the role checker denies (fail-closed); the allow-all checker is now selected in `ContactFormSecurityPass` only when `allow_unauthenticated: true` and SecurityBundle is absent.
+
 ## [1.2.0] - 2026-10-13
 
 ### Security

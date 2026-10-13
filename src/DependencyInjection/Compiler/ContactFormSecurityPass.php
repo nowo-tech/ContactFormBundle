@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\DependencyInjection\Compiler;
 
 use Nowo\ContactFormBundle\DependencyInjection\Configuration;
+use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
 use Nowo\ContactFormBundle\EventSubscriber\ContactFormAdminAccessSubscriber;
+use Nowo\ContactFormBundle\Security\AllowAllContactFormAccessChecker;
 use Nowo\ContactFormBundle\Security\ContactFormAccessCheckerInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
@@ -31,6 +33,8 @@ final class ContactFormSecurityPass implements CompilerPassInterface
             throw new InvalidConfigurationException('nowo_contact_form admin UI requires symfony/security-bundle (security.authorization_checker), or set nowo_contact_form.security.allow_unauthenticated: true (dev/demo only — never in production).');
         }
 
+        $this->useAllowAllCheckerWithoutSecurity($container, $allowUnauthenticated);
+
         // services.yaml excludes the class, which leaves an abstract `container.excluded` placeholder:
         // only a host-defined subscriber may short-circuit the registration.
         if ($container->hasDefinition(ContactFormAdminAccessSubscriber::class)
@@ -48,5 +52,24 @@ final class ContactFormSecurityPass implements CompilerPassInterface
             ->setArgument('$accessChecker', $accessChecker)
             ->setArgument('$webUiEnabled', $webUiEnabled)
             ->addTag('kernel.event_subscriber');
+    }
+
+    /**
+     * Demo/dev hosts without SecurityBundle (allow_unauthenticated: true) get the allow-all checker
+     * instead of the role-based one (which would deny everything without an authorization checker).
+     * A custom security.access_checker is never replaced.
+     */
+    private function useAllowAllCheckerWithoutSecurity(ContainerBuilder $container, bool $allowUnauthenticated): void
+    {
+        if (!$allowUnauthenticated
+            || $container->has('security.authorization_checker')
+            || !$container->hasAlias(ContactFormAccessCheckerInterface::class)
+            || (string) $container->getAlias(ContactFormAccessCheckerInterface::class) !== NowoContactFormExtension::DEFAULT_ACCESS_CHECKER_ID) {
+            return;
+        }
+
+        $container->register(NowoContactFormExtension::ALLOW_ALL_ACCESS_CHECKER_ID, AllowAllContactFormAccessChecker::class);
+        $container->setAlias(ContactFormAccessCheckerInterface::class, NowoContactFormExtension::ALLOW_ALL_ACCESS_CHECKER_ID);
+        $container->removeDefinition(NowoContactFormExtension::DEFAULT_ACCESS_CHECKER_ID);
     }
 }

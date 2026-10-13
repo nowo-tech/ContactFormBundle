@@ -20,9 +20,12 @@ use Nowo\ContactFormBundle\Tests\Support\FormKitTestSupport;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Form\Extension\HttpFoundation\HttpFoundationExtension;
 use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\FormFactoryInterface;
 use Symfony\Component\Form\Forms;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Validator\Constraints\File;
 use Symfony\Component\Validator\Validation;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -47,6 +50,7 @@ final class DynamicContactFormBuilderTest extends TestCase
     {
         $this->formFactory = Forms::createFormFactoryBuilder()
             ->addExtension(new ValidatorExtension(Validation::createValidator()))
+            ->addExtension(new HttpFoundationExtension())
             ->addType(FormKitTestSupport::withMerger(new ContactPhoneType()))
             ->getFormFactory();
 
@@ -73,8 +77,14 @@ final class DynamicContactFormBuilderTest extends TestCase
         $this->phoneInputAvailability = new ContactPhoneInputAvailability();
     }
 
-    private function createBuilder(ContactFormFieldRepository $fieldRepository): DynamicContactFormBuilder
-    {
+    /**
+     * @param list<string> $fileMimeTypes
+     */
+    private function createBuilder(
+        ContactFormFieldRepository $fieldRepository,
+        ?string $fileMaxSize = DynamicContactFormBuilder::DEFAULT_FILE_MAX_SIZE,
+        array $fileMimeTypes = DynamicContactFormBuilder::DEFAULT_FILE_MIME_TYPES,
+    ): DynamicContactFormBuilder {
         return new DynamicContactFormBuilder(
             $this->formFactory,
             $fieldRepository,
@@ -84,6 +94,8 @@ final class DynamicContactFormBuilderTest extends TestCase
             $this->phoneInputOptionsResolver,
             $this->phoneInputAvailability,
             FormKitTestSupport::merger(),
+            $fileMaxSize,
+            $fileMimeTypes,
         );
     }
 
@@ -334,5 +346,111 @@ final class DynamicContactFormBuilderTest extends TestCase
 
         self::assertTrue($form->isValid());
         self::assertSame('+34600111222', $form->get('phone')->getData());
+    }
+
+    public function testFileFieldHasDefaultFileConstraint(): void
+    {
+        $constraint = $this->fileConstraint($this->createBuilder($this->fileFieldRepository()));
+
+        self::assertSame(5_000_000, $constraint->maxSize);
+        self::assertSame(DynamicContactFormBuilder::DEFAULT_FILE_MIME_TYPES, $constraint->mimeTypes);
+        self::assertNotContains('image/svg+xml', DynamicContactFormBuilder::DEFAULT_FILE_MIME_TYPES);
+        self::assertNotContains('text/html', DynamicContactFormBuilder::DEFAULT_FILE_MIME_TYPES);
+    }
+
+    public function testFileFieldUsesConfiguredDefaults(): void
+    {
+        $constraint = $this->fileConstraint($this->createBuilder($this->fileFieldRepository(), '2Mi', ['application/pdf']));
+
+        self::assertSame(2 * 1024 * 1024, $constraint->maxSize);
+        self::assertSame(['application/pdf'], $constraint->mimeTypes);
+    }
+
+    public function testFileFieldWithoutLimitsWhenConfiguredEmpty(): void
+    {
+        $constraint = $this->fileConstraint($this->createBuilder($this->fileFieldRepository(), null, []));
+
+        self::assertNull($constraint->maxSize);
+        self::assertSame([], $constraint->mimeTypes);
+    }
+
+    public function testFileFieldOptionsOverrideDefaults(): void
+    {
+        $constraint = $this->fileConstraint($this->createBuilder($this->fileFieldRepository([
+            'max_size'   => '500k',
+            'mime_types' => ['image/png', '', 42],
+        ])));
+
+        self::assertSame(500_000, $constraint->maxSize);
+        self::assertSame(['image/png'], $constraint->mimeTypes);
+
+        $unlimited = $this->fileConstraint($this->createBuilder($this->fileFieldRepository([
+            'max_size'   => null,
+            'mime_types' => [],
+        ])));
+        self::assertNull($unlimited->maxSize);
+        self::assertSame([], $unlimited->mimeTypes);
+
+        // Malformed / list options (legacy) fall back to the bundle defaults.
+        $fallback = $this->fileConstraint($this->createBuilder($this->fileFieldRepository(['max_size' => ['x']])));
+        self::assertSame(5_000_000, $fallback->maxSize);
+        $listOptions = $this->fileConstraint($this->createBuilder($this->fileFieldRepository(['a', 'b'])));
+        self::assertSame(DynamicContactFormBuilder::DEFAULT_FILE_MIME_TYPES, $listOptions->mimeTypes);
+    }
+
+    public function testFileFieldRejectsDisallowedTypeAndOversizedUpload(): void
+    {
+        $html = $this->uploadedFile('page.html', '<!DOCTYPE html><html><body><script>alert(1)</script></body></html>');
+        $form = $this->createBuilder($this->fileFieldRepository())->createForm(new ContactForm(), 'en');
+        $form->submit(['attachment' => $html]);
+        self::assertFalse($form->isValid(), 'text/html must be rejected by default');
+
+        $text = $this->uploadedFile('note.txt', str_repeat('plain text ', 10));
+        $form = $this->createBuilder($this->fileFieldRepository())->createForm(new ContactForm(), 'en');
+        $form->submit(['attachment' => $text]);
+        self::assertTrue($form->isValid(), (string) $form->getErrors(true));
+
+        $form = $this->createBuilder($this->fileFieldRepository(), '10')->createForm(new ContactForm(), 'en');
+        $form->submit(['attachment' => $this->uploadedFile('big.txt', str_repeat('plain text ', 10))]);
+        self::assertFalse($form->isValid(), 'files over max_size must be rejected');
+    }
+
+    /**
+     * @param array<array-key, mixed>|null $options
+     */
+    private function fileFieldRepository(?array $options = null): ContactFormFieldRepository
+    {
+        $field = (new ContactFormField())
+            ->setName('attachment')
+            ->setType(ContactFieldType::File)
+            ->setRequired(false)
+            ->setOptions($options)
+            ->addTranslation((new ContactFormFieldTranslation())->setLocale('en')->setLabel('Attachment'));
+
+        $repository = $this->createMock(ContactFormFieldRepository::class);
+        $repository->method('findByFormOrdered')->willReturn([$field]);
+
+        return $repository;
+    }
+
+    private function fileConstraint(DynamicContactFormBuilder $builder): File
+    {
+        $form        = $builder->createForm(new ContactForm(), 'en');
+        $constraints = array_values(array_filter(
+            $form->get('attachment')->getConfig()->getOption('constraints'),
+            static fn (mixed $c): bool => $c instanceof File,
+        ));
+        self::assertCount(1, $constraints);
+
+        return $constraints[0];
+    }
+
+    private function uploadedFile(string $name, string $contents): UploadedFile
+    {
+        $path = tempnam(sys_get_temp_dir(), 'cf_upload_');
+        self::assertIsString($path);
+        file_put_contents($path, $contents);
+
+        return new UploadedFile($path, $name, null, null, true);
     }
 }

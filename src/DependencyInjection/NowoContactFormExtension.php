@@ -9,7 +9,6 @@ use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServi
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier;
-use Nowo\ContactFormBundle\Security\AllowAllContactFormAccessChecker;
 use Nowo\ContactFormBundle\Security\ConfigurableContactFormAccessChecker;
 use Nowo\ContactFormBundle\Security\ContactFormAccessCheckerInterface;
 use Nowo\ContactFormBundle\Service\ClientLabelResolver;
@@ -41,6 +40,10 @@ use function is_string;
  */
 final class NowoContactFormExtension extends Extension implements PrependExtensionInterface
 {
+    public const DEFAULT_ACCESS_CHECKER_ID = 'nowo_contact_form.access_checker.default';
+
+    public const ALLOW_ALL_ACCESS_CHECKER_ID = 'nowo_contact_form.access_checker.allow_all';
+
     /**
      * Seeds UiKit defaults from web_ui when the host has not set nowo_ui_kit (REQ-UI-001-kit).
      */
@@ -173,6 +176,8 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
         $container->setParameter('nowo_contact_form.default_retention_days', $config['default_retention_days']);
         $container->setParameter('nowo_contact_form.phone_prefixes', $config['phone_prefixes']);
         $container->setParameter('nowo_contact_form.phone_input', $config['phone_input']);
+        $container->setParameter('nowo_contact_form.file_upload.max_size', $config['file_upload']['max_size'] === null ? null : (string) $config['file_upload']['max_size']);
+        $container->setParameter('nowo_contact_form.file_upload.mime_types', array_values($config['file_upload']['mime_types']));
         $container->setParameter('nowo_contact_form.admin_route_prefix', $config['admin_route_prefix']);
         $container->setParameter('nowo_contact_form.notifications.default_recipient', $config['notifications']['default_recipient']);
 
@@ -259,28 +264,14 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
             return;
         }
 
-        $hasAuthorizationChecker = $container->hasDefinition('security.authorization_checker')
-            || $container->hasAlias('security.authorization_checker');
-
-        if ($security['allow_unauthenticated'] && !$hasAuthorizationChecker) {
-            $accessCheckerId = 'nowo_contact_form.access_checker.allow_all';
-            $container->setDefinition($accessCheckerId, new Definition(AllowAllContactFormAccessChecker::class));
-            $container->setAlias(ContactFormAccessCheckerInterface::class, $accessCheckerId);
-
-            return;
-        }
-
-        $accessCheckerId = 'nowo_contact_form.access_checker.default';
-        $definition      = new Definition(ConfigurableContactFormAccessChecker::class);
+        // load() runs on an isolated container: SecurityBundle services are never visible here, so the
+        // authorization checker is an optional reference (null = deny, fail-closed). ContactFormSecurityPass
+        // swaps in the allow-all checker when allow_unauthenticated is true and SecurityBundle is absent.
+        $definition = new Definition(ConfigurableContactFormAccessChecker::class);
+        $definition->setArgument('$authorizationChecker', new Reference('security.authorization_checker', ContainerInterface::NULL_ON_INVALID_REFERENCE));
         $definition->setArgument('$accessRoles', $security['access_roles']);
-        if ($hasAuthorizationChecker) {
-            $definition->setArgument('$authorizationChecker', new Reference('security.authorization_checker'));
-        } else {
-            // Placeholder until SecurityBundle registers the checker; SecurityPass fails compile if still missing.
-            $definition->setAutowired(true);
-        }
-        $container->setDefinition($accessCheckerId, $definition);
-        $container->setAlias(ContactFormAccessCheckerInterface::class, $accessCheckerId);
+        $container->setDefinition(self::DEFAULT_ACCESS_CHECKER_ID, $definition);
+        $container->setAlias(ContactFormAccessCheckerInterface::class, self::DEFAULT_ACCESS_CHECKER_ID);
     }
 
     /**

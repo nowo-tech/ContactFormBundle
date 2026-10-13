@@ -44,6 +44,14 @@ final class ContactFormAccessCheckerTest extends TestCase
         self::assertFalse($checker->canAccess());
     }
 
+    public function testConfigurableDeniesWithoutAuthorizationChecker(): void
+    {
+        // SecurityBundle absent: optional reference resolves to null, access is fail-closed.
+        $checker = new ConfigurableContactFormAccessChecker(null, ['ROLE_ADMIN']);
+
+        self::assertFalse($checker->canAccess());
+    }
+
     public function testAllowAllAlwaysGrants(): void
     {
         self::assertTrue((new AllowAllContactFormAccessChecker())->canAccess());

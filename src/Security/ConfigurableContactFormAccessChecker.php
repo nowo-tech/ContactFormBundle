@@ -8,6 +8,8 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * Default role-based access checker driven by nowo_contact_form.security.access_roles.
+ *
+ * Without an authorization checker (SecurityBundle absent) every request is denied (fail-closed).
  */
 final readonly class ConfigurableContactFormAccessChecker implements ContactFormAccessCheckerInterface
 {
@@ -15,7 +17,7 @@ final readonly class ConfigurableContactFormAccessChecker implements ContactForm
      * @param list<string> $accessRoles
      */
     public function __construct(
-        private AuthorizationCheckerInterface $authorizationChecker,
+        private ?AuthorizationCheckerInterface $authorizationChecker,
         private array $accessRoles,
     ) {
     }
@@ -23,7 +25,7 @@ final readonly class ConfigurableContactFormAccessChecker implements ContactForm
     public function canAccess(): bool
     {
         // Empty access_roles = deny (fail-closed). Use allow_unauthenticated or AllowAll* for demos.
-        if ($this->accessRoles === []) {
+        if ($this->accessRoles === [] || !$this->authorizationChecker instanceof AuthorizationCheckerInterface) {
             return false;
         }
 

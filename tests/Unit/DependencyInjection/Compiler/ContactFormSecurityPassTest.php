@@ -6,7 +6,10 @@ namespace Nowo\ContactFormBundle\Tests\Unit\DependencyInjection\Compiler;
 
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormSecurityPass;
 use Nowo\ContactFormBundle\DependencyInjection\Configuration;
+use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
 use Nowo\ContactFormBundle\EventSubscriber\ContactFormAdminAccessSubscriber;
+use Nowo\ContactFormBundle\Security\AllowAllContactFormAccessChecker;
+use Nowo\ContactFormBundle\Security\ConfigurableContactFormAccessChecker;
 use Nowo\ContactFormBundle\Security\ContactFormAccessCheckerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -108,6 +111,48 @@ final class ContactFormSecurityPassTest extends TestCase
         self::assertFalse($definition->isAbstract());
         self::assertFalse($definition->hasTag('container.excluded'));
         self::assertTrue($definition->hasTag('kernel.event_subscriber'));
+    }
+
+    public function testSwapsInAllowAllCheckerWithoutSecurityWhenAllowUnauthenticated(): void
+    {
+        $container = $this->baseContainer(allowUnauthenticated: true);
+        $this->registerDefaultChecker($container);
+
+        (new ContactFormSecurityPass())->process($container);
+
+        self::assertSame(NowoContactFormExtension::ALLOW_ALL_ACCESS_CHECKER_ID, (string) $container->getAlias(ContactFormAccessCheckerInterface::class));
+        self::assertSame(AllowAllContactFormAccessChecker::class, $container->getDefinition(NowoContactFormExtension::ALLOW_ALL_ACCESS_CHECKER_ID)->getClass());
+        self::assertFalse($container->hasDefinition(NowoContactFormExtension::DEFAULT_ACCESS_CHECKER_ID));
+    }
+
+    public function testKeepsRoleCheckerWhenSecurityPresentEvenIfAllowUnauthenticated(): void
+    {
+        $container = $this->baseContainer(allowUnauthenticated: true);
+        $container->setDefinition('security.authorization_checker', new Definition());
+        $this->registerDefaultChecker($container);
+
+        (new ContactFormSecurityPass())->process($container);
+
+        self::assertSame(NowoContactFormExtension::DEFAULT_ACCESS_CHECKER_ID, (string) $container->getAlias(ContactFormAccessCheckerInterface::class));
+        self::assertFalse($container->hasDefinition(NowoContactFormExtension::ALLOW_ALL_ACCESS_CHECKER_ID));
+    }
+
+    public function testKeepsCustomCheckerWithoutSecurity(): void
+    {
+        $container = $this->baseContainer(allowUnauthenticated: true);
+        $container->register('app.checker', AllowAllContactFormAccessChecker::class);
+        $container->setAlias(ContactFormAccessCheckerInterface::class, 'app.checker');
+
+        (new ContactFormSecurityPass())->process($container);
+
+        self::assertSame('app.checker', (string) $container->getAlias(ContactFormAccessCheckerInterface::class));
+        self::assertFalse($container->hasDefinition(NowoContactFormExtension::ALLOW_ALL_ACCESS_CHECKER_ID));
+    }
+
+    private function registerDefaultChecker(ContainerBuilder $container): void
+    {
+        $container->register(NowoContactFormExtension::DEFAULT_ACCESS_CHECKER_ID, ConfigurableContactFormAccessChecker::class);
+        $container->setAlias(ContactFormAccessCheckerInterface::class, NowoContactFormExtension::DEFAULT_ACCESS_CHECKER_ID);
     }
 
     /**

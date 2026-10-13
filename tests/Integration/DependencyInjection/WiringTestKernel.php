@@ -7,6 +7,7 @@ namespace Nowo\ContactFormBundle\Tests\Integration\DependencyInjection;
 use Doctrine\Bundle\DoctrineBundle\DoctrineBundle;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\NowoContactFormBundle;
+use Nowo\ContactFormBundle\Security\ContactFormAccessCheckerInterface;
 use Nowo\ContactFormBundle\Service\ContactFormSubmissionRateLimiter;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
 use Nowo\FormKitBundle\NowoFormKitBundle;
@@ -97,6 +98,7 @@ final class WiringTestKernel extends Kernel
                     }
                 }
                 $container->getAlias(ContactSubmissionNotifierInterface::class)->setPublic(true);
+                $container->getAlias(ContactFormAccessCheckerInterface::class)->setPublic(true);
             }
         }, PassConfig::TYPE_BEFORE_REMOVING);
     }
