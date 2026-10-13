@@ -13,6 +13,7 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
+use Symfony\Component\DependencyInjection\Reference;
 
 #[CoversClass(ContactFormSecurityPass::class)]
 final class ContactFormSecurityPassTest extends TestCase
@@ -24,11 +25,17 @@ final class ContactFormSecurityPassTest extends TestCase
         self::assertFalse($container->hasDefinition(ContactFormAdminAccessSubscriber::class));
     }
 
-    public function testNoopWhenWebUiDisabled(): void
+    public function testRegistersNotFoundSubscriberWhenWebUiDisabled(): void
     {
-        $container = $this->baseContainer(enabled: false);
+        // Routes may still be imported: the subscriber must 404 admin routes (no security required).
+        $container = $this->baseContainer(enabled: false, allowUnauthenticated: false);
         (new ContactFormSecurityPass())->process($container);
-        self::assertFalse($container->hasDefinition(ContactFormAdminAccessSubscriber::class));
+
+        self::assertTrue($container->hasDefinition(ContactFormAdminAccessSubscriber::class));
+        $definition = $container->getDefinition(ContactFormAdminAccessSubscriber::class);
+        self::assertFalse($definition->getArgument('$webUiEnabled'));
+        self::assertNull($definition->getArgument('$accessChecker'));
+        self::assertTrue($definition->hasTag('kernel.event_subscriber'));
     }
 
     public function testFailsWithoutSecurityWhenNotAllowUnauthenticated(): void
@@ -43,7 +50,11 @@ final class ContactFormSecurityPassTest extends TestCase
     {
         $container = $this->baseContainer(allowUnauthenticated: true);
         (new ContactFormSecurityPass())->process($container);
-        self::assertFalse($container->hasDefinition(ContactFormAdminAccessSubscriber::class));
+
+        self::assertTrue($container->hasDefinition(ContactFormAdminAccessSubscriber::class));
+        $definition = $container->getDefinition(ContactFormAdminAccessSubscriber::class);
+        self::assertTrue($definition->getArgument('$webUiEnabled'));
+        self::assertNull($definition->getArgument('$accessChecker'));
     }
 
     public function testRegistersSubscriberWhenSecurityPresent(): void
@@ -55,6 +66,10 @@ final class ContactFormSecurityPassTest extends TestCase
         (new ContactFormSecurityPass())->process($container);
 
         self::assertTrue($container->hasDefinition(ContactFormAdminAccessSubscriber::class));
+        $definition = $container->getDefinition(ContactFormAdminAccessSubscriber::class);
+        self::assertInstanceOf(Reference::class, $definition->getArgument('$accessChecker'));
+        self::assertSame(ContactFormAccessCheckerInterface::class, (string) $definition->getArgument('$accessChecker'));
+        self::assertTrue($definition->getArgument('$webUiEnabled'));
     }
 
     public function testRegistersSubscriberWhenAccessRolesEmpty(): void
@@ -76,6 +91,23 @@ final class ContactFormSecurityPassTest extends TestCase
         (new ContactFormSecurityPass())->process($container);
 
         self::assertTrue($container->hasDefinition(ContactFormAdminAccessSubscriber::class));
+    }
+
+    public function testReplacesExcludedPlaceholderLeftByResourceLoading(): void
+    {
+        // services.yaml excludes the subscriber class: Symfony registers an abstract `container.excluded` placeholder.
+        $container = $this->baseContainer(allowUnauthenticated: false);
+        $container->setDefinition('security.authorization_checker', new Definition());
+        $container->register(ContactFormAdminAccessSubscriber::class, ContactFormAdminAccessSubscriber::class)
+            ->setAbstract(true)
+            ->addTag('container.excluded');
+
+        (new ContactFormSecurityPass())->process($container);
+
+        $definition = $container->getDefinition(ContactFormAdminAccessSubscriber::class);
+        self::assertFalse($definition->isAbstract());
+        self::assertFalse($definition->hasTag('container.excluded'));
+        self::assertTrue($definition->hasTag('kernel.event_subscriber'));
     }
 
     /**

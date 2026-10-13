@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\DependencyInjection;
 
 use Doctrine\ORM\Events;
+use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier;
@@ -21,10 +22,9 @@ use Nowo\ContactFormBundle\Service\IpAnonymizer;
 use Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
 use Nowo\ContactFormBundle\Twig\ContactFormAdminTwigExtension;
-use Psr\Clock\ClockInterface;
-use Symfony\Component\Clock\NativeClock;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
@@ -164,12 +164,8 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.yaml');
 
-        if (!$container->has('clock')) {
-            $container->register('clock', NativeClock::class);
-        }
-        if (!$container->hasAlias(ClockInterface::class) && !$container->hasDefinition(ClockInterface::class)) {
-            $container->setAlias(ClockInterface::class, 'clock');
-        }
+        // The `clock` fallback and ClockInterface alias are registered by ContactFormOptionalServicesPass:
+        // load() runs on an isolated container, so FrameworkBundle's `clock` is not visible here.
 
         $container->setParameter('nowo_contact_form.client_entity_class', $config['client_entity_class']);
         $container->setParameter('nowo_contact_form.client_label_property', $config['client_label_property']);
@@ -210,13 +206,8 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
             ->setArguments([
                 '$clientEntityClass'  => $config['client_entity_class'],
                 '$clientUserAccessor' => $config['client_user_accessor'],
-                '$tokenStorage'       => null,
+                '$tokenStorage'       => new Reference('security.token_storage', ContainerInterface::NULL_ON_INVALID_REFERENCE),
             ]);
-
-        if ($container->hasDefinition('security.token_storage')) {
-            $container->getDefinition(SecurityClientResolver::class)
-                ->setArgument('$tokenStorage', new Reference('security.token_storage'));
-        }
 
         $container->setAlias(ClientResolverInterface::class, SecurityClientResolver::class);
 
@@ -305,7 +296,7 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
             ->setAutowired(false)
             ->setAutoconfigured(false)
             ->setArguments([
-                $container->has('cache.app') ? new Reference('cache.app') : null,
+                new Reference('cache.app', ContainerInterface::NULL_ON_INVALID_REFERENCE),
                 $limit,
                 $interval,
                 new Reference('clock'),
@@ -347,35 +338,22 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
             return;
         }
 
-        $notifierIds = [];
-
         if ($notifications['mailer']['enabled'] && interface_exists(MailerInterface::class)) {
-            $mailerId = $container->hasDefinition('mailer.mailer')
-                ? 'mailer.mailer'
-                : ($container->hasDefinition('mailer') ? 'mailer' : null);
-
-            if ($mailerId !== null) {
-                $container->register(MailerContactSubmissionNotifier::class)
-                    ->setAutowired(false)
-                    ->setAutoconfigured(false)
-                    ->setArguments([
-                        new Reference($mailerId),
-                        '$from'            => $notifications['mailer']['from'],
-                        '$subjectTemplate' => $notifications['mailer']['subject'],
-                    ])
-                    ->addTag('nowo_contact_form.notifier');
-
-                $notifierIds[] = MailerContactSubmissionNotifier::class;
-            }
+            // The mailer service belongs to FrameworkBundle and is invisible in load(); the compiler pass
+            // injects it (or drops this candidate and falls back to the null notifier).
+            $container->register(MailerContactSubmissionNotifier::class)
+                ->setAutowired(false)
+                ->setAutoconfigured(false)
+                ->setArguments([
+                    null,
+                    '$from'            => $notifications['mailer']['from'],
+                    '$subjectTemplate' => $notifications['mailer']['subject'],
+                ])
+                ->addTag('nowo_contact_form.notifier')
+                ->addTag(ContactFormOptionalServicesPass::MAILER_NOTIFIER_TAG);
         }
 
-        if ($notifierIds === []) {
-            $container->setAlias(ContactSubmissionNotifierInterface::class, NullContactSubmissionNotifier::class);
-
-            return;
-        }
-
-        $container->setAlias(ContactSubmissionNotifierInterface::class, $notifierIds[0]);
+        $container->setAlias(ContactSubmissionNotifierInterface::class, NullContactSubmissionNotifier::class);
     }
 
     public function getAlias(): string

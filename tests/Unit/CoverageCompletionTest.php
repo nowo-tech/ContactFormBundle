@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\Tests\Unit;
 
+use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\TwigPathsPass;
 use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
 use Nowo\ContactFormBundle\Entity\ContactForm;
@@ -399,6 +400,7 @@ final class CoverageCompletionTest extends TestCase
                 ],
             ],
         ])], $container);
+        (new ContactFormOptionalServicesPass())->process($container);
 
         $resolverDef = $container->getDefinition(SecurityClientResolver::class);
         self::assertInstanceOf(Reference::class, $resolverDef->getArgument('$tokenStorage'));
@@ -421,6 +423,7 @@ final class CoverageCompletionTest extends TestCase
                 ],
             ],
         ])], $emptyMailerContainer);
+        (new ContactFormOptionalServicesPass())->process($emptyMailerContainer);
 
         self::assertSame(
             NullContactSubmissionNotifier::class,

@@ -10,6 +10,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
@@ -45,6 +46,41 @@ final class ContactFormAdminAccessSubscriberTest extends TestCase
 
         $subscriber = new ContactFormAdminAccessSubscriber($checker);
         $subscriber->onKernelController($this->controllerEvent('nowo_contact_form_fields_index'));
+    }
+
+    public function testReturnsNotFoundOnAdminRoutesWhenWebUiDisabled(): void
+    {
+        $checker = $this->createMock(ContactFormAccessCheckerInterface::class);
+        $checker->method('canAccess')->willReturn(true);
+
+        $subscriber = new ContactFormAdminAccessSubscriber($checker, webUiEnabled: false);
+
+        $this->expectException(NotFoundHttpException::class);
+        $subscriber->onKernelController($this->controllerEvent('nowo_contact_form_submissions_index'));
+    }
+
+    public function testReturnsNotFoundWhenWebUiDisabledEvenWithoutChecker(): void
+    {
+        $subscriber = new ContactFormAdminAccessSubscriber(null, webUiEnabled: false);
+
+        $this->expectException(NotFoundHttpException::class);
+        $subscriber->onKernelController($this->controllerEvent('nowo_contact_form_admin_delete'));
+    }
+
+    public function testIgnoresPublicRoutesWhenWebUiDisabled(): void
+    {
+        $subscriber = new ContactFormAdminAccessSubscriber(null, webUiEnabled: false);
+        $subscriber->onKernelController($this->controllerEvent('nowo_contact_form_public_show'));
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function testNullCheckerSkipsAccessCheckWhenWebUiEnabled(): void
+    {
+        $subscriber = new ContactFormAdminAccessSubscriber(null);
+        $subscriber->onKernelController($this->controllerEvent('nowo_contact_form_admin_index'));
+
+        $this->addToAssertionCount(1);
     }
 
     private function controllerEvent(string $route): ControllerEvent

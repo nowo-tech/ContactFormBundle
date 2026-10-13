@@ -69,6 +69,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Security
+
+- Admin CRUD routes are now actually guarded: the admin access subscriber was never registered in real applications (the `services.yaml` exclusion left a placeholder definition that short-circuited `ContactFormSecurityPass`), so `security.access_roles` / custom access checkers were not enforced on admin routes. Keep host `access_control` on `admin_route_prefix` as defence in depth.
+- Admin CRUD routes now return 404 when `web_ui.enabled: false`, even if the bundle `routes.yaml` is imported (previously they were served with no access check).
+- Rich-text sanitizer (consent labels, rendered with `label_html`): markup nested inside an unwrapped disallowed element (e.g. `<p><img src=x onerror=alert(1)></p>`) is now sanitized too; previously it survived unchanged (XSS).
+
+### Fixed
+
+- `public_submission_rate_limit` (enabled by default) now receives `cache.app`; it was silently disabled in real applications because the extension could not see FrameworkBundle services while loading.
+- The mailer notifier (`notifications.mailer.enabled`) is registered when `mailer.mailer` / `mailer` exists (decided in a compiler pass); previously the null notifier was always used.
+- `SecurityClientResolver` now receives `security.token_storage` when SecurityBundle is installed, so submissions are linked to the authenticated client again.
+- The bundle no longer replaces FrameworkBundle's `clock` service with its own `NativeClock` (which broke `MockClock`/`Clock::set()` in tests); a fallback `clock` is only defined when the application has none.
+
 ## [1.1.3] - 2026-10-13
 
 ### Changed

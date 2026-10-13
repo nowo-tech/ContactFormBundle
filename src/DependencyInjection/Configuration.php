@@ -89,7 +89,7 @@ class Configuration implements ConfigurationInterface
                     ->children()
                         ->booleanNode('enabled')
                             ->defaultTrue()
-                            ->info('When false, admin access subscriber is not registered (routes still load; prefer security firewall).')
+                            ->info('When false, admin CRUD routes respond 404 even if the bundle routes are imported.')
                         ->end()
                         ->scalarNode('layout_template')
                             ->defaultValue('@NowoContactFormBundle/admin/layout.html.twig')

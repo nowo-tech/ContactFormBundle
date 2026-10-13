@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\Tests\Unit\DependencyInjection;
 
+use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
 use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
 use Nowo\ContactFormBundle\DependencyInjection\TablePrefixListener;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
@@ -12,13 +13,15 @@ use Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Security\AllowAllContactFormAccessChecker;
 use Nowo\ContactFormBundle\Security\ContactFormAccessCheckerInterface;
 use Nowo\ContactFormBundle\Service\ClientResolverInterface;
+use Nowo\ContactFormBundle\Service\ContactFormSubmissionRateLimiter;
 use Nowo\ContactFormBundle\Service\IpAnonymizer;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use stdClass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Extension\Extension;
+use Symfony\Component\DependencyInjection\Reference;
 
 #[CoversClass(NowoContactFormExtension::class)]
 final class NowoContactFormExtensionTest extends TestCase
@@ -137,10 +140,11 @@ final class NowoContactFormExtensionTest extends TestCase
         self::assertSame('app.notifier', (string) $container->getAlias(ContactSubmissionNotifierInterface::class));
     }
 
-    public function testLoadRegistersMailerNotifierWhenMailerAvailable(): void
+    public function testLoadRegistersMailerNotifierCandidateWithoutInspectingOtherBundles(): void
     {
+        // load() runs on an isolated container in real apps: mailer.mailer is never visible here,
+        // so the decision is deferred to ContactFormOptionalServicesPass.
         $container = new ContainerBuilder();
-        $container->register('mailer.mailer', stdClass::class);
 
         $extension = new NowoContactFormExtension();
         $extension->load([array_merge($this->baseConfig(), [
@@ -157,10 +161,32 @@ final class NowoContactFormExtensionTest extends TestCase
         ])], $container);
 
         self::assertTrue($container->hasDefinition(MailerContactSubmissionNotifier::class));
+        $definition = $container->getDefinition(MailerContactSubmissionNotifier::class);
+        self::assertTrue($definition->hasTag(ContactFormOptionalServicesPass::MAILER_NOTIFIER_TAG));
+        self::assertSame('noreply@example.com', $definition->getArgument('$from'));
         self::assertSame(
-            MailerContactSubmissionNotifier::class,
+            NullContactSubmissionNotifier::class,
             (string) $container->getAlias(ContactSubmissionNotifierInterface::class),
         );
+    }
+
+    public function testLoadUsesOptionalReferencesForServicesOfOtherBundles(): void
+    {
+        $container = new ContainerBuilder();
+        (new NowoContactFormExtension())->load([$this->baseConfig()], $container);
+
+        $cache = $container->getDefinition(ContactFormSubmissionRateLimiter::class)->getArgument(0);
+        self::assertInstanceOf(Reference::class, $cache);
+        self::assertSame('cache.app', (string) $cache);
+        self::assertSame(ContainerInterface::NULL_ON_INVALID_REFERENCE, $cache->getInvalidBehavior());
+
+        $tokenStorage = $container->getDefinition(SecurityClientResolver::class)->getArgument('$tokenStorage');
+        self::assertInstanceOf(Reference::class, $tokenStorage);
+        self::assertSame('security.token_storage', (string) $tokenStorage);
+        self::assertSame(ContainerInterface::NULL_ON_INVALID_REFERENCE, $tokenStorage->getInvalidBehavior());
+
+        // The clock fallback is left to the compiler pass so FrameworkBundle's `clock` is never replaced.
+        self::assertFalse($container->hasDefinition('clock'));
     }
 
     public function testGetAlias(): void

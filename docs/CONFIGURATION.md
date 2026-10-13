@@ -16,7 +16,7 @@ Extension alias: `nowo_contact_form`.
 | `notifications.mailer.from` | `noreply@example.com` | Mailer sender |
 | `notifications.mailer.subject` | `New contact submission: {form}` | Mailer subject template |
 | `admin_route_prefix` | `/admin/contact-forms` | URL prefix for bundle admin CRUD routes (host `access_control`) |
-| `web_ui.enabled` | `true` | Registers admin access enforcement when security is configured |
+| `web_ui.enabled` | `true` | When `false`, admin CRUD routes respond 404 even if the bundle routes are imported; when `true`, admin routes are guarded by the access checker |
 | `web_ui.layout_template` | `@NowoContactFormBundle/admin/layout.html.twig` | Root Twig layout (global `nowo_contact_form_layout_template`) extended by `admin/base.html.twig`. Set to your app layout or a one-file bridge |
 | `web_ui.css_framework` | `bootstrap5` | Host CSS stack hint: `bootstrap5`, `bootstrap4`, `bootstrap`, `tailwind`, `foundation`, `tabler`, `custom`, `none` |
 | `web_ui.icon_set` | `bootstrap-icons` | Icon hint: `bootstrap-icons`, `tabler-icons`, `ux_icon`, `svg_inline`, `none` |
@@ -109,7 +109,7 @@ security:
 
 ## Public submission rate limiting
 
-When `public_submission_rate_limit.enabled` is `true` and the app provides `cache.app`, submissions are limited per client IP and form slug. Exceeding the limit returns HTTP 429. Set `enabled: false` or `limit: 0` to disable.
+When `public_submission_rate_limit.enabled` is `true` (default) and the app provides `cache.app` (FrameworkBundle always does), submissions are limited per client IP and form slug. Exceeding the limit returns HTTP 429. Set `enabled: false` or `limit: 0` to disable.
 
 ## Client linking (public submissions)
 

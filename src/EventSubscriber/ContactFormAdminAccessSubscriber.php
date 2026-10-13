@@ -7,11 +7,14 @@ namespace Nowo\ContactFormBundle\EventSubscriber;
 use Nowo\ContactFormBundle\Security\ContactFormAccessCheckerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\ControllerEvent;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
- * Enforces ContactFormAccessCheckerInterface on admin CRUD routes.
+ * Guards admin CRUD routes: 404 when the web UI is disabled, otherwise enforces ContactFormAccessCheckerInterface.
+ *
+ * A null access checker means security.allow_unauthenticated is true (dev/demo): no access check is applied.
  */
 final readonly class ContactFormAdminAccessSubscriber implements EventSubscriberInterface
 {
@@ -22,7 +25,8 @@ final readonly class ContactFormAdminAccessSubscriber implements EventSubscriber
     ];
 
     public function __construct(
-        private ContactFormAccessCheckerInterface $accessChecker,
+        private ?ContactFormAccessCheckerInterface $accessChecker,
+        private bool $webUiEnabled = true,
     ) {
     }
 
@@ -40,7 +44,11 @@ final readonly class ContactFormAdminAccessSubscriber implements EventSubscriber
             return;
         }
 
-        if (!$this->accessChecker->canAccess()) {
+        if (!$this->webUiEnabled) {
+            throw new NotFoundHttpException('Contact Form admin web UI is disabled.');
+        }
+
+        if ($this->accessChecker instanceof ContactFormAccessCheckerInterface && !$this->accessChecker->canAccess()) {
             throw new AccessDeniedException('Contact Form admin requires an authorized user.');
         }
     }
