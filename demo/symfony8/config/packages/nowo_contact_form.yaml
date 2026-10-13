@@ -7,6 +7,9 @@ nowo_contact_form:
         table_prefix: ''
     file_upload:
         service: App\Service\DemoContactFormFileUploadHandler
+        # Since 1.3.0 file fields are validated by default (5M, documents/images MIME allow-list).
+        # Per field: options.max_size / options.mime_types. null / [] restore the unlimited behaviour.
+        max_size: 5M
     notifications:
         enabled: true
         service: App\Notification\CompositeContactSubmissionNotifier
