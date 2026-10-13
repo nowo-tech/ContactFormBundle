@@ -6,6 +6,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 
 - [From 1.0.21 to 1.0.22](#from-1021-to-1022)
 - [From 1.0.20 to 1.0.21](#from-1020-to-1021)
+- [To 1.3.0](#to-130)
 - [To 1.2.0](#to-120)
 - [To 1.1.3](#to-113)
 - [To 1.1.2](#to-112)
@@ -37,6 +38,14 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## To 1.3.0
+
+From **1.2.0** — security - file upload size/type limits by default, access checker wired with an optional authorization checker.
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
 
 - **Behaviour change (file fields):** uploads are now validated with a `File` constraint — max `5M` and a MIME allow-list (PDF, text, Word/ODT, JPEG/PNG/GIF/WebP) by default. Forms accepting other types (e.g. ZIP, spreadsheets) or larger files must set `nowo_contact_form.file_upload.max_size` / `mime_types` (`null` / `[]` restore the previous unlimited behaviour) or override per field via `options.max_size` / `options.mime_types`.
 - With `security.allow_unauthenticated: true` **and** SecurityBundle installed, `ContactFormAccessCheckerInterface` is now the role-based checker (it was allow-all). The bundle's admin subscriber still skips the check in that mode; only host code injecting the interface is affected.
