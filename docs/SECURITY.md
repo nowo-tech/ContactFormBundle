@@ -43,6 +43,7 @@ The bundle ships a **default admin access checker** (`security.access_roles`, de
 | Client IP | HTTP request | Stored as SHA-256 hash with configurable salt (not raw IP). |
 | Authenticated user / client | Optional `SecurityClientResolver` | Links submission to host client entity when configured. |
 | Admin CRUD payloads | Admin forms | Create/update form definitions, fields, translations. |
+| Uploaded files | Public form `file` fields | Validated by a `File` constraint (default max `5M`, document/image MIME allow-list; SVG/HTML excluded) before reaching the host `file_upload.service`. |
 | Notification recipients | Form `notification_email` or config | Used by mailer/custom notifiers. |
 
 ## Threats and mitigations
@@ -55,7 +56,8 @@ The bundle ships a **default admin access checker** (`security.access_roles`, de
 ### Spam and abuse on public forms
 
 - **Risk**: Automated submissions, flooding, or storage exhaustion.
-- **Mitigation**: When CSRF is enabled in the host application (`framework.form.csrf_protection`), public forms are protected. Add rate limiting (`public_submission_rate_limit` in bundle config), honeypot, or CAPTCHA for abuse. Disable unused forms (`enabled: false`).
+- **Mitigation**: When CSRF is enabled in the host application (`framework.form.csrf_protection`), public forms are protected. Per-IP rate limiting (`public_submission_rate_limit`) is enabled by default (HTTP 429); add a honeypot or CAPTCHA for abuse. Disable unused forms (`enabled: false`).
+- **Uploads**: file fields are limited by `file_upload.max_size` / `file_upload.mime_types` (overridable per field). Keep the defaults strict; never allow `image/svg+xml` or `text/html` when uploaded files are served back to browsers.
 
 ### Personal data (PII) storage
 
@@ -75,6 +77,7 @@ The bundle ships a **default admin access checker** (`security.access_roles`, de
 
 - **Risk**: User-submitted values rendered in admin templates.
 - **Mitigation**: Twig auto-escapes by default. Do not mark submission values as `|raw` in overrides unless sanitized.
+- **Consent labels** (rendered with `label_html`) go through an allow-list rich-text sanitizer, including markup nested inside unwrapped disallowed elements (fixed in 1.2.0).
 
 ### Notification content leakage
 

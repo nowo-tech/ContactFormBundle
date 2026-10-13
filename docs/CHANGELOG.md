@@ -40,6 +40,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- `docs/SECURITY.md`: documents the file-upload limits (1.3.0), the default-on submission rate limit and the nested rich-text sanitizing fix (1.2.0).
+
 ## [1.3.0] - 2026-10-13
 
 ### Security
