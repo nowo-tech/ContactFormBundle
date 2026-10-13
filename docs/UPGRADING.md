@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.3.1](#to-131)
 - [To 1.3.0](#to-130)
 - [To 1.2.0](#to-120)
 - [To 1.1.3](#to-113)
@@ -45,6 +46,16 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## To 1.3.1
+
+From **1.3.0** — SECURITY.md covers upload limits, default rate limit and rich-text sanitizing.
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
+
+- No breaking changes. No application upgrade steps.
 
 ## To 1.3.0
 
