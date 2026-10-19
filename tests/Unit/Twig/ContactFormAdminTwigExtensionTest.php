@@ -7,6 +7,7 @@ namespace Nowo\ContactFormBundle\Tests\Unit\Twig;
 use Nowo\ContactFormBundle\Twig\ContactFormAdminTwigExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
 #[CoversClass(ContactFormAdminTwigExtension::class)]
@@ -40,5 +41,17 @@ final class ContactFormAdminTwigExtensionTest extends TestCase
         $extension = new ContactFormAdminTwigExtension($params);
 
         self::assertSame(['en'], $extension->getEnabledLocales());
+    }
+
+    public function testDefaultLocaleIsTheKernelDefaultWhenEnabledElseTheFirstEnabledLocale(): void
+    {
+        $extension = new ContactFormAdminTwigExtension(new ParameterBag(['kernel.enabled_locales' => ['es', 'en'], 'kernel.default_locale' => 'es']));
+        self::assertSame('es', $extension->getDefaultLocale());
+
+        $extension = new ContactFormAdminTwigExtension(new ParameterBag(['kernel.enabled_locales' => ['es', 'en'], 'kernel.default_locale' => 'fr']));
+        self::assertSame('en', $extension->getDefaultLocale());
+
+        $extension = new ContactFormAdminTwigExtension(new ParameterBag(['kernel.enabled_locales' => ['es', 'de']]));
+        self::assertSame('de', $extension->getDefaultLocale());
     }
 }

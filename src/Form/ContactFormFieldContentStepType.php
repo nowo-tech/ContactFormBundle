@@ -57,6 +57,7 @@ class ContactFormFieldContentStepType extends AbstractType
             'label'         => false,
             'entry_options' => [
                 'label'               => false,
+                'error_bubbling'      => false,
                 'hide_locale'         => true,
                 'show_select_options' => false,
                 'label_prefix'        => $prefix . 'translation.',

@@ -48,6 +48,31 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 
 ## Unreleased
 
+From **1.3.2**:
+
+```bash
+composer update nowo-tech/contact-form-bundle nowo-tech/form-kit-bundle nowo-tech/ui-kit-bundle -W
+```
+
+Requires **FormKit ^2.13** and **UiKit ^2.5.1** (UiKit 1.x dropped).
+
+What hosts may notice:
+
+- **Bootstrap JS removed:** the bundle layout no longer loads `bootstrap.bundle.min.js` from the CDN. If your own
+  admin pages relied on it being there (dropdowns, collapses, modals), load it from your layout. The Bootstrap CSS link
+  is unchanged.
+- **Translation tabs:** `admin/form/_translation_tabs.html.twig` and `admin/field/_translation_tabs.html.twig` keep
+  their paths and the `form` variable but render FormKit / UiKit locale tabs. Overrides that copy the Bootstrap markup
+  must be re-copied (see [TEMPLATES](TEMPLATES.md)). The tabs need UiKit's `nowo-ui-tabs.js` (loaded by
+  `admin/base.html.twig`); a custom `nowo_ui_scripts` block must include `{{ include(nowo_ui_partial('scripts')) }}`.
+- **Changed DOM ids / classes:** `#form-translation-tabs` / `#form-translation-tab-<locale>` /
+  `#form-translation-pane-<locale>` → root `#form-translation`, buttons `#tab-form-translation-<locale>`, panels
+  `#tab-form-translation-<locale>-panel` (field wizard: `field-translation`). `data-bs-toggle="tab"`, `.tab-pane`,
+  `.tab-content` are gone.
+- **Order:** the default locale comes first (was alphabetical).
+- **Locale menu:** with 3+ admin locales the switcher is a `<details>` element (`#admin-locale-dropdown` is its
+  `<summary>`), not a Bootstrap dropdown.
+
 ## To 1.3.2
 
 From **1.3.1**:

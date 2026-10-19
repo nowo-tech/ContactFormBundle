@@ -9,7 +9,9 @@ use Twig\Extension\AbstractExtension;
 use Twig\Extension\GlobalsInterface;
 use Twig\TwigFunction;
 
+use function in_array;
 use function is_array;
+use function is_string;
 
 /**
  * Exposes admin helpers and Web UI globals to Twig templates.
@@ -34,6 +36,7 @@ final class ContactFormAdminTwigExtension extends AbstractExtension implements G
     {
         return [
             new TwigFunction('contact_form_admin_locales', $this->getEnabledLocales(...)),
+            new TwigFunction('contact_form_admin_default_locale', $this->getDefaultLocale(...)),
         ];
     }
 
@@ -62,5 +65,16 @@ final class ContactFormAdminTwigExtension extends AbstractExtension implements G
         sort($locales);
 
         return $locales;
+    }
+
+    /**
+     * Default content locale for the translation tabs: kernel.default_locale when enabled, else the first enabled one.
+     */
+    public function getDefaultLocale(): string
+    {
+        $locales = $this->getEnabledLocales();
+        $default = $this->parameterBag->has('kernel.default_locale') ? $this->parameterBag->get('kernel.default_locale') : null;
+
+        return is_string($default) && in_array($default, $locales, true) ? $default : $locales[0];
     }
 }

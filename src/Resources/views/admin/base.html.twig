@@ -21,6 +21,8 @@
 {% block javascripts %}
     {{ parent() }}
     {% block nowo_ui_scripts %}
+        {# UiKit runtimes (tabs: translation tabs keyboard / invalid / change event). #}
+        {{ include(nowo_ui_partial('scripts')) }}
         {% set _csp_nonce = app.request is defined and app.request ? app.request.attributes.get('csp_nonce')|default('') : '' %}
         <script{% if _csp_nonce %} nonce="{{ _csp_nonce }}"{% endif %}>
             document.getElementById('admin-locale-switch')?.addEventListener('change', function () {

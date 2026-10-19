@@ -26,18 +26,19 @@
         </span>
     </div>
 {% elseif locales|length > 1 %}
-    <div class="dropdown">
-        <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="admin-locale-dropdown" data-bs-toggle="dropdown" aria-expanded="false">
+    {# Native <details> menu: no Bootstrap JS. #}
+    <details class="dropdown nowo-contact-form-locale-menu">
+        <summary class="btn btn-sm btn-outline-light dropdown-toggle" id="admin-locale-dropdown">
             {{ ('nowo_contact_form.admin.locales.' ~ currentLocale)|trans({}, 'NowoContactFormBundle') }}
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="admin-locale-dropdown">
+        </summary>
+        <ul class="dropdown-menu dropdown-menu-end show" data-bs-popper="static" aria-labelledby="admin-locale-dropdown">
             {% for locale in locales %}
                 <li>
-                    <a class="dropdown-item {{ currentLocale == locale ? 'active' : '' }}" href="{{ path('nowo_contact_form_admin_switch_locale', { locale: locale }) }}">
+                    <a class="dropdown-item {{ currentLocale == locale ? 'active' : '' }}" href="{{ path('nowo_contact_form_admin_switch_locale', { locale: locale }) }}"{% if currentLocale == locale %} aria-current="true"{% endif %}>
                         {{ ('nowo_contact_form.admin.locales.' ~ locale)|trans({}, 'NowoContactFormBundle') }}
                     </a>
                 </li>
             {% endfor %}
         </ul>
-    </div>
+    </details>
 {% endif %}

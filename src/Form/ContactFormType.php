@@ -67,6 +67,7 @@ class ContactFormType extends AbstractType
                 'label'         => false,
                 'entry_options' => [
                     'label'              => false,
+                    'error_bubbling'     => false,
                     'hide_locale'        => true,
                     'label_prefix'       => $options['label_prefix'] . 'translation.',
                     'translation_domain' => $options['translation_domain'],

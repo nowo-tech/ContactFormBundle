@@ -42,6 +42,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Translation tabs** (contact form edit and field wizard content step) render through FormKit 2.13 `locale_tabs`
+  (mode `entries`) and UiKit 2.5's `locale_tabs` partial instead of Bootstrap tabs: the default locale
+  (`kernel.default_locale` when enabled) listed first and marked `★`, every locale marked `*` (title / label required),
+  invalid tabs marked `!` and opened first, `aria-invalid` on invalid widgets, the locale child a hidden input,
+  WAI-ARIA keyboard navigation, stacked fieldsets without JavaScript, theme slots `tabs` / `tab` / `tab_active` /
+  `tab_panel`. Tabs were sorted alphabetically before. Translation entries use `error_bubbling: false`.
+- `admin/layout.html.twig` no longer loads the Bootstrap JS bundle from the CDN; the admin locale menu (3+ locales) is
+  a native `<details>` menu, and `admin/base.html.twig` loads the UiKit runtimes through UiKit's `scripts` partial.
+- New Twig function `contact_form_admin_default_locale()`.
+- Requires `nowo-tech/form-kit-bundle ^2.13` and `nowo-tech/ui-kit-bundle ^2.5.1` (UiKit 1.x is no longer supported).
+
 ## [1.3.2] - 2026-10-18
 
 Allows nowo-tech/ui-kit-bundle 2.x (^1.4 || ^2.2) so hosts can move to UiKit 2.2. See [UPGRADING](UPGRADING.md#to-132).
