@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.4.0] - 2026-10-19](#140---2026-10-19)
 - [[1.3.2] - 2026-10-18](#132---2026-10-18)
 - [[1.3.1] - 2026-10-13](#131---2026-10-13)
 - [[1.3.0] - 2026-10-13](#130---2026-10-13)
@@ -41,6 +42,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [[1.0.0] - 2026-07-13](#100---2026-07-13)
 
 ## [Unreleased]
+
+## [1.4.0] - 2026-10-19
+
+Translation tabs use FormKit 2.13 locale_tabs through the UiKit 2.5 partial (default locale first, required and error markers) and the admin layout drops the Bootstrap CDN script; requires FormKit ^2.13 and UiKit ^2.5.1. See [UPGRADING](UPGRADING.md#to-140).
 
 ### Changed
 
@@ -146,6 +151,7 @@ Allows nowo-tech/ui-kit-bundle 2.x (^1.4 || ^2.2) so hosts can move to UiKit 2.2
 
 - **Worker safety (Igor):** justified `// @igor-ignore` annotations and/or `ResetInterface` / request-scoped fixes so `make igor` passes on package `src/`.
 
+[1.4.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.4.0
 [1.3.2]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.3.2
 [1.3.1]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.3.1
 [1.3.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.3.0
