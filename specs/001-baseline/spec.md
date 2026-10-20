@@ -46,6 +46,8 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 - **FR-BUNDLE-001**: `NowoContactFormBundle` alias `nowo_contact_form`.
 - **FR-CFG-001**: `Configuration` — admin, public routes, retention, rate limit, notifications, phone widgets.
 - **FR-CFG-002**: `NowoContactFormExtension`, `TwigPathsPass`.
+- **FR-CFG-003**: `ContactFormOptionalServicesPass` wires services that depend on other bundles (clock, mailer) on the merged container.
+- **FR-CFG-004**: `TablePrefixListener` prepends `doctrine.table_prefix` to the bundle entity tables.
 - **FR-SEC-001**: Admin access checker interface + configurable/allow-all implementations; `ContactFormSecurityPass`; `ContactFormAdminAccessSubscriber` enforces roles on admin CRUD (demo may use allow-all).
 
 ### Entities & repositories
@@ -106,7 +108,7 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 
 ## Success Criteria
 
-- **SC-001**: **82/82** files mapped.
+- **SC-001**: **94/94** files under `src/` mapped in [`code-inventory.md`](code-inventory.md) (audited 2026-10-20).
 - **SC-002**: Config matches `docs/CONFIGURATION.md`.
 - **SC-003**: QA/CI green.
 

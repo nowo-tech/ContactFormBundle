@@ -9,6 +9,17 @@
 | **Verdict** | ✅ **Viable under scenario B** — bundle services are stateless; a closed EntityManager is reset on bundle routes; public submissions are detached after processing; public reads refresh forms/fields/translations; repositories always resolve the current manager after `resetManager()` |
 | Remediation (2026-09-23 / 2026-09-24) | W-01 resolved (`ContactFormEntityManagerResolver`, `ContactFormEntityManagerSubscriber`, `ContactSubmissionProcessor`, `HINT_REFRESH` on public reads, `WorkerSafeServiceEntityRepository`); W-02 accepted. Regression tests: `ContactFormWorkerModeTest` (consecutive requests with `services_resetter` skipped) plus unit tests for resolver, subscriber, processor, and worker-safe repositories |
 
+## Table of contents
+
+- [Execution model assumed](#execution-model-assumed)
+- [Summary](#summary)
+- [Services reviewed](#services-reviewed)
+- [Findings](#findings)
+  - [W-01 — Doctrine EntityManager state is only cleaned by DoctrineBundle's reset (Medium)](#w-01--doctrine-entitymanager-state-is-only-cleaned-by-doctrinebundles-reset-medium)
+  - [W-02 — Submission e-mail is sent synchronously (Low)](#w-02--submission-e-mail-is-sent-synchronously-low)
+- [Usage recommendations in worker mode](#usage-recommendations-in-worker-mode)
+- [Re-audit triggers](#re-audit-triggers)
+
 ## Execution model assumed
 
 FrankenPHP worker mode boots the Symfony kernel once per worker and serves many requests with the same container. This audit assumes the **strict** variant: the kernel is **not** rebooted between requests, so every shared service, static property and PHP global survives from one request to the next. Two scenarios are evaluated:

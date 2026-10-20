@@ -10,6 +10,13 @@ The repository includes an **optional Symfony 8 demo app** under `demo/symfony8`
 
 See [`demo/README.md`](../demo/README.md) for quick start and aggregate `make` targets.
 
+## Table of contents
+
+- [Demo pages](#demo-pages)
+- [Worker mode / `FRANKENPHP_MODE`](#worker-mode--frankenphp_mode)
+- [Root Docker vs demo Docker](#root-docker-vs-demo-docker)
+- [Conventions (Nowo bundles)](#conventions-nowo-bundles)
+
 ## Demo pages
 
 The demo homepage links to:

@@ -2,7 +2,7 @@
 
 **Baseline spec**: [`spec.md`](spec.md)  
 **Package**: `nowo-tech/contact-form-bundle`  
-**Last audited**: 2026-07-28
+**Last audited**: 2026-10-20
 
 ## Symfony config
 
@@ -21,6 +21,8 @@
 | `DependencyInjection/NowoContactFormExtension.php` | DI extension | FR-CFG-002 |
 | `DependencyInjection/Compiler/TwigPathsPass.php` | Twig paths | FR-TWIG-001 |
 | `DependencyInjection/Compiler/ContactFormSecurityPass.php` | Security wiring | FR-SEC-001 |
+| `DependencyInjection/Compiler/ContactFormOptionalServicesPass.php` | Optional clock / mailer wiring on the merged container | FR-CFG-003 |
+| `DependencyInjection/TablePrefixListener.php` | Doctrine `table_prefix` for bundle entity tables | FR-CFG-004 |
 
 ## Security
 
@@ -181,19 +183,21 @@
 | Category | Files | Mapped |
 | --- | ---: | ---: |
 | Symfony config | 3 | 3 |
-| Bundle & DI | 5 | 5 |
+| Bundle & DI | 7 | 7 |
 | Security | 3 | 3 |
 | Entities | 6 | 6 |
-| Repositories | 6 | 6 |
-| Enums & events | 5 | 5 |
+| Repositories | 7 | 7 |
+| Enums & events | 6 | 6 |
 | Controllers | 5 | 5 |
 | Forms | 10 | 10 |
-| Services | 17 | 17 |
+| Services | 18 | 18 |
 | Notifications | 4 | 4 |
 | Phone | 1 | 1 |
 | CLI | 1 | 1 |
 | Twig PHP | 1 | 1 |
 | Translations | 7 | 7 |
-| Twig admin | 11 | 11 |
+| Twig admin | 12 | 12 |
 | Twig public | 3 | 3 |
-| **Total production sources** | **88** | **88** |
+| **Total production sources** | **94** | **94** |
+
+Audit command: `git ls-files src | wc -l` → 94.

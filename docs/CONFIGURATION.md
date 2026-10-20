@@ -47,6 +47,7 @@ Extension alias: `nowo_contact_form`.
 - [File upload limits](#file-upload-limits)
 - [Client linking (public submissions)](#client-linking-public-submissions)
 - [GDPR retention cleanup](#gdpr-retention-cleanup)
+- [FormKit profile (`contact_form`)](#formkit-profile-contact_form)
 - [Notifications without symfony/mailer](#notifications-without-symfonymailer)
 
 ## Doctrine table prefix

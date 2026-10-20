@@ -1,4 +1,4 @@
-name: contact-form-demo-symfony8
+name: contact-form-bundle-demo-symfony-8
 
 services:
   php:

@@ -43,6 +43,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Documentation: wave-1 REQ compliance — canonical issue templates, README documentation list order (CI/PSR/Coverage under Additional documentation), CONTRIBUTING Cursor Agent queue settings (REQ-IDE-006), tables of contents on long docs, demo compose project name `contact-form-bundle-demo-symfony-8`, Spec Kit inventory refresh (94/94).
+
 ## [1.4.0] - 2026-10-19
 
 Translation tabs use FormKit 2.13 locale_tabs through the UiKit 2.5 partial (default locale first, required and error markers) and the admin layout drops the Bootstrap CDN script; requires FormKit ^2.13 and UiKit ^2.5.1. See [UPGRADING](UPGRADING.md#to-140).

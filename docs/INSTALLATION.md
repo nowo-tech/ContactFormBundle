@@ -10,6 +10,7 @@
 - [Database](#database)
 - [Secure the admin UI](#secure-the-admin-ui)
 - [GDPR cleanup](#gdpr-cleanup)
+- [Twig Extra Bundle (REQ-TWIG-004)](#twig-extra-bundle-req-twig-004)
 
 ## Requirements
 
