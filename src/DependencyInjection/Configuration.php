@@ -12,6 +12,8 @@ use function is_scalar;
 
 /**
  * Defines the configuration tree for the contact form bundle.
+ *
+ * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
  */
 class Configuration implements ConfigurationInterface
 {

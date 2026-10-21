@@ -16,6 +16,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  * Admin form type for contact form definitions.
  *
  * @extends AbstractType<ContactForm>
+ *
+ * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
  */
 #[FormKitConfig('contact_form')]
 class ContactFormType extends AbstractType

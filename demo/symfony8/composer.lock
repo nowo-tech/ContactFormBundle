@@ -1122,7 +1122,7 @@
             "dist": {
                 "type": "path",
                 "url": "/var/contact-form-bundle",
-                "reference": "4d0b37a0099f154851f4aab2609c2820d8ffca1b"
+                "reference": "48e751b0df36135de901f52630b63f80eb0b0b0b"
             },
             "require": {
                 "doctrine/doctrine-bundle": "^2.13 || ^3.0",
@@ -1197,7 +1197,7 @@
                     "@php vendor/bin/phpunit --color=always"
                 ],
                 "test-coverage": [
-                    "@php vendor/bin/phpunit --color=always --coverage-text=coverage-output.txt --coverage-clover coverage.xml --coverage-html coverage"
+                    "@php vendor/bin/phpunit --colors=always --coverage-text --coverage-clover coverage.xml --coverage-html coverage"
                 ],
                 "coverage-check": [
                     "phpunit --colors=always --coverage-text=coverage-output.txt --coverage-clover coverage.xml && sh .scripts/coverage-fail-under.sh coverage-output.txt 99"

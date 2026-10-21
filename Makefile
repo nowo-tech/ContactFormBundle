@@ -1,5 +1,5 @@
 # Contact Form Bundle - Development
-.PHONY: help up down down-dev build shell install test test-coverage coverage-check cs-check cs-fix qa clean ensure-up rector rector-dry phpstan igor release-check release-check-demos composer-sync update validate validate-translations check-no-cursor-coauthor check-open-prs strip-cursor-coauthor-from-history check-twig-extra
+.PHONY: help up down down-dev build shell install test test-coverage coverage-check cs-check cs-fix qa clean ensure-up rector rector-dry phpstan igor release-check release-check-demos composer-sync update validate validate-translations check-no-cursor-coauthor check-open-prs strip-cursor-coauthor-from-history check-twig-extra check-no-raw-html-form demo-smoke assets
 
 COMPOSE_FILE ?= docker-compose.yml
 # Prefer Compose V2 plugin (GitHub Actions / modern Docker Desktop); fall back to docker-compose V1 (REQ-MAKE-010).
@@ -10,21 +10,41 @@ SERVICE_PHP ?= php
 help:
 	@echo "Contact Form Bundle - Development Commands"
 	@echo ""
-	@echo "  up              Start Docker container"
-	@echo "  down            Stop Docker container"
-	@echo "  down-dev        Stop dev container (alias for down)"
-	@echo "  test            Run PHPUnit tests"
-	@echo "  test-coverage   Run tests with code coverage"
-	@echo "  coverage-check  Run tests and enforce 99% line coverage"
-	@echo "  cs-check / cs-fix  Code style"
-	@echo "  rector / rector-dry  Rector"
-	@echo "  phpstan         Static analysis"
+	@echo "Usage: make <target>"
+	@echo ""
+	@echo "Targets:"
+	@echo "  up            Start Docker container"
+	@echo "  down          Stop Docker container"
+	@echo "  down-dev      Stop dev container (alias for down)"
+	@echo "  build         Rebuild Docker image (no cache)"
+	@echo "  shell         Open shell in container"
+	@echo "  install       Install Composer dependencies"
+	@echo "  assets        No-op (no frontend build in this bundle)"
+	@echo "  test          Run PHPUnit tests"
+	@echo "  test-coverage Run tests with coverage and enforce >= 99% lines"
+	@echo "  cs-check      Check code style"
+	@echo "  cs-fix        Fix code style"
+	@echo "  rector        Apply Rector refactoring"
+	@echo "  rector-dry    Run Rector in dry-run mode"
+	@echo "  phpstan       Run PHPStan static analysis"
 	@echo "  igor          Run Igor worker-state audit (REQ-CS-008)"
-	@echo "  qa              cs-check + test"
-	@echo "  release-check   Pre-release: check-open-prs, cs-fix, cs-check, rector-dry, phpstan, coverage-check, demos"
-	@echo "  check-open-prs  Fail if unresolved open GitHub PRs remain (REQ-REL-003)"
+	@echo "  qa            Run all QA checks (cs-check + test)"
+	@echo "  release-check Pre-release pipeline (checks, CS, Rector, PHPStan, Igor, coverage, demos)"
+	@echo "  composer-sync Validate composer.json and align composer.lock (no install)"
+	@echo "  clean         Remove vendor and caches"
+	@echo "  update        Update composer.lock (composer update)"
+	@echo "  update-deps   Update bundle and demo dependencies (REQ-MAKE-008)"
+	@echo "  validate      Run composer validate --strict"
+	@echo ""
+	@echo "Bundle-specific:"
+	@echo "  coverage-check  Alias of test-coverage"
+	@echo "  validate-translations Check translation YAML syntax and key parity (REQ-MAKE-004)"
+	@echo "  check-twig-extra / check-no-raw-html-form  Twig gates (REQ-TWIG-004 / REQ-TWIG-005)"
+	@echo "  check-open-prs Fail if unresolved open GitHub PRs remain (REQ-REL-003)"
+	@echo "  demo-smoke    Boot the demo and assert a final HTTP 200 (REQ-TEST-011)"
 	@echo ""
 	@echo "Demo: make -C demo/symfony8"
+	@echo ""
 
 build:
 	$(COMPOSE) build --no-cache
@@ -60,11 +80,12 @@ test: ensure-up
 
 test-coverage: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer install --no-interaction
-	$(COMPOSE) exec $(SERVICE_PHP) composer test-coverage | tee coverage-php.txt
+	$(COMPOSE) exec -T $(SERVICE_PHP) composer test-coverage | tee coverage-php.txt
 	sh .scripts/php-coverage-percent.sh coverage-php.txt
+	sh .scripts/coverage-fail-under.sh coverage-php.txt 99
 
-coverage-check: ensure-up
-	$(COMPOSE) exec -T $(SERVICE_PHP) composer coverage-check
+# Alias kept for existing scripts/docs
+coverage-check: test-coverage
 
 cs-check: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer cs-check
@@ -82,8 +103,7 @@ phpstan: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer phpstan
 
 validate-translations: ensure-up
-	$(COMPOSE) exec -T $(SERVICE_PHP) php bin/console lint:yaml src/Resources/translations 2>/dev/null || \
-		$(COMPOSE) exec -T $(SERVICE_PHP) sh -c 'for f in src/Resources/translations/*.yaml; do php -r "yaml_parse_file(\"$$f\");" || exit 1; done'
+	$(COMPOSE) exec -T $(SERVICE_PHP) php .scripts/validate-translations.php
 
 qa: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer qa
@@ -100,7 +120,7 @@ check-twig-extra:
 # Run Igor worker-state audit (REQ-CS-008)
 igor: ensure-up
 	$(COMPOSE) exec -T php composer igor
-release-check: check-no-cursor-coauthor check-open-prs check-twig-extra ensure-up composer-sync cs-fix cs-check rector-dry phpstan igor coverage-check release-check-demos
+release-check: ensure-up check-no-cursor-coauthor check-open-prs check-twig-extra check-no-raw-html-form validate-translations composer-sync cs-fix cs-check rector-dry phpstan igor test-coverage release-check-demos
 
 release-check-demos:
 	@$(MAKE) -C demo release-check
@@ -137,3 +157,16 @@ strip-cursor-coauthor-from-history:
 
 twig-lint: ensure-up
 	@$(COMPOSE) exec -T $(SERVICE_PHP) composer twig:lint || $(COMPOSE) exec -T $(SERVICE_PHP) ./vendor/bin/twig-cs-fixer lint --config=.twig-cs-fixer.php
+
+# REQ-TWIG-005 — no raw form markup in bundle views or demo templates
+check-no-raw-html-form:
+	@chmod +x .scripts/check-no-raw-html-form.sh
+	@./.scripts/check-no-raw-html-form.sh
+
+# REQ-TEST-011 — boot the demo and assert a final HTTP 200
+demo-smoke:
+	@$(MAKE) -C demo demo-smoke
+
+# No frontend build in this bundle (REQ-MAKE-001 common block)
+assets:
+	@echo "No assets to build."

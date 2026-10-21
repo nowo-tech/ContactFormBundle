@@ -48,6 +48,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Dependencies refreshed (Composer and pnpm/npm lock files of the bundle and its demos, campaign 2026-10-19).
 - `.php-cs-fixer.dist.php`: `new ParallelConfig(2)` (REQ-CS-001).
+- Controllers, form types and `Configuration` are marked `@final` (real `final` in 2.0): they are not extension points; decorate or replace the services instead (REQ-PHP-001). See [UPGRADING](UPGRADING.md).
+- The submission delete button is rendered with a Symfony form (`form_start` / `form_end`, same `_token` id) instead of raw `<form>` / `<input>` markup (REQ-TWIG-005).
+- `make test-coverage` prints the PHPUnit text summary, publishes `coverage-php.txt` and fails under 99% lines (`coverage-check` is now an alias); `release-check` starts with `ensure-up` and runs `check-no-raw-html-form` and `validate-translations`, which now also checks key parity (REQ-MAKE-002, REQ-MAKE-004, REQ-TEST-008).
+- CI: static-analysis job (PHPStan, Rector dry run, Igor) and a `Demo smoke` workflow; `make demo-smoke` / demo `release-verify` require a final HTTP 200 (REQ-CS-006, REQ-TEST-011).
+- `docs/CONFIGURATION.md` lists the supported locales (REQ-I18N-002); README coverage figure refreshed to 99.62% (REQ-TEST-003); `make help` follows the standard block order; the co-author check accepts git worktrees.
 
 ## [1.4.1] - 2026-10-20
 

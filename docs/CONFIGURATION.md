@@ -49,6 +49,7 @@ Extension alias: `nowo_contact_form`.
 - [GDPR retention cleanup](#gdpr-retention-cleanup)
 - [FormKit profile (`contact_form`)](#formkit-profile-contact_form)
 - [Notifications without symfony/mailer](#notifications-without-symfonymailer)
+- [Supported locales](#supported-locales)
 
 ## Doctrine table prefix
 
@@ -191,3 +192,8 @@ Three integration options:
 3. **Mailer** — enable `notifications.mailer.enabled` when `symfony/mailer` is installed.
 
 Per-form override: set `notification_email` on the contact form in admin (falls back to `notifications.default_recipient`).
+
+## Supported locales
+
+The bundle ships the `NowoContactFormBundle` translation domain in **English (`en`), Spanish (`es`), French (`fr`), German (`de`), Italian (`it`), Portuguese (`pt`) and Dutch (`nl`)** (`src/Resources/translations/NowoContactFormBundle.<locale>.yaml`, identical key sets checked by `make validate-translations`). Public forms use the `{_locale}` route segment; the admin locale switch and translation tabs list `framework.enabled_locales`. Override any message from the application's `translations/NowoContactFormBundle.<locale>.yaml`.
+

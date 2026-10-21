@@ -11,6 +11,7 @@ use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Repository\ContactSubmissionRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\Form\Extension\Core\Type\FormType;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -21,6 +22,8 @@ use function max;
 
 /**
  * Admin controller for viewing and managing contact submissions.
+ *
+ * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
  */
 #[Route(
     '/{formId}/submissions',
@@ -65,9 +68,18 @@ class ContactSubmissionAdminController extends AbstractController
         $form       = $this->getContactForm($formId);
         $submission = $this->getSubmission($form, $id);
 
+        // REQ-TWIG-005: the delete button is a Symfony form; `_token` keeps the id checked by delete().
+        $deleteForm = $this->container->get('form.factory')->createNamed('', FormType::class, null, [
+            'action'          => $this->generateUrl('nowo_contact_form_submissions_delete', ['formId' => $formId, 'id' => $submission->getId()]),
+            'method'          => 'POST',
+            'csrf_field_name' => '_token',
+            'csrf_token_id'   => 'delete-submission-' . $submission->getId(),
+        ]);
+
         return $this->render('@NowoContactFormBundle/admin/submission/show.html.twig', [
             'contactForm' => $form,
             'submission'  => $submission,
+            'deleteForm'  => $deleteForm->createView(),
         ]);
     }
 

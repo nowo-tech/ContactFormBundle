@@ -16,6 +16,8 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
  * First wizard step: field identity and behavior.
  *
  * @extends AbstractType<ContactFormField>
+ *
+ * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
  */
 #[FormKitConfig('contact_form')]
 class ContactFormFieldDefinitionStepType extends AbstractType

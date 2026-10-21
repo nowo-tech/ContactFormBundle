@@ -6,7 +6,7 @@ COMPOSE ?= $(shell docker compose version >/dev/null 2>&1 && echo "docker compos
 
 DEMOS := symfony8
 
-.PHONY: help clean test-all test-coverage-all verify-all release-check release-verify
+.PHONY: help clean test-all test-coverage-all verify-all release-check release-verify demo-smoke
 .PHONY: $(foreach demo,$(DEMOS),up-$(demo) down-$(demo) restart-$(demo) build-$(demo) install-$(demo) update-bundle-$(demo) shell-$(demo) logs-$(demo) test-$(demo) test-coverage-$(demo) verify-$(demo))
 .PHONY: up down restart build install update-bundle test shell logs test-coverage verify
 
@@ -178,16 +178,19 @@ release-verify:
 		$(MAKE) update-bundle-$$demo; \
 		code=000; \
 		for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do \
-			code=$$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$$port/" 2>/dev/null || echo "000"); \
-			echo "$$code" | grep -qE '^[23]' && break; \
+			code=$$(curl -sL -o /dev/null -w "%{http_code}" "http://127.0.0.1:$$port/" 2>/dev/null || echo "000"); \
+			[ "$$code" = "200" ] && break; \
 			echo "  release-verify: waiting for $$demo... $$i/15 (HTTP $$code)"; \
 			sleep 2; \
 		done; \
 		$(MAKE) down-$$demo 2>/dev/null || true; \
-		if ! echo "$$code" | grep -qE '^[23]'; then echo "$$demo healthcheck failed (HTTP $$code)"; exit 1; fi; \
+		if [ "$$code" != "200" ]; then echo "$$demo healthcheck failed (HTTP $$code)"; exit 1; fi; \
 		echo "OK $$demo (HTTP $$code)"; \
 	done
 	@echo "Demo passed release-verify."
+
+# REQ-TEST-011 — boot + one HTTP 200 (final response after redirects)
+demo-smoke: release-verify
 
 release-check: release-verify
 	@echo "Demo passed release-check."

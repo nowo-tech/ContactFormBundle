@@ -9,6 +9,7 @@
             {{ ('nowo_contact_form.admin.locales.' ~ primaryLocale)|trans({}, 'NowoContactFormBundle') }}
         </span>
         <div class="form-check form-switch m-0">
+            {# twig-005-ignore: client-side locale toggle (JS navigates to data-switch-url); never submitted #}
             <input
                 class="form-check-input"
                 type="checkbox"

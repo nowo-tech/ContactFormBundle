@@ -23,6 +23,8 @@ use function count;
  * Wizard step for select field machine names (stable stored values).
  *
  * @extends AbstractType<ContactFormField>
+ *
+ * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
  */
 #[FormKitConfig('contact_form')]
 class ContactFormFieldSelectOptionsStepType extends AbstractType

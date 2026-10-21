@@ -50,6 +50,9 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 
 ## Unreleased
 
+- Controllers (`ContactForm*Controller`, `ContactSubmissionAdminController`), form types under `Nowo\ContactFormBundle\Form\` and `DependencyInjection\Configuration` are now `@final`: Symfony's debug class loader reports a deprecation if your application extends them. They become `final` in 2.0, so move to decoration (`#[AsDecorator]`) or replace the service/route.
+- If you override `admin/submission/show.html.twig`, the delete button now uses the `deleteForm` form view (`form_start(deleteForm)` … `form_end(deleteForm)`).
+
 ## To 1.4.1
 
 From **1.4.0**:

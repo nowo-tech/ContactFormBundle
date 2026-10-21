@@ -17,6 +17,8 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Public controller for rendering and submitting contact forms.
+ *
+ * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
  */
 #[Route(
     '/{_locale}/contact',

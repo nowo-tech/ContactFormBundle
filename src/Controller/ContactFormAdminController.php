@@ -30,6 +30,8 @@ use const PHP_URL_QUERY;
 
 /**
  * Admin CRUD controller for contact form definitions.
+ *
+ * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
  */
 #[Route('', name: 'nowo_contact_form_admin_')]
 class ContactFormAdminController extends AbstractController

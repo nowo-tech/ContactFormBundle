@@ -107,7 +107,7 @@
     },
     "scripts": {
         "test": "@php vendor/bin/phpunit --color=always",
-        "test-coverage": "@php vendor/bin/phpunit --color=always --coverage-text=coverage-output.txt --coverage-clover coverage.xml --coverage-html coverage",
+        "test-coverage": "@php vendor/bin/phpunit --colors=always --coverage-text --coverage-clover coverage.xml --coverage-html coverage",
         "coverage-check": "phpunit --colors=always --coverage-text=coverage-output.txt --coverage-clover coverage.xml && sh .scripts/coverage-fail-under.sh coverage-output.txt 99",
         "cs-check": "@php vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs-fix": "@php vendor/bin/php-cs-fixer fix",
