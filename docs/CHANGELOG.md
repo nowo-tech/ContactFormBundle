@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.5.0] - 2026-10-21](#150---2026-10-21)
 - [[1.4.1] - 2026-10-20](#141---2026-10-20)
 - [[1.4.0] - 2026-10-19](#140---2026-10-19)
 - [[1.3.2] - 2026-10-18](#132---2026-10-18)
@@ -43,6 +44,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [[1.0.0] - 2026-07-13](#100---2026-07-13)
 
 ## [Unreleased]
+
+## [1.5.0] - 2026-10-21
+
+Dependency refresh, @final controllers/forms, Symfony-form delete button, coverage gate in test-coverage, CI static analysis and demo smoke. See [UPGRADING](UPGRADING.md#to-150).
 
 ### Changed
 
@@ -170,6 +175,7 @@ Allows nowo-tech/ui-kit-bundle 2.x (^1.4 || ^2.2) so hosts can move to UiKit 2.2
 
 - **Worker safety (Igor):** justified `// @igor-ignore` annotations and/or `ResetInterface` / request-scoped fixes so `make igor` passes on package `src/`.
 
+[1.5.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.5.0
 [1.4.1]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.4.1
 [1.4.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.4.0
 [1.3.2]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.3.2
