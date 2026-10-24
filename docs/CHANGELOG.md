@@ -45,6 +45,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Twig (REQ-TWIG-003):** `admin/form/form.html.twig` and the field wizard `admin/field/form.html.twig` render their fields through the child loop (`{% for child in form %}` + `form_row(child)`) instead of one `form_row`/`form_widget` per field (translations keep the locale tabs partial); `public/_form_fields.html.twig` skips already-rendered children. Demo: `icon_demo/_background_fragment.html.twig` uses the child loop.
+
 ## [1.5.0] - 2026-10-21
 
 Dependency refresh, @final controllers/forms, Symfony-form delete button, coverage gate in test-coverage, CI static analysis and demo smoke. See [UPGRADING](UPGRADING.md#to-150).

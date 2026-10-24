@@ -14,13 +14,11 @@
     <div class="card shadow-sm">
         <div class="card-body">
             {{ form_start(form) }}
-                {{ form_row(form.name) }}
-                {{ form_row(form.slug) }}
-                {{ form_row(form.enabled) }}
-                {{ form_row(form.privacyPolicyUrl) }}
-                {{ form_row(form.retentionDays) }}
-                {{ form_row(form.notificationEmail) }}
-                {{ form_row(form.requireConsent) }}
+                {% for child in form %}
+                    {% if not child.rendered and child.vars.name != 'translations' %}
+                        {{ form_row(child) }}
+                    {% endif %}
+                {% endfor %}
 
                 {% include '@NowoContactFormBundle/admin/form/_translation_tabs.html.twig' with { form: form } only %}
 

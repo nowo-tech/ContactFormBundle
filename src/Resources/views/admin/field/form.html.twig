@@ -38,34 +38,14 @@
             {{ form_start(form) }}
                 {% for name, stepForm in form %}
                     {% if name == currentStep %}
-                        {% if name == 'definition' %}
-                            {{ form_row(stepForm.name) }}
-                            {{ form_row(stepForm.type) }}
-                            {{ form_row(stepForm.required) }}
-                            {{ form_row(stepForm.sortOrder) }}
-                        {% elseif name == 'select_options' %}
-                            {{ form_widget(stepForm.name) }}
-                            {{ form_widget(stepForm.type) }}
-                            {{ form_widget(stepForm.required) }}
-                            {{ form_widget(stepForm.sortOrder) }}
-                            {{ form_row(stepForm.optionsMachineNamesLines) }}
-                        {% elseif name == 'phone_prefixes' %}
-                            {{ form_widget(stepForm.name) }}
-                            {{ form_widget(stepForm.type) }}
-                            {{ form_widget(stepForm.required) }}
-                            {{ form_widget(stepForm.sortOrder) }}
-                            {{ form_row(stepForm.phoneWidget) }}
-                            {{ form_row(stepForm.phonePrefixesLines) }}
-                            {{ form_row(stepForm.phoneDefaultCountry) }}
-                            {{ form_row(stepForm.phoneAllowedCountriesLines) }}
-                        {% elseif name == 'content' %}
-                            {{ form_widget(stepForm.name) }}
-                            {{ form_widget(stepForm.type) }}
-                            {{ form_widget(stepForm.required) }}
-                            {{ form_widget(stepForm.sortOrder) }}
-                            {% if stepForm.translations is defined %}
-                                {% include '@NowoContactFormBundle/admin/field/_translation_tabs.html.twig' with { form: stepForm } only %}
+                        {# Current wizard step: the child loop renders its fields (preserved definition fields are HiddenType); translations use the locale tabs partial. #}
+                        {% for child in stepForm %}
+                            {% if not child.rendered and child.vars.name != 'translations' %}
+                                {{ form_row(child) }}
                             {% endif %}
+                        {% endfor %}
+                        {% if stepForm.translations is defined %}
+                            {% include '@NowoContactFormBundle/admin/field/_translation_tabs.html.twig' with { form: stepForm } only %}
                         {% endif %}
                     {% endif %}
                 {% endfor %}
