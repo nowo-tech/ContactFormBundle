@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.5.1] - 2026-10-24](#151---2026-10-24)
 - [[1.5.0] - 2026-10-21](#150---2026-10-21)
 - [[1.4.1] - 2026-10-20](#141---2026-10-20)
 - [[1.4.0] - 2026-10-19](#140---2026-10-19)
@@ -44,6 +45,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [[1.0.0] - 2026-07-13](#100---2026-07-13)
 
 ## [Unreleased]
+
+## [1.5.1] - 2026-10-24
+
+Bundle views render form bodies through the child loop (REQ-TWIG-003). See [UPGRADING](UPGRADING.md#to-151).
 
 ### Changed
 
@@ -179,6 +184,7 @@ Allows nowo-tech/ui-kit-bundle 2.x (^1.4 || ^2.2) so hosts can move to UiKit 2.2
 
 - **Worker safety (Igor):** justified `// @igor-ignore` annotations and/or `ResetInterface` / request-scoped fixes so `make igor` passes on package `src/`.
 
+[1.5.1]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.5.1
 [1.5.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.5.0
 [1.4.1]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.4.1
 [1.4.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.4.0
