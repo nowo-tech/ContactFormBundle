@@ -62,8 +62,8 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 - **CSRF required for the admin UI**: enable `framework.csrf_protection` and `framework.form.csrf_protection`
   (`symfony/security-csrf` is now a dependency), or set `web_ui.enabled: false`. The container refuses to compile
   otherwise.
-- **`security.access_roles: []`** with the default checker and **`security.allow_unauthenticated: true` in `prod`** now
-  fail the compilation: configure a role (or a `security.access_checker`), keep the demo switch out of production.
+- **`security.access_roles: []`** with the default checker and **`security.allow_unauthenticated: true` in `prod`** (or
+  in any non-debug kernel whose environment does not start with `test`) now fail the compilation: configure a role (or a `security.access_checker`), keep the demo switch out of production.
 - **`retentionDays`** must be between 0 and 3650 (`default_retention_days` 1 to 3650). Check existing forms: a negative
   value is now ignored by the cleanup (submissions kept) — set the intended number of days.
 - **Length caps** on public values (`public_field_max_length.text: 255`, `.textarea: 10000`, phone 32): raise them in

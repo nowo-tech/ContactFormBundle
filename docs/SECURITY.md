@@ -30,8 +30,8 @@ This document describes the **attack surface**, **threats**, and **controls** fo
 
 The bundle provides:
 
-- **Public contact forms** at `/{_locale}/contact/{slug}` (GET + POST; `/contact/{slug}` redirects there). CSRF on the
-  public form follows the host `framework.form.csrf_protection`.
+- **Public contact forms** at `/{_locale}/contact/{slug}` (GET / POST, form CSRF per the host
+  `framework.form.csrf_protection`; the legacy `GET /contact/{slug}` redirects there).
 - **Admin UI** under `web_ui.path_prefix` (default `/admin/contact-forms`): contact forms, fields (multi-step wizard
   over the Symfony FormFlow, state in the session), submissions, deletes behind the UiKit confirm dialog (POST +
   CSRF), and the interface-language switch `GET {prefix}/locale/{locale}`.
@@ -68,7 +68,8 @@ it; the recipe no longer ships a second `access_control` file, which Symfony ref
   using `ContactFormAccessCheckerInterface` (`security.access_roles`). An empty role list denies everyone, and the
   container refuses to compile with an empty list and the default checker (configuration mistake). Add a host
   `access_control` line for the admin prefix as defence in depth. `web_ui.enabled: false` turns the admin routes into
-  404s. `security.allow_unauthenticated` (dev / demo only) is refused in the `prod` environment.
+  404s. `security.allow_unauthenticated` (dev / demo only) is refused in the `prod` environment and in any non-debug
+  kernel whose environment does not start with `test`.
 
 ### Open redirect (admin locale switch)
 
@@ -77,7 +78,7 @@ it; the recipe no longer ships a second `access_control` file, which Symfony ref
   tabs) — CWE-601, 1.0.0 to 1.5.1.
 - **Mitigation (1.6.0)**: `Security\SafeRelativePath` — a single leading `/`, no backslash, whitespace or control
   character anywhere, and the path must stay inside `web_ui.path_prefix`; the same rule applies to the same-host
-  `Referer` fallback and to relative links in consent labels. The switch stays a `GET` (it only stores the interface
+  `Referer` fallback and to relative links in consent labels; `.` / `..` segments (also `%2e`-encoded) are refused. The switch stays a `GET` (it only stores the interface
   language in the session and never leaves the admin).
 
 ### Admin CSRF
@@ -126,11 +127,12 @@ it; the recipe no longer ships a second `access_control` file, which Symfony ref
 
 - The wizard keeps the field being edited in the session (FormFlow `SessionDataStorage`) between steps and applies it
   to the managed entity on finish; the hidden definition values are re-validated (`ContactFieldType::tryFrom`, name
-  pattern `^[a-z][a-z0-9_]*$`, reserved `gdpr_consent` / `_token`), so a tampered step is a validation error.
+  pattern `^[a-z][a-z0-9_]*$`, reserved `gdpr_consent` / `_token` — checked on the definition step and again on the
+  hidden name of every later step), so a tampered step is a validation error.
 
 ### File uploads
 
-- File fields are refused in the wizard unless `file_upload.service` is configured (the null handler discards uploads).
+- File fields are refused in the wizard unless `file_upload.service` is configured (the null handler throws, so every submission with a file would fail).
 - Your handler must never build paths from `UploadedFile::getClientOriginalName()`; generate the name
   (`guessExtension()`) and store outside the public web root.
 
@@ -177,6 +179,7 @@ Before each tagged release, maintainers confirm (tick in the release PR or tag n
 | No sensitive submission data in logs | ☐ |
 | Retention command documented for production cron | ☐ |
 | Rate limiting / spam mitigation considered for public endpoints | ☐ |
+| REQ-SEC-004 AI audit Pass (good) recorded (2026-10-27, Appendix AP) | ☑ |
 
 ## AI security audit
 
@@ -184,8 +187,9 @@ Before each tagged release, maintainers confirm (tick in the release PR or tag n
 | --- | --- |
 | Grade | **Pass (good)** |
 | Risk | **Low** |
-| Date | 2026-08-20 (re-audit; prior 2026-07-28) |
-| Method | Nowo monorepo static re-review; Flex `when@prod` + `security_nowo_contact_form.yaml` |
-| Residual | Demo `allow_unauthenticated` must stay off in production; consent HTML is sanitized on admin persist and again at public render |
+| Date | 2026-10-27 (re-audit of master c4f1bf0: Pass (conditional) / Medium → fixes PR #48 verified, released in 1.6.0) |
+| Method | Static review + PHP 8.5 / libxml 2.13 PoCs: WHATWG redirect resolution, HTML5 re-parse of sanitized labels, `Url` constraint |
+| Fixed in 1.6.0 | Open redirect CWE-601 in the admin locale switch (1.0.0–1.5.1) via `SafeRelativePath` + admin prefix (also dot segments); `http(s)`-only privacy URL; controller-class admin guard; `retentionDays` 0–3650 (0 = keep forever); value length caps + every POST rate-limited; sanitizer drops comments / PIs / CDATA; field names validated on every wizard step; upload service required for file fields; CSRF / empty roles / `allow_unauthenticated` outside dev compile errors; recipe `access_control` → post-install note |
+| Residual | Host `access_control` + a dedicated admin role; `trusted_proxies` (the rate limit keys on the client IP); honeypot / CAPTCHA for bots; upload handlers must generate file names |
 
-Recorded in the Nowo monorepo `BUNDLES_SECURITY_ANALYSIS.md`.
+Recorded in `BUNDLES_SECURITY_ANALYSIS.md` (Appendix AP).
