@@ -6,10 +6,20 @@
          cacheDirectory=".phpunit.cache"
          executionOrder="depends,defects"
          beStrictAboutOutputDuringTests="true"
-         failOnRisky="false"
+         failOnRisky="true"
+         failOnWarning="true"
+         failOnDeprecation="true"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
 >
     <php>
-        <!-- REQ-SF-005: fail on direct deprecations from this package -->
+        <!-- The UiKit page contract test renders every page per css_framework (REQ-UI-003) -->
+        <ini name="memory_limit" value="512M"/>
+        <!-- REQ-SF-005: the deprecation gate is PHPUnit's own (failOnDeprecation + ignoreSuppressionOfDeprecations +
+             ignoreIndirectDeprecations): a direct deprecation triggered from src/ (including Symfony's silenced
+             trigger_deprecation() calls) fails the run. Tests that cover a deprecated BC layer expect it with
+             #[IgnoreDeprecations] + expectUserDeprecationMessage(). The bridge setting is kept for runs that load
+             symfony/phpunit-bridge. -->
         <env name="SYMFONY_DEPRECATIONS_HELPER" value="max[direct]=0"/>
     </php>
 
@@ -22,27 +32,10 @@
         </testsuite>
     </testsuites>
 
-    <source>
+    <source ignoreIndirectDeprecations="true" ignoreSuppressionOfDeprecations="true" restrictNotices="true" restrictWarnings="true">
         <include>
             <directory suffix=".php">src</directory>
         </include>
-        <exclude>
-            <file>src/Controller/ContactFormAdminController.php</file>
-            <file>src/Controller/ContactFormFieldAdminController.php</file>
-            <file>src/Controller/ContactSubmissionAdminController.php</file>
-            <directory suffix=".php">src/Repository</directory>
-            <directory suffix=".php">src/EventSubscriber</directory>
-            <file>src/Form/ContactFormFieldContentStepType.php</file>
-            <file>src/Form/ContactFormFieldDefinitionStepType.php</file>
-            <file>src/Form/ContactFormFieldFlowType.php</file>
-            <file>src/Form/ContactFormFieldPhonePrefixesStepType.php</file>
-            <file>src/Form/ContactFormFieldSelectOptionsStepType.php</file>
-            <file>src/Form/ContactFormFieldTranslationType.php</file>
-            <file>src/Form/ContactFormFieldWizardStepTrait.php</file>
-            <file>src/Form/ContactFormTranslationType.php</file>
-            <file>src/Form/ContactFormType.php</file>
-            <file>src/Twig/ContactFormAdminTwigExtension.php</file>
-        </exclude>
     </source>
 
     <coverage>
