@@ -15,12 +15,15 @@ Extension alias: `nowo_contact_form`.
 | `notifications.mailer.enabled` | `false` | Use symfony/mailer when installed |
 | `notifications.mailer.from` | `noreply@example.com` | Mailer sender |
 | `notifications.mailer.subject` | `New contact submission: {form}` | Mailer subject template |
-| `admin_route_prefix` | `/admin/contact-forms` | URL prefix for bundle admin CRUD routes (host `access_control`) |
 | `web_ui.enabled` | `true` | When `false`, admin CRUD routes respond 404 even if the bundle routes are imported; when `true`, admin routes are guarded by the access checker |
-| `web_ui.layout_template` | `@NowoContactFormBundle/admin/layout.html.twig` | Root Twig layout (global `nowo_contact_form_layout_template`) extended by `admin/base.html.twig`. Set to your app layout or a one-file bridge |
-| `web_ui.css_framework` | `bootstrap5` | Host CSS stack hint: `bootstrap5`, `bootstrap4`, `bootstrap`, `tailwind`, `foundation`, `tabler`, `custom`, `none` |
-| `web_ui.icon_set` | `bootstrap-icons` | Icon hint: `bootstrap-icons`, `tabler-icons`, `ux_icon`, `svg_inline`, `none` |
+| `web_ui.path_prefix` | `null` (= `/admin/contact-forms`) | URL prefix of the admin routes (lock it with the host `access_control`) |
+| `web_ui.layout_template` | `null` | Layout the admin pages extend; `null` = `nowo_ui_kit.layouts.admin` (REQ-UI-003). A 1.x layout without the UiKit canonical blocks is wrapped in a deprecated bridge |
+| `web_ui.public_layout_template` | `null` | Layout of the public contact form; `null` = `nowo_ui_kit.layouts.guest` |
+| `web_ui.templates.<page>` | `{}` | Per-page template overrides (`form_index`, `form_form`, `field_index`, `field_form`, `submission_index`, `submission_show`, `public_form`); unknown ids fail the container compilation. See [Templates](TEMPLATES.md#per-page-overrides) |
 | `web_ui.list_page_size` | `20` | Page size for admin form and submission lists |
+| `admin_route_prefix` | `null` | **Deprecated since 1.6**, use `web_ui.path_prefix` (still applied when `path_prefix` is not set) |
+| `web_ui.css_framework` | `null` | **Deprecated since 1.6**, set `nowo_ui_kit.css_framework` (copied there when UiKit has none) |
+| `web_ui.icon_set` | `null` | **Deprecated since 1.6**, set `nowo_ui_kit.icon_set` (copied there when UiKit has none) |
 | `security.access_roles` | `[ROLE_ADMIN]` | Roles allowed for admin CRUD (empty disables bundle-level role checks) |
 | `security.access_checker` | `null` | Optional custom service id implementing `ContactFormAccessCheckerInterface` |
 | `security.allow_unauthenticated` | `false` | **DEV/DEMO ONLY.** Skip SecurityBundle requirement and admin access subscriber. Never enable in production |
@@ -79,17 +82,57 @@ See [Security](SECURITY.md) and [Upgrading](UPGRADING.md#101-2026-07-13).
 
 ## Admin Web UI (layout and CSS)
 
-Admin pages extend `@NowoContactFormBundle/admin/base.html.twig`, which extends `web_ui.layout_template` (Twig global `nowo_contact_form_layout_template`) and stacks `nowo_ui_styles` / `nowo_ui_scripts` with `{{ parent() }}`. Prefer pointing `layout_template` at your project layout (or a thin bridge that maps `nowo_ui_content` into your `body` block) instead of copying list/form templates. The default `admin/layout.html.twig` is a full HTML document (no `parent()`).
+The admin pages and the public contact form follow the UiKit page contract (REQ-UI-003): they extend UiKit page
+scaffolds (list, form, wizard, show) and the UiKit layouts, so the host themes them **once** for every Nowo bundle —
+layouts, CSS stack, row-action display, theme slots and tokens all live under `nowo_ui_kit`. The bundle ships no layout
+and loads no CSS framework. Page → scaffold map and data blocks: [Templates](TEMPLATES.md).
+
+```yaml
+# config/packages/nowo_ui_kit.yaml — once per application
+nowo_ui_kit:
+    css_framework: bootstrap5          # bootstrap5 | bootstrap4 | tailwind | foundation | tabler | custom | none
+    icon_set: bootstrap-icons
+    row_actions_display: icon          # icon | text | icon_text
+    layouts:
+        admin: 'layouts/admin.html.twig'   # host layout or bridge rendering the UiKit canonical blocks
+        guest: 'layouts/guest.html.twig'   # public pages (the contact form)
+```
+
+```twig
+{# templates/layouts/admin.html.twig — one-file bridge onto the project layout #}
+{% extends 'base.html.twig' %}
+{% use '@NowoUiKit/layout/_bridge.html.twig' %}
+{% block title %}{{ block('nowo_ui_bridge_title') }}{% endblock %}
+{% block stylesheets %}{{ parent() }}{{ block('nowo_ui_bridge_assets') }}{% endblock %}
+{% block body %}{{ block('nowo_ui_bridge_body') }}{% endblock %}
+{% block javascripts %}{{ parent() }}{{ include(nowo_ui_partial('scripts')) }}{{ block('nowo_ui_bridge_end') }}{% endblock %}
+```
+
+Choosing the CSS stack (no template copy needed — markup comes from UiKit theme slots):
+
+| Stack | `nowo_ui_kit` | Form theme (`twig.form_themes`) |
+| --- | --- | --- |
+| Bootstrap 5 | `css_framework: bootstrap5`, `icon_set: bootstrap-icons` | `bootstrap_5_layout.html.twig` |
+| Tailwind | `css_framework: tailwind`, `icon_set: svg_inline` | `tailwind_2_layout.html.twig` or your own |
+| Foundation | `css_framework: foundation` | `foundation_6_layout.html.twig` |
+| Own design system | `css_framework: custom` (semantic `nowo-ui-*` classes + `theme.classes` map) | your own theme |
+
+Per-bundle exceptions go under `nowo_ui_kit.theme.bundles.NowoContactFormBundle` (classes, attributes, partials,
+tokens). Bundle-specific settings stay here:
 
 ```yaml
 nowo_contact_form:
     web_ui:
-        layout_template: 'base.html.twig'
-        css_framework: bootstrap5
+        path_prefix: '/admin/contact-forms'
+        layout_template: null          # null = nowo_ui_kit.layouts.admin; or a layout of your own for these pages only
+        public_layout_template: null   # null = nowo_ui_kit.layouts.guest
         list_page_size: 20
+        # templates: { submission_show: 'admin/contact/submission.html.twig' }   # extends @!NowoContactFormBundle/...
 ```
 
-When using the project layout, load host CSS/JS in that layout. Semantic hooks use `nowo-ui-*` classes.
+The public form theme of `ContactPhoneType` (`@NowoContactFormBundle/form/contact_phone.html.twig`, applied by the page)
+wraps the prefix select and the number in `.nowo-contact-form-phone` (`role="group"`); lay them out in your CSS (e.g.
+`display: flex; gap: .5rem`).
 
 ## Admin security
 
@@ -107,7 +150,7 @@ Also lock the path in the host firewall:
 # config/packages/security.yaml
 security:
     access_control:
-        - { path: ^/admin/contact-forms, roles: ROLE_ADMIN }
+        - { path: ^/admin/contact-forms, roles: ROLE_ADMIN }   # web_ui.path_prefix
 ```
 
 `allow_unauthenticated: true` is for demos/CI only. Production must keep it `false` and require `symfony/security-bundle`.
@@ -169,8 +212,11 @@ Each form's `retention_days` defines when its submissions are eligible for delet
 
 Admin form types use `#[FormKitConfig('contact_form')]`. Public fields from
 `DynamicContactFormBuilder` use the same profile with form name `public_contact`
-(so `by_form.public_contact` overrides work). The bundle prepends a Bootstrap-oriented
-seed when the host has not defined `profiles.contact_form`. Override in the host:
+(so `by_form.public_contact` overrides work). When the host has not defined `profiles.contact_form`, the bundle
+prepends a framework-neutral seed (since 1.6): `defaults.attr.class: nowo-ui-input`, no row classes, and
+`convention_requires_translation: true` (the `{form}.{field}.placeholder` / `.help` convention keys apply only where the
+catalogue has them, so no raw keys reach the page). Framework classes come from the host form theme
+(`twig.form_themes`). Override in the host:
 
 ```yaml
 # config/packages/nowo_form_kit.yaml
@@ -195,5 +241,5 @@ Per-form override: set `notification_email` on the contact form in admin (falls 
 
 ## Supported locales
 
-The bundle ships the `NowoContactFormBundle` translation domain in **English (`en`), Spanish (`es`), French (`fr`), German (`de`), Italian (`it`), Portuguese (`pt`) and Dutch (`nl`)** (`src/Resources/translations/NowoContactFormBundle.<locale>.yaml`, identical key sets checked by `make validate-translations`). Public forms use the `{_locale}` route segment; the admin locale switch and translation tabs list `framework.enabled_locales`. Override any message from the application's `translations/NowoContactFormBundle.<locale>.yaml`.
+The bundle ships the `NowoContactFormBundle` translation domain in **English (`en`), Spanish (`es`), French (`fr`), German (`de`), Italian (`it`), Portuguese (`pt`) and Dutch (`nl`)** (`src/Resources/translations/NowoContactFormBundle.<locale>.yaml`, identical key sets checked by `make validate-translations`). Public forms use the `{_locale}` route segment; the translation tabs list `framework.enabled_locales` (`en` when none), and the interface language of the admin follows the session locale set by `nowo_contact_form_admin_switch_locale` (link it from your layout's locale switcher, see [Templates](TEMPLATES.md#admin-interface-language)). Override any message from the application's `translations/NowoContactFormBundle.<locale>.yaml`.
 

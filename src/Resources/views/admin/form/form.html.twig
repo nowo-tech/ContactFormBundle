@@ -1,36 +1,19 @@
-{% extends '@NowoContactFormBundle/admin/base.html.twig' %}
-{% import '@NowoUiKitBundle/macros/ui.html.twig' as ui %}
-{% set _css_fw = nowo_contact_form_css_framework|default('bootstrap5') %}
+{#
+  Contact form create / edit (REQ-UI-003): UiKit form scaffold. Variable: page (View\FormPage from
+  ContactFormPageFactory::formForm(): header new_title / edit_title (intro = form name on edit) with a back link to
+  the list; form = ContactFormType; submit nowo_contact_form.admin.form.save; cancel = list; on edit the Fields /
+  Submissions secondary actions and the delete zone (POST + CSRF FormView behind a Confirm)).
+  Data block filled: nowo_ui_form_body (REQ-TWIG-003 child loop, then the locale tabs of the translations).
+#}
+{% extends '@NowoUiKit/page/form.html.twig' %}
+{% trans_default_domain 'NowoContactFormBundle' %}
 
-{% block title %}{{ isNew ? 'nowo_contact_form.admin.form.new_title'|trans({}, 'NowoContactFormBundle') : 'nowo_contact_form.admin.form.edit_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
-
-{% block content %}
-    <div class="mb-4">
-        <h1 class="h2 mb-0">{{ block('title') }}</h1>
-    </div>
-
-    {% form_theme form 'bootstrap_5_layout.html.twig' %}
-
-    <div class="card shadow-sm">
-        <div class="card-body">
-            {{ form_start(form) }}
-                {% for child in form %}
-                    {% if not child.rendered and child.vars.name != 'translations' %}
-                        {{ form_row(child) }}
-                    {% endif %}
-                {% endfor %}
-
-                {% include '@NowoContactFormBundle/admin/form/_translation_tabs.html.twig' with { form: form } only %}
-
-                <div class="d-flex flex-wrap gap-2 mt-4">
-                    <button type="submit" class="{{ ui.btn('primary', null, _css_fw) }} nowo-ui-action-save">
-                        {{ 'nowo_contact_form.admin.form.save'|trans({}, 'NowoContactFormBundle') }}
-                    </button>
-                    <a href="{{ path('nowo_contact_form_admin_index') }}" class="{{ ui.btn('secondary', null, _css_fw) }} nowo-ui-action-cancel">
-                        {{ 'nowo_contact_form.admin.back'|trans({}, 'NowoContactFormBundle') }}
-                    </a>
-                </div>
-            {{ form_end(form) }}
-        </div>
-    </div>
+{% block nowo_ui_form_body %}
+    {% for child in form %}
+        {% if not child.rendered and child.vars.name != 'translations' %}
+            {{ form_row(child) }}
+        {% endif %}
+    {% endfor %}
+    {{ include('@NowoContactFormBundle/admin/form/_translation_tabs.html.twig', {form: form, bundle: page.bundle}, with_context: false) }}
+    {{ parent() }}
 {% endblock %}

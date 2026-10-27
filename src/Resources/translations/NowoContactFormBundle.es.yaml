@@ -22,6 +22,7 @@ nowo_contact_form:
       fields: Campos
       submissions: Envíos
       view: Ver
+      delete: 'Eliminar'
     locales:
       en: Inglés
       es: Español
@@ -34,6 +35,8 @@ nowo_contact_form:
       created: Formulario de contacto creado.
       updated: Formulario de contacto actualizado.
       deleted: Formulario de contacto eliminado.
+      delete_title: 'Eliminar formulario de contacto'
+      delete_confirm: '¿Eliminar este formulario de contacto? También se eliminan sus campos, traducciones y envíos.'
       empty: Todavía no hay formularios de contacto.
       columns:
         name: Nombre
@@ -78,6 +81,8 @@ nowo_contact_form:
       created: Campo creado.
       updated: Campo actualizado.
       deleted: Campo eliminado.
+      delete_title: 'Eliminar campo'
+      delete_confirm: '¿Eliminar este campo? Los envíos existentes conservan los valores ya guardados.'
       empty: No hay campos configurados.
       consent_row:
         hint: Configurado a nivel de formulario (no es un campo personalizado).
@@ -158,6 +163,7 @@ nowo_contact_form:
       value_column: Valor
       delete_confirm: ¿Seguro que quieres eliminar este envío?
       deleted: Envío eliminado.
+      delete_title: 'Eliminar envío'
       empty: Todavía no hay envíos.
       anonymous: Anónimo
       consent_at: Consentimiento registrado

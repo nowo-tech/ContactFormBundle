@@ -32,11 +32,16 @@ security:
         - { path: ^/admin/contact-forms, roles: ROLE_ADMIN }
 ```
 
-Point `web_ui.layout_template` at your project layout to embed admin pages in host chrome; pages go through `admin/base.html.twig` (see [Configuration](CONFIGURATION.md)).
+The admin pages and the public form render on the UiKit page contract: point `nowo_ui_kit.layouts.admin` /
+`.guest` at your project layout (or a one-file bridge) once and every page uses your chrome and CSS stack — no
+template copy (see [Configuration](CONFIGURATION.md#admin-web-ui-layout-and-css) and [Templates](TEMPLATES.md)).
+Deletes (forms, fields, submissions) go through the UiKit confirm dialog (POST + CSRF).
 
 ## Public form
 
-Visitors submit at `/contact/{slug}`. Authenticated users are linked to the configured client entity when applicable.
+Visitors submit at `/{_locale}/contact/{slug}` (`/contact/{slug}` redirects there). The page renders on the UiKit guest
+layout (`web_ui.public_layout_template`, null = `nowo_ui_kit.layouts.guest`); the success message is a flash shown by
+the layout. Authenticated users are linked to the configured client entity when applicable.
 
 ## Custom notification (Slack, API, etc.)
 
@@ -87,5 +92,12 @@ nowo_contact_form:
 ## Overrides
 
 - Twig templates (logical name): `@NowoContactFormBundle/...`
-- Twig overrides: `templates/bundles/NowoContactFormBundle/`
+- Twig overrides: `templates/bundles/NowoContactFormBundle/<subpath>` — an application file there **always wins**.
+- **Freeze rule:** a full-file override hides every vendor change to that `<subpath>` until you delete or merge it.
+  Prefer, in this order: `nowo_ui_kit` layouts / theme (slots, tokens, `theme.bundles.NowoContactFormBundle`) and
+  translations; then `web_ui.templates.<page>` with a thin `{% extends '@!NowoContactFormBundle/...' %}` overriding one
+  data block, or a single partial; full-file copies last.
+- **Recover upstream:** delete (or rename aside) the override, `php bin/console cache:clear`, re-apply only surgical
+  customisations; diff against `vendor/nowo-tech/contact-form-bundle/src/Resources/views/<subpath>` first.
+- Overridable `<subpath>` list, procedure and the per-page data blocks: [Templates](TEMPLATES.md#overriding-templates-req-twig-001).
 - Translations: `translations/NowoContactFormBundle.{locale}.yaml`

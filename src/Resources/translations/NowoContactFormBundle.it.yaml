@@ -22,6 +22,7 @@ nowo_contact_form:
       fields: Campi
       submissions: Invii
       view: Visualizza
+      delete: 'Elimina'
     locales:
       en: Inglese
       es: Spagnolo
@@ -34,6 +35,8 @@ nowo_contact_form:
       created: Modulo di contatto creato.
       updated: Modulo di contatto aggiornato.
       deleted: Modulo di contatto eliminato.
+      delete_title: 'Elimina modulo di contatto'
+      delete_confirm: 'Eliminare questo modulo di contatto? Vengono eliminati anche i suoi campi, le traduzioni e gli invii.'
       empty: Non ci sono ancora moduli di contatto.
       columns:
         name: Nome
@@ -78,6 +81,8 @@ nowo_contact_form:
       created: Campo creato.
       updated: Campo aggiornato.
       deleted: Campo eliminato.
+      delete_title: 'Elimina campo'
+      delete_confirm: 'Eliminare questo campo? Gli invii esistenti mantengono i valori già salvati.'
       empty: Nessun campo configurato.
       consent_row:
         hint: Configurato a livello di modulo (non è un campo personalizzato).
@@ -158,6 +163,7 @@ nowo_contact_form:
       value_column: Valore
       delete_confirm: Sei sicuro di voler eliminare questo invio?
       deleted: Invio eliminato.
+      delete_title: 'Elimina invio'
       empty: Non ci sono ancora invii.
       anonymous: Anonimo
       consent_at: Consenso registrato il

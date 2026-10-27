@@ -14,6 +14,7 @@ use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\NotBlank;
 
 /**
  * Embedded form type for contact form translations.
@@ -41,8 +42,10 @@ class ContactFormTranslationType extends AbstractType
                 'label' => $prefix . 'locale',
             ]);
             $this->addTextField('title', [
-                'label' => $prefix . 'title',
-                'help'  => $prefix . 'title_help',
+                'label'       => $prefix . 'title',
+                'help'        => $prefix . 'title_help',
+                'empty_data'  => '',
+                'constraints' => [new NotBlank()],
             ]);
             $this->addTextareaField('description', [
                 'label'    => $prefix . 'description',

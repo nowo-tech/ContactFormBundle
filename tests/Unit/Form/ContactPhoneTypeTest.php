@@ -118,4 +118,11 @@ final class ContactPhoneTypeTest extends TypeTestCase
 
         self::assertSame([], $resolver->resolve(['prefixes' => []])['prefixes']);
     }
+
+    public function testReverseTransformOfANonArrayIsNull(): void
+    {
+        $form = $this->factory->create(ContactPhoneType::class, null, ['prefixes' => ['+34' => 'ES (+34)']]);
+
+        self::assertNull($form->getConfig()->getModelTransformers()[0]->reverseTransform(null));
+    }
 }

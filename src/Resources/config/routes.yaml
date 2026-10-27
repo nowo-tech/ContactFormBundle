@@ -1,17 +1,17 @@
 nowo_contact_form_admin:
     resource: '../../Controller/ContactFormAdminController.php'
     type: attribute
-    prefix: '%nowo_contact_form.admin_route_prefix%'
+    prefix: '%nowo_contact_form.web_ui.path_prefix%'
 
 nowo_contact_form_fields:
     resource: '../../Controller/ContactFormFieldAdminController.php'
     type: attribute
-    prefix: '%nowo_contact_form.admin_route_prefix%'
+    prefix: '%nowo_contact_form.web_ui.path_prefix%'
 
 nowo_contact_form_submissions:
     resource: '../../Controller/ContactSubmissionAdminController.php'
     type: attribute
-    prefix: '%nowo_contact_form.admin_route_prefix%'
+    prefix: '%nowo_contact_form.web_ui.path_prefix%'
 
 nowo_contact_form_public:
     resource: '../../Controller/ContactFormPublicController.php'

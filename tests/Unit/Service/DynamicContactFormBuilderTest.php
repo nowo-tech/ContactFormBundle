@@ -133,13 +133,9 @@ final class DynamicContactFormBuilderTest extends TestCase
         self::assertSame('I agree', $form->get('gdpr_consent')->getConfig()->getOption('label'));
         self::assertTrue($form->get('gdpr_consent')->getConfig()->getOption('label_html'));
         self::assertSame(
-            'mb-2',
-            $form->get('email')->getConfig()->getOption('row_attr')['class'] ?? null,
-            'Public fields must inherit contact_form FormKit row_attr',
-        );
-        self::assertStringContainsString(
             'nowo-ui-input',
-            (string) ($form->get('email')->getConfig()->getOption('attr')['class'] ?? ''),
+            $form->get('email')->getConfig()->getOption('attr')['class'] ?? null,
+            'Public fields must inherit the contact_form FormKit profile attr (no framework classes, REQ-UI-003)',
         );
     }
 
@@ -452,5 +448,24 @@ final class DynamicContactFormBuilderTest extends TestCase
         file_put_contents($path, $contents);
 
         return new UploadedFile($path, $name, null, null, true);
+    }
+
+    public function testPhoneInputWidgetWithoutItsFormTypeAddsNoField(): void
+    {
+        $contactForm = (new ContactForm())->setRequireConsent(false);
+        $field       = (new ContactFormField())
+            ->setName('phone')
+            ->setType(ContactFieldType::Phone)
+            ->setOptions(['widget' => 'phone_input', 'default_country' => 'ES'])
+            ->setForm($contactForm)
+            ->addTranslation((new ContactFormFieldTranslation())->setLocale('en')->setLabel('Phone'));
+
+        $fieldRepository = $this->createStub(ContactFormFieldRepository::class);
+        $fieldRepository->method('findByFormOrdered')->willReturn([$field]);
+
+        $this->phoneInputAvailability = new ContactPhoneInputAvailability(true);
+        $form                         = $this->createBuilder($fieldRepository)->createForm($contactForm, 'en');
+
+        self::assertFalse($form->has('phone'), 'PhoneInputBundle reported available but its form type is missing');
     }
 }

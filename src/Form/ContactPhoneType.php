@@ -45,13 +45,13 @@ class ContactPhoneType extends AbstractType
             'choices'  => $choices,
             'data'     => $defaultPrefix,
             'required' => true,
-            'attr'     => ['class' => 'form-select'],
+            // Prefix labels are data ("ES (+34)"), not translation keys.
+            'choice_translation_domain' => false,
         ]);
         $this->addWithDefaults($builder, 'number', TelType::class, [
             'label'    => false,
             'required' => false,
             'attr'     => [
-                'class'        => 'form-control',
                 'inputmode'    => 'tel',
                 'autocomplete' => 'tel-national',
             ],

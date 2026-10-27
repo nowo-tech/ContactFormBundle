@@ -11,6 +11,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\NotBlank;
 
 /**
  * Admin form type for contact form definitions.
@@ -29,13 +30,18 @@ class ContactFormType extends AbstractType
         $prefix = $options['label_prefix'];
 
         $this->withBuilder($builder, function () use ($prefix, $options): void {
+            // empty_data + NotBlank: a blank submission is a validation error, not a TypeError on the string setter.
             $this->addTextField('name', [
-                'label' => $prefix . 'name',
-                'help'  => $prefix . 'name_help',
+                'label'       => $prefix . 'name',
+                'help'        => $prefix . 'name_help',
+                'empty_data'  => '',
+                'constraints' => [new NotBlank()],
             ]);
             $this->addTextField('slug', [
-                'label' => $prefix . 'slug',
-                'help'  => $prefix . 'slug_help',
+                'label'       => $prefix . 'slug',
+                'help'        => $prefix . 'slug_help',
+                'empty_data'  => '',
+                'constraints' => [new NotBlank()],
             ]);
             $this->addCheckboxField('enabled', [
                 'label'    => $prefix . 'enabled',

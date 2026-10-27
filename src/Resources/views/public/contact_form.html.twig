@@ -1,33 +1,34 @@
-<!DOCTYPE html>
-<html lang="{{ app.request.locale }}">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ translation.title }}</title>
-</head>
-<body>
-    {% for label, messages in app.flashes %}
-        {% for message in messages %}
-            <div class="flash flash-{{ label }}">{{ message }}</div>
-        {% endfor %}
-    {% endfor %}
+{#
+  Public contact form (REQ-UI-003 unique page, declared in docs/TEMPLATES.md): extends the UiKit guest layout
+  (web_ui.public_layout_template, null = nowo_ui_kit.layouts.guest) and fills the canonical blocks; the flashes
+  (success message after a submission) come from the layout.
+  Variables: header (View\PageHeader: translated title + description), page_layout (?string), contactForm (ContactForm),
+  translation (ContactFormTranslation), form (FormView of the dynamic contact form).
+#}
+{% extends page_layout ?? nowo_ui_layout.guest %}
+{% trans_default_domain 'NowoContactFormBundle' %}
+{% set nowo_ui_bundle = 'NowoContactFormBundle' %}
+{% set nowo_ui_page_type = 'form' %}
 
-    <h1>{{ translation.title }}</h1>
+{% block nowo_ui_document_title %}{{ header.title|nowo_ui_trans }}{% endblock %}
 
-    {% if translation.description %}
-        <p>{{ translation.description }}</p>
-    {% endif %}
+{% block nowo_ui_page_header %}{{ nowo_ui_page_header(header, nowo_ui_bundle) }}{% endblock %}
 
+{% block nowo_ui_content %}
+    {% set _b = nowo_ui_bundle %}
     {% form_theme form '@NowoContactFormBundle/form/contact_phone.html.twig' %}
+    <section class="{{ nowo_ui_class('form_panel', _b) }}" data-nowo-ui-page="form" data-testid="contact-form-public">
+        {{ form_start(form, {attr: {class: nowo_ui_class('form', _b)}}) }}
+            {{ include('@NowoContactFormBundle/public/_form_fields.html.twig', {
+                form: form,
+                contactForm: contactForm,
+                translation: translation,
+                bundle: _b,
+            }, with_context: false) }}
 
-    {{ form_start(form) }}
-        {% include '@NowoContactFormBundle/public/_form_fields.html.twig' with {
-            form: form,
-            contactForm: contactForm,
-            translation: translation,
-        } only %}
-
-        <button type="submit">{{ 'nowo_contact_form.public.submit'|trans({}, 'NowoContactFormBundle') }}</button>
-    {{ form_end(form) }}
-</body>
-</html>
+            <div class="{{ nowo_ui_class('form_actions', _b) }}"{{ nowo_ui_attrs('form_actions', _b) }}>
+                <button type="submit" class="{{ nowo_ui_class('btn_primary', _b) }}">{{ 'nowo_contact_form.public.submit'|trans }}</button>
+            </div>
+        {{ form_end(form) }}
+    </section>
+{% endblock %}

@@ -30,7 +30,7 @@ use function count;
  * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
  */
 #[FormKitConfig('contact_form')]
-class ContactFormFieldPhonePrefixesStepType extends AbstractType
+class ContactFormFieldPhonePrefixesStepType extends AbstractType implements ContactFormFieldStepDataInterface
 {
     use ContactFormFieldWizardStepTrait;
     use FormOptionsTrait;
@@ -86,35 +86,6 @@ class ContactFormFieldPhonePrefixesStepType extends AbstractType
             'translation_domain' => $options['translation_domain'],
         ]);
 
-        $builder->addEventListener(FormEvents::POST_SET_DATA, function (FormEvent $event): void {
-            $field = $this->resolveField($event);
-
-            if (!$field instanceof ContactFormField) {
-                return;
-            }
-
-            $phoneOptions = ContactFormFieldPhoneOptions::fromField($field);
-            $form         = $event->getForm();
-
-            if ($form->has('phoneWidget')) {
-                $form->get('phoneWidget')->setData($phoneOptions->widget->value);
-            }
-
-            if ($form->has('phonePrefixesLines')) {
-                $form->get('phonePrefixesLines')->setData(implode("\n", $phoneOptions->prefixes));
-            }
-
-            if ($form->has('phoneDefaultCountry')) {
-                $form->get('phoneDefaultCountry')->setData($phoneOptions->defaultCountry);
-            }
-
-            if ($form->has('phoneAllowedCountriesLines')) {
-                $form->get('phoneAllowedCountriesLines')->setData(
-                    $phoneOptions->allowedCountries !== null ? implode("\n", $phoneOptions->allowedCountries) : '',
-                );
-            }
-        });
-
         $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event): void {
             $field = $this->resolveField($event);
 
@@ -124,31 +95,16 @@ class ContactFormFieldPhonePrefixesStepType extends AbstractType
 
             $form = $event->getForm();
 
-            if (!$form->has('phoneWidget')) {
-                return;
-            }
-
+            // phone_input is only a choice when nowo-tech/phone-input-bundle is installed (choice validation).
             $widget = ContactPhoneWidget::tryFrom((string) $form->get('phoneWidget')->getData()) ?? ContactPhoneWidget::Symfony;
 
-            if ($widget === ContactPhoneWidget::PhoneInput && !$this->phoneInputAvailability->isAvailable()) {
-                $form->get('phoneWidget')->addError(new FormError(
-                    $this->translator->trans('nowo_contact_form.admin.field.fields.phone_widget_unavailable', [], 'NowoContactFormBundle'),
-                ));
-
-                return;
-            }
-
-            $prefixes = $form->has('phonePrefixesLines')
-                ? $this->parseLines((string) $form->get('phonePrefixesLines')->getData())
-                : [];
+            $prefixes = $this->parseLines((string) $form->get('phonePrefixesLines')->getData());
 
             if ($widget === ContactPhoneWidget::Symfony && !$this->validatePrefixes($form, $prefixes)) {
                 return;
             }
 
-            $defaultCountry = $form->has('phoneDefaultCountry')
-                ? strtoupper(trim((string) $form->get('phoneDefaultCountry')->getData()))
-                : 'ES';
+            $defaultCountry = strtoupper(trim((string) $form->get('phoneDefaultCountry')->getData()));
 
             if ($widget === ContactPhoneWidget::PhoneInput && ($defaultCountry === '' || preg_match('/^[A-Z]{2}$/', $defaultCountry) !== 1)) {
                 $form->get('phoneDefaultCountry')->addError(new FormError(
@@ -158,9 +114,7 @@ class ContactFormFieldPhonePrefixesStepType extends AbstractType
                 return;
             }
 
-            $allowedCountries = $form->has('phoneAllowedCountriesLines')
-                ? $this->parseLines((string) $form->get('phoneAllowedCountriesLines')->getData())
-                : [];
+            $allowedCountries = $this->parseLines((string) $form->get('phoneAllowedCountriesLines')->getData());
 
             foreach ($allowedCountries as $index => $iso) {
                 $allowedCountries[$index] = strtoupper($iso);
@@ -193,15 +147,24 @@ class ContactFormFieldPhonePrefixesStepType extends AbstractType
         });
     }
 
+    public function mapFieldToStep(FormInterface $stepForm, ContactFormField $field): void
+    {
+        $phoneOptions = ContactFormFieldPhoneOptions::fromField($field);
+
+        $stepForm->get('phoneWidget')->setData($phoneOptions->widget->value);
+        $stepForm->get('phonePrefixesLines')->setData(implode("\n", $phoneOptions->prefixes));
+        $stepForm->get('phoneDefaultCountry')->setData($phoneOptions->defaultCountry);
+        $stepForm->get('phoneAllowedCountriesLines')->setData(
+            $phoneOptions->allowedCountries !== null ? implode("\n", $phoneOptions->allowedCountries) : '',
+        );
+    }
+
     /**
      * @param FormInterface<ContactFormField|null> $form
      * @param list<string> $values
      */
     private function validatePrefixes(FormInterface $form, array $values): bool
     {
-        if (!$form->has('phonePrefixesLines')) {
-            return true;
-        }
 
         $linesField = $form->get('phonePrefixesLines');
         $valid      = true;

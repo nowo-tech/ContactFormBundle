@@ -1,81 +1,43 @@
-{% extends '@NowoContactFormBundle/admin/base.html.twig' %}
-{% import '@NowoUiKitBundle/macros/ui.html.twig' as ui %}
-{% set _css_fw = nowo_contact_form_css_framework|default('bootstrap5') %}
+{#
+  Field create / edit wizard (REQ-UI-003): UiKit wizard scaffold over the Symfony FormFlow ContactFormFieldFlowType.
+  Variable: page (View\WizardPage from ContactFormPageFactory::fieldWizard(): header new_title / edit_title (intro =
+  form name) with a back link to the fields; steps = the visible flow steps (definition, select_options,
+  phone_prefixes, content; done steps link to their URL); current = current step; form = the flow FormView;
+  backHref = fields list).
+  Data block filled: nowo_ui_wizard_step (the current step's fields with the REQ-TWIG-003 child loop, the locale
+  tabs of the translations, then the flow navigator buttons previous / next / finish and the back link).
+#}
+{% extends '@NowoUiKit/page/wizard.html.twig' %}
+{% trans_default_domain 'NowoContactFormBundle' %}
 
-{% block title %}{{ isNew ? 'nowo_contact_form.admin.field.new_title'|trans({}, 'NowoContactFormBundle') : 'nowo_contact_form.admin.field.edit_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
-
-{% block content %}
-    <div class="mb-4">
-        <p class="text-muted mb-1">{{ contactForm.name }}</p>
-        <h1 class="h2 mb-0">{{ block('title') }}</h1>
-    </div>
-
-    {% form_theme form 'bootstrap_5_layout.html.twig' %}
-
-    {% if flow.vars.visible_steps is defined and flow.vars.visible_steps is not empty %}
-        {% set stepRoute = isNew ? 'nowo_contact_form_fields_new' : 'nowo_contact_form_fields_edit' %}
-        <ol class="list-group list-group-horizontal mb-4 flex-wrap">
-            {% for step in flow.vars.visible_steps %}
-                {% set stepParams = { formId: contactForm.id, step: step.name } %}
-                {% if not isNew %}
-                    {% set stepParams = stepParams|merge({ id: field.id }) %}
-                {% endif %}
-                <li class="list-group-item flex-fill text-center p-0 {{ step.is_current_step ? 'active' : '' }}">
-                    <a
-                        href="{{ path(stepRoute, stepParams) }}"
-                        class="d-block py-2 px-3 text-decoration-none {{ step.is_current_step ? 'active fw-semibold' : 'text-body' }}"
-                        {% if step.is_current_step %}aria-current="step"{% endif %}
-                    >
-                        {{ ('nowo_contact_form.admin.field.flow.steps.' ~ step.name)|trans({}, 'NowoContactFormBundle') }}
-                    </a>
-                </li>
-            {% endfor %}
-        </ol>
-    {% endif %}
-
-    <div class="card shadow-sm">
-        <div class="card-body">
-            {{ form_start(form) }}
-                {% for name, stepForm in form %}
-                    {% if name == currentStep %}
-                        {# Current wizard step: the child loop renders its fields (preserved definition fields are HiddenType); translations use the locale tabs partial. #}
-                        {% for child in stepForm %}
-                            {% if not child.rendered and child.vars.name != 'translations' %}
-                                {{ form_row(child) }}
-                            {% endif %}
-                        {% endfor %}
-                        {% if stepForm.translations is defined %}
-                            {% include '@NowoContactFormBundle/admin/field/_translation_tabs.html.twig' with { form: stepForm } only %}
-                        {% endif %}
+{% block nowo_ui_wizard_step %}
+    {% set _b = page.bundle %}
+    {% set _form = page.form %}
+    {{ form_start(_form, {attr: {class: nowo_ui_class('form', _b), 'data-nowo-ui-region': 'form'}}) }}
+        {% for name, stepForm in _form %}
+            {% if name == page.current %}
+                {% for child in stepForm %}
+                    {% if not child.rendered and child.vars.name != 'translations' %}
+                        {{ form_row(child) }}
                     {% endif %}
                 {% endfor %}
+                {{ include('@NowoContactFormBundle/admin/field/_translation_tabs.html.twig', {form: stepForm, bundle: _b}, with_context: false) }}
+            {% endif %}
+        {% endfor %}
 
-                {% if form.navigator is defined %}
-                    <div class="d-flex flex-wrap gap-2 mt-4">
-                        {% if form.navigator.previous is defined %}
-                            {{ form_widget(form.navigator.previous, {
-                                label: 'nowo_contact_form.admin.field.flow.previous'|trans({}, 'NowoContactFormBundle'),
-                                attr: { class: ui.btn('secondary', null, _css_fw) },
-                            }) }}
-                        {% endif %}
-                        {% if form.navigator.next is defined %}
-                            {{ form_widget(form.navigator.next, {
-                                label: 'nowo_contact_form.admin.field.flow.next'|trans({}, 'NowoContactFormBundle'),
-                                attr: { class: ui.btn('primary', null, _css_fw) },
-                            }) }}
-                        {% endif %}
-                        {% if form.navigator.finish is defined %}
-                            {{ form_widget(form.navigator.finish, {
-                                label: 'nowo_contact_form.admin.field.flow.finish'|trans({}, 'NowoContactFormBundle'),
-                                attr: { class: ui.btn('primary', null, _css_fw) },
-                            }) }}
-                        {% endif %}
-                        <a href="{{ path('nowo_contact_form_fields_index', { formId: contactForm.id }) }}" class="{{ ui.btn('secondary', null, _css_fw) }} nowo-ui-action-cancel">
-                            {{ 'nowo_contact_form.admin.back'|trans({}, 'NowoContactFormBundle') }}
-                        </a>
-                    </div>
+        {% if _form.navigator is defined %}
+            <div class="{{ nowo_ui_class('form_actions', _b) }}"{{ nowo_ui_attrs('form_actions', _b) }}>
+                {% if _form.navigator.previous is defined %}
+                    {{ form_widget(_form.navigator.previous, {label: 'nowo_contact_form.admin.field.flow.previous'|trans, translation_domain: false, attr: {class: nowo_ui_class('btn_secondary', _b)}}) }}
                 {% endif %}
-            {{ form_end(form) }}
-        </div>
-    </div>
+                {% if _form.navigator.next is defined %}
+                    {{ form_widget(_form.navigator.next, {label: page.nextLabel|nowo_ui_trans, translation_domain: false, attr: {class: nowo_ui_class('btn_primary', _b)}}) }}
+                {% endif %}
+                {% if _form.navigator.finish is defined %}
+                    {{ form_widget(_form.navigator.finish, {label: 'nowo_contact_form.admin.field.flow.finish'|trans, translation_domain: false, attr: {class: nowo_ui_class('btn_primary', _b)}}) }}
+                {% endif %}
+                <a class="{{ nowo_ui_class('btn_secondary', _b) }}" href="{{ page.backHref }}" data-testid="contact-form-field-cancel">{{ page.backLabel|nowo_ui_trans }}</a>
+            </div>
+        {% endif %}
+    {{ form_end(_form) }}
 {% endblock %}

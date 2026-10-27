@@ -13,13 +13,19 @@ use Symfony\Component\Translation\LocaleSwitcher;
 use function in_array;
 use function is_array;
 use function is_string;
+use function str_starts_with;
 
 /**
- * Applies the session locale to admin routes when no route locale is set.
+ * Applies the session locale to admin routes when no route locale is set. Admin requests are recognised by their route
+ * name (the router listener runs first), so a custom web_ui.path_prefix works too.
  */
 final readonly class ContactFormAdminLocaleSubscriber implements EventSubscriberInterface
 {
-    private const ADMIN_PATH_PREFIX = '/admin/contact-forms';
+    private const ROUTE_PREFIXES = [
+        'nowo_contact_form_admin_',
+        'nowo_contact_form_fields_',
+        'nowo_contact_form_submissions_',
+    ];
 
     public function __construct(
         private LocaleSwitcher $localeSwitcher,
@@ -42,7 +48,7 @@ final readonly class ContactFormAdminLocaleSubscriber implements EventSubscriber
 
         $request = $event->getRequest();
 
-        if (!str_starts_with($request->getPathInfo(), self::ADMIN_PATH_PREFIX)) {
+        if (!$this->isAdminRoute($request->attributes->get('_route'))) {
             return;
         }
 
@@ -62,6 +68,21 @@ final readonly class ContactFormAdminLocaleSubscriber implements EventSubscriber
 
         $this->localeSwitcher->setLocale($locale);
         $request->setLocale($locale);
+    }
+
+    private function isAdminRoute(mixed $route): bool
+    {
+        if (!is_string($route)) {
+            return false;
+        }
+
+        foreach (self::ROUTE_PREFIXES as $prefix) {
+            if (str_starts_with($route, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

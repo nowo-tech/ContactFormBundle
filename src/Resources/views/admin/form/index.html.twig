@@ -1,65 +1,19 @@
-{% extends '@NowoContactFormBundle/admin/base.html.twig' %}
-{% import '@NowoUiKitBundle/macros/ui.html.twig' as ui %}
-{% set _css_fw = nowo_contact_form_css_framework|default('bootstrap5') %}
+{#
+  Contact forms (REQ-UI-003): UiKit list scaffold. Variable: page (View\ListPage from ContactFormPageFactory::formIndex():
+  header nowo_contact_form.admin.form.index_title with the action New form; columns name, slug, enabled; rows =
+  list<ContactForm>; row actions Edit / Fields / Submissions / Delete (POST + CSRF FormView behind a Confirm);
+  Pagination; EmptyState nowo_contact_form.admin.form.empty).
+  Data block filled: nowo_ui_list_row (cells).
+#}
+{% extends '@NowoUiKit/page/list.html.twig' %}
+{% trans_default_domain 'NowoContactFormBundle' %}
 
-{% block title %}{{ 'nowo_contact_form.admin.form.index_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
-
-{% block content %}
-    <div class="nowo-ui-page-header d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-        <h1 class="h2 mb-0">{{ 'nowo_contact_form.admin.form.index_title'|trans({}, 'NowoContactFormBundle') }}</h1>
-        <a href="{{ path('nowo_contact_form_admin_new') }}" class="{{ ui.btn('primary', null, _css_fw) }} nowo-ui-action-create">
-            {{ 'nowo_contact_form.admin.form.new'|trans({}, 'NowoContactFormBundle') }}
-        </a>
-    </div>
-
-    <div class="nowo-ui-table-wrap card shadow-sm">
-        <div class="table-responsive">
-            <table class="table table-striped table-hover mb-0 align-middle nowo-ui-table">
-                <thead class="table-light">
-                    <tr>
-                        <th>{{ 'nowo_contact_form.admin.form.columns.name'|trans({}, 'NowoContactFormBundle') }}</th>
-                        <th>{{ 'nowo_contact_form.admin.form.columns.slug'|trans({}, 'NowoContactFormBundle') }}</th>
-                        <th>{{ 'nowo_contact_form.admin.form.columns.enabled'|trans({}, 'NowoContactFormBundle') }}</th>
-                        <th class="text-end">{{ 'nowo_contact_form.admin.form.columns.actions'|trans({}, 'NowoContactFormBundle') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for contactForm in forms %}
-                        <tr>
-                            <td class="fw-medium">{{ contactForm.name }}</td>
-                            <td><code>{{ contactForm.slug }}</code></td>
-                            <td>
-                                {% if contactForm.enabled %}
-                                    <span class="badge text-bg-success">{{ 'nowo_contact_form.admin.yes'|trans({}, 'NowoContactFormBundle') }}</span>
-                                {% else %}
-                                    <span class="badge text-bg-secondary">{{ 'nowo_contact_form.admin.no'|trans({}, 'NowoContactFormBundle') }}</span>
-                                {% endif %}
-                            </td>
-                            <td class="text-end">
-                                <div class="{{ ui.row_actions(_css_fw) }}" role="group">
-                                    <a href="{{ path('nowo_contact_form_admin_edit', { id: contactForm.id }) }}" class="{{ ui.btn('secondary', 'sm', _css_fw) }} nowo-ui-action-edit">
-                                        {{ 'nowo_contact_form.admin.actions.edit'|trans({}, 'NowoContactFormBundle') }}
-                                    </a>
-                                    <a href="{{ path('nowo_contact_form_fields_index', { formId: contactForm.id }) }}" class="{{ ui.btn('secondary', 'sm', _css_fw) }}">
-                                        {{ 'nowo_contact_form.admin.actions.fields'|trans({}, 'NowoContactFormBundle') }}
-                                    </a>
-                                    <a href="{{ path('nowo_contact_form_submissions_index', { formId: contactForm.id }) }}" class="{{ ui.btn('secondary', 'sm', _css_fw) }}">
-                                        {{ 'nowo_contact_form.admin.actions.submissions'|trans({}, 'NowoContactFormBundle') }}
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="4" class="text-center text-muted py-4">
-                                {{ 'nowo_contact_form.admin.form.empty'|trans({}, 'NowoContactFormBundle') }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    {% include '@NowoContactFormBundle/admin/_pagination.html.twig' %}
+{% block nowo_ui_list_row %}
+    {% set _b = page.bundle %}
+    {% set _cell = nowo_ui_class('table_cell', _b) %}
+    <td class="{{ _cell }}" data-label="{{ 'nowo_contact_form.admin.form.columns.name'|trans }}" data-required="1">{{ row.name }}</td>
+    <td class="{{ _cell }}" data-label="{{ 'nowo_contact_form.admin.form.columns.slug'|trans }}"><code class="{{ nowo_ui_class('code', _b) }}">{{ row.slug }}</code></td>
+    <td class="{{ _cell }}" data-label="{{ 'nowo_contact_form.admin.form.columns.enabled'|trans }}" data-nowo-ui-priority="2">
+        <span class="{{ nowo_ui_class(row.enabled ? 'badge_success' : 'badge_neutral', _b) }}">{{ (row.enabled ? 'nowo_contact_form.admin.yes' : 'nowo_contact_form.admin.no')|trans }}</span>
+    </td>
 {% endblock %}

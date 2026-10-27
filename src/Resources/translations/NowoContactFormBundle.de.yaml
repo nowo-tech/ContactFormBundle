@@ -22,6 +22,7 @@ nowo_contact_form:
       fields: Felder
       submissions: Einsendungen
       view: Anzeigen
+      delete: 'Löschen'
     locales:
       en: Englisch
       es: Spanisch
@@ -34,6 +35,8 @@ nowo_contact_form:
       created: Kontaktformular erstellt.
       updated: Kontaktformular aktualisiert.
       deleted: Kontaktformular gelöscht.
+      delete_title: 'Kontaktformular löschen'
+      delete_confirm: 'Dieses Kontaktformular löschen? Seine Felder, Übersetzungen und Einsendungen werden ebenfalls gelöscht.'
       empty: Noch keine Kontaktformulare vorhanden.
       columns:
         name: Name
@@ -78,6 +81,8 @@ nowo_contact_form:
       created: Feld erstellt.
       updated: Feld aktualisiert.
       deleted: Feld gelöscht.
+      delete_title: 'Feld löschen'
+      delete_confirm: 'Dieses Feld löschen? Bestehende Einsendungen behalten die bereits gespeicherten Werte.'
       empty: Keine Felder konfiguriert.
       consent_row:
         hint: Auf Formular-Ebene konfiguriert (kein benutzerdefiniertes Feld).
@@ -158,6 +163,7 @@ nowo_contact_form:
       value_column: Wert
       delete_confirm: Möchten Sie diese Einsendung wirklich löschen?
       deleted: Einsendung gelöscht.
+      delete_title: 'Einsendung löschen'
       empty: Noch keine Einsendungen vorhanden.
       anonymous: Anonym
       consent_at: Einwilligung erteilt am

@@ -1,3 +1,9 @@
+{#
+  Body of the public contact form (REQ-TWIG-003): the child loop for the dynamic fields, then the GDPR consent
+  checkbox with the optional privacy policy link. Variables: form (FormView), contactForm (ContactForm), translation
+  (ContactFormTranslation), optional bundle (UiKit theme exceptions, default NowoContactFormBundle).
+#}
+{% set _b = bundle|default('NowoContactFormBundle') %}
 {% for child in form %}
     {% if not child.rendered and child.vars.name != 'gdpr_consent' %}
         {{ form_row(child) }}
@@ -5,14 +11,12 @@
 {% endfor %}
 
 {% if form.gdpr_consent is defined %}
-    <div class="mb-3">
+    <div class="{{ nowo_ui_class('form_row', _b) }}">
         {{ form_row(form.gdpr_consent) }}
         {% if contactForm.privacyPolicyUrl and translation.privacyPolicyText %}
-            <div class="form-text">
-                <a href="{{ contactForm.privacyPolicyUrl }}" target="_blank" rel="noopener">
-                    {{ translation.privacyPolicyText }}
-                </a>
-            </div>
+            <p class="{{ nowo_ui_class('muted', _b) }}">
+                <a href="{{ contactForm.privacyPolicyUrl }}" target="_blank" rel="noopener">{{ translation.privacyPolicyText }}</a>
+            </p>
         {% endif %}
     </div>
 {% endif %}

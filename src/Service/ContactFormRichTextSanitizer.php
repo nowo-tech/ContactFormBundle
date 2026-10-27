@@ -9,11 +9,10 @@ use DOMDocument;
 use DOMElement;
 use DOMNode;
 
+use function assert;
 use function in_array;
 use function sprintf;
 
-use const ENT_QUOTES;
-use const ENT_SUBSTITUTE;
 use const LIBXML_HTML_NODEFDTD;
 use const LIBXML_HTML_NOIMPLIED;
 
@@ -51,11 +50,9 @@ final class ContactFormRichTextSanitizer
         libxml_clear_errors();
         libxml_use_internal_errors($internalErrors);
 
+        // NOIMPLIED parsing keeps the wrapper <div> as the first element whatever the input (malformed markup included).
         $container = $document->getElementsByTagName('div')->item(0);
-
-        if (!$container instanceof DOMElement) {
-            return htmlspecialchars($html, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        }
+        assert($container instanceof DOMElement);
 
         $this->sanitizeNode($container);
 

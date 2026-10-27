@@ -82,31 +82,17 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
         }
 
         if (!$hostHasProfile) {
+            // REQ-UI-003: no framework utility classes in bundle markup; the host form theme (or this profile, which
+            // the host may redefine) styles the fields. `nowo-ui-input` is the UiKit semantic hook.
             $seed['profiles'] = [
                 'contact_form' => [
                     'alias'              => 'contact_form',
                     'translation_domain' => 'NowoContactFormBundle',
-                    'defaults'           => [
-                        'attr'     => ['class' => 'nowo-ui-input form-control'],
-                        'row_attr' => ['class' => 'mb-2'],
-                    ],
-                    'field_types' => [
-                        'checkbox' => [
-                            'attr'     => ['class' => 'form-check-input'],
-                            'row_attr' => ['class' => 'form-check mb-2'],
-                        ],
-                        'choice' => [
-                            'attr' => ['class' => 'form-select'],
-                        ],
-                        'entity' => [
-                            'attr' => ['class' => 'form-select'],
-                        ],
-                        'file' => [
-                            'attr' => ['class' => 'nowo-ui-input form-control'],
-                        ],
-                        'textarea' => [
-                            'attr' => ['class' => 'nowo-ui-input form-control'],
-                        ],
+                    // Placeholder / help convention keys only where the catalogue has them (no raw keys).
+                    'convention_requires_translation' => true,
+                    'defaults'                        => [
+                        'attr'     => ['class' => 'nowo-ui-input'],
+                        'row_attr' => [],
                     ],
                 ],
             ];
@@ -118,8 +104,8 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
     }
 
     /**
-     * When UiKit is installed, seed nowo_ui_kit.css_framework / icon_set from web_ui
-     * so kit macros resolve the same stack. Does not override keys the host already set.
+     * When UiKit is installed and the host set the deprecated web_ui.css_framework / icon_set (REQ-UI-003: the CSS
+     * stack is inherited from nowo_ui_kit), copy them to nowo_ui_kit unless the host set those keys there.
      */
     private function prependUiKitDefaults(ContainerBuilder $container): void
     {
@@ -148,15 +134,18 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
         $webUi    = is_array($config['web_ui'] ?? null) ? $config['web_ui'] : [];
         $defaults = [];
 
-        if (!$hostHasCssFramework) {
-            $fw                        = (string) ($webUi['css_framework'] ?? 'bootstrap5');
-            $defaults['css_framework'] = $fw === 'bootstrap' ? 'bootstrap5' : $fw;
+        $framework = $webUi['css_framework'] ?? null;
+        if (!$hostHasCssFramework && is_string($framework)) {
+            $defaults['css_framework'] = $framework === 'bootstrap' ? 'bootstrap5' : $framework;
         }
-        if (!$hostHasIconSet) {
-            $defaults['icon_set'] = (string) ($webUi['icon_set'] ?? 'bootstrap-icons');
+        $iconSet = $webUi['icon_set'] ?? null;
+        if (!$hostHasIconSet && is_string($iconSet)) {
+            $defaults['icon_set'] = $iconSet;
         }
 
-        $container->prependExtensionConfig('nowo_ui_kit', $defaults);
+        if ($defaults !== []) {
+            $container->prependExtensionConfig('nowo_ui_kit', $defaults);
+        }
     }
 
     public function load(array $configs, ContainerBuilder $container): void
@@ -178,12 +167,17 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
         $container->setParameter('nowo_contact_form.phone_input', $config['phone_input']);
         $container->setParameter('nowo_contact_form.file_upload.max_size', $config['file_upload']['max_size'] === null ? null : (string) $config['file_upload']['max_size']);
         $container->setParameter('nowo_contact_form.file_upload.mime_types', array_values($config['file_upload']['mime_types']));
-        $container->setParameter('nowo_contact_form.admin_route_prefix', $config['admin_route_prefix']);
+        $webUi      = $config['web_ui'];
+        $pathPrefix = $webUi['path_prefix'] ?? $config['admin_route_prefix'] ?? Configuration::DEFAULT_PATH_PREFIX;
+        $container->setParameter('nowo_contact_form.web_ui.path_prefix', $pathPrefix);
+        // Deprecated alias of web_ui.path_prefix (kept for host access_control / route imports until 2.0).
+        $container->setParameter('nowo_contact_form.admin_route_prefix', $pathPrefix);
         $container->setParameter('nowo_contact_form.notifications.default_recipient', $config['notifications']['default_recipient']);
 
-        $webUi = $config['web_ui'];
         $container->setParameter('nowo_contact_form.web_ui.enabled', $webUi['enabled']);
         $container->setParameter('nowo_contact_form.web_ui.layout_template', $webUi['layout_template']);
+        $container->setParameter('nowo_contact_form.web_ui.public_layout_template', $webUi['public_layout_template']);
+        $container->setParameter('nowo_contact_form.web_ui.templates', $webUi['templates']);
         $container->setParameter('nowo_contact_form.web_ui.css_framework', $webUi['css_framework']);
         $container->setParameter('nowo_contact_form.web_ui.icon_set', $webUi['icon_set']);
         $container->setParameter('nowo_contact_form.web_ui.list_page_size', $webUi['list_page_size']);

@@ -42,7 +42,7 @@ final class ContactFormAdminAccessSubscriberTest extends TestCase
     public function testAllowsWhenCheckerPasses(): void
     {
         $checker = $this->createMock(ContactFormAccessCheckerInterface::class);
-        $checker->method('canAccess')->willReturn(true);
+        $checker->expects(self::once())->method('canAccess')->willReturn(true);
 
         $subscriber = new ContactFormAdminAccessSubscriber($checker);
         $subscriber->onKernelController($this->controllerEvent('nowo_contact_form_fields_index'));
