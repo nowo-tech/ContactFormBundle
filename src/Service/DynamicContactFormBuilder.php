@@ -291,16 +291,14 @@ final readonly class DynamicContactFormBuilder
     {
         $phoneOptions = ContactFormFieldPhoneOptions::fromField($field);
 
+        $phoneInputType = ContactPhoneInputAvailability::FORM_TYPE;
+
+        // A forced availability without the form type falls back to the Symfony prefix widget.
         if (
             $phoneOptions->widget === ContactPhoneWidget::PhoneInput
             && $this->phoneInputAvailability->isAvailable()
+            && is_subclass_of($phoneInputType, FormTypeInterface::class)
         ) {
-            $phoneInputType = 'Nowo\\PhoneInputBundle\\Form\\Type\\PhoneType';
-
-            if (!is_subclass_of($phoneInputType, FormTypeInterface::class)) {
-                return;
-            }
-
             $builder->add(
                 $field->getName(),
                 $phoneInputType,

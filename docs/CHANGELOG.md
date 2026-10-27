@@ -72,6 +72,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   (`nowo-ui-input`, no row classes) and sets `convention_requires_translation: true`; the admin templates no longer
   force `bootstrap_5_layout.html.twig` — the host form theme applies.
 - `ContactPhoneType` and its form theme carry no Bootstrap classes (`.nowo-contact-form-phone`, `role="group"`).
+- `ContactPhoneInputAvailability` checks that the PhoneInputBundle `PhoneType` is a form type and accepts a forced
+  answer (`new ContactPhoneInputAvailability(true|false)`); a phone field set to the Phone Input widget falls back to the
+  Symfony prefix widget when the type is missing, instead of disappearing from the form.
 - `nowo-tech/ui-kit-bundle` ^2.15.3, `nowo-tech/form-kit-bundle` ^2.13.3.
 - PHPUnit: native deprecation gate (`failOnDeprecation`, `ignoreSuppressionOfDeprecations`,
   `ignoreIndirectDeprecations`), `failOnRisky` and `failOnWarning` (REQ-SF-005); the 21 risky integration tests (error

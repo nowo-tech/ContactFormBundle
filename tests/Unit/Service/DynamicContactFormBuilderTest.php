@@ -450,8 +450,12 @@ final class DynamicContactFormBuilderTest extends TestCase
         return new UploadedFile($path, $name, null, null, true);
     }
 
-    public function testPhoneInputWidgetWithoutItsFormTypeAddsNoField(): void
+    public function testForcedPhoneInputWithoutItsFormTypeFallsBackToTheSymfonyWidget(): void
     {
+        if (class_exists(ContactPhoneInputAvailability::FORM_TYPE, false)) {
+            self::markTestSkipped('A PhoneInputBundle form type is loaded (stub of another test).');
+        }
+
         $contactForm = (new ContactForm())->setRequireConsent(false);
         $field       = (new ContactFormField())
             ->setName('phone')
@@ -466,6 +470,7 @@ final class DynamicContactFormBuilderTest extends TestCase
         $this->phoneInputAvailability = new ContactPhoneInputAvailability(true);
         $form                         = $this->createBuilder($fieldRepository)->createForm($contactForm, 'en');
 
-        self::assertFalse($form->has('phone'), 'PhoneInputBundle reported available but its form type is missing');
+        self::assertTrue($form->has('phone'));
+        self::assertNotSame(ContactPhoneInputAvailability::FORM_TYPE, $form->get('phone')->getConfig()->getType()->getInnerType()::class);
     }
 }
