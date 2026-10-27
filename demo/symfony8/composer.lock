@@ -1123,7 +1123,7 @@
             "dist": {
                 "type": "path",
                 "url": "/var/contact-form-bundle",
-                "reference": "1d4f38b32c35436e87e2fc4c411fdf7f68674572"
+                "reference": "ce46502dc53869f50a6e31c6f2fe6d3194884920"
             },
             "require": {
                 "doctrine/doctrine-bundle": "^2.13 || ^3.0",
@@ -1142,6 +1142,7 @@
                 "symfony/http-foundation": "^7.4 || ^8.0",
                 "symfony/http-kernel": "^7.4 || ^8.0",
                 "symfony/routing": "^7.4 || ^8.0",
+                "symfony/security-csrf": "^7.4 || ^8.0",
                 "symfony/translation": "^7.4 || ^8.0",
                 "symfony/twig-bundle": "^7.4 || ^8.0",
                 "symfony/validator": "^7.4 || ^8.0",
@@ -1162,9 +1163,9 @@
                 "symfony/css-selector": "^7.4 || ^8.0",
                 "symfony/dom-crawler": "^7.4 || ^8.0",
                 "symfony/mailer": "^7.4 || ^8.0",
+                "symfony/rate-limiter": "^7.4 || ^8.0",
                 "symfony/security-bundle": "^7.4 || ^8.0",
                 "symfony/security-core": "^7.4 || ^8.0",
-                "symfony/security-csrf": "^7.4 || ^8.0",
                 "symfony/var-exporter": "^7.4 || ^8.0",
                 "symfony/yaml": "^7.4 || ^8.0",
                 "vincentlanglet/twig-cs-fixer": "^4.0"
@@ -1173,8 +1174,8 @@
                 "nowo-tech/phone-input-bundle": "Rich phone fields with country flags and search in the prefix selector",
                 "symfony/form": "^8.1 required for the admin field wizard (FormFlow)",
                 "symfony/mailer": "Send submission notifications via email",
-                "symfony/security-bundle": "Link submissions to authenticated clients automatically",
-                "symfony/security-csrf": "Enable CSRF protection on public contact forms"
+                "symfony/rate-limiter": "Atomic public submission rate limiting (public_submission_rate_limit.limiter)",
+                "symfony/security-bundle": "Link submissions to authenticated clients automatically"
             },
             "type": "symfony-bundle",
             "autoload": {
@@ -1201,7 +1202,7 @@
                     "@php vendor/bin/phpunit --colors=always --coverage-text --coverage-clover coverage.xml --coverage-html coverage"
                 ],
                 "coverage-check": [
-                    "phpunit --colors=always --coverage-text=coverage-output.txt --coverage-clover coverage.xml && sh .scripts/coverage-fail-under.sh coverage-output.txt 99"
+                    "phpunit --colors=always --coverage-text=coverage-output.txt --coverage-clover coverage.xml && sh .scripts/coverage-fail-under.sh coverage-output.txt 100"
                 ],
                 "cs-check": [
                     "@php vendor/bin/php-cs-fixer fix --dry-run --diff"

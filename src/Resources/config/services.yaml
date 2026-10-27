@@ -28,6 +28,8 @@ services:
         arguments:
             $fileMaxSize: '%nowo_contact_form.file_upload.max_size%'
             $fileMimeTypes: '%nowo_contact_form.file_upload.mime_types%'
+            $textMaxLength: '%nowo_contact_form.public_field_max_length.text%'
+            $textareaMaxLength: '%nowo_contact_form.public_field_max_length.textarea%'
 
     Nowo\ContactFormBundle\Service\ContactPhoneInputOptionsResolver:
         arguments:

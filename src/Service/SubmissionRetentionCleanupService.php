@@ -32,6 +32,11 @@ final readonly class SubmissionRetentionCleanupService
         $ids = [];
 
         foreach ($this->formRepository->findAll() as $form) {
+            // 0 (or a legacy negative value) = keep forever: never compute a threshold in the future.
+            if ($form->getRetentionDays() <= 0) {
+                continue;
+            }
+
             $threshold = $this->clock->now()->modify('-' . $form->getRetentionDays() . ' days');
             $ids       = array_merge(
                 $ids,

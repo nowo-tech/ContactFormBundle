@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+  - [Security hardening](#security-hardening)
   - [Template contract](#template-contract)
 - [To 1.5.1](#to-151)
 - [To 1.5.0](#to-150)
@@ -52,6 +53,28 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+### Security hardening
+
+- **Locale switch** stays `GET {prefix}/locale/{locale}`, but `redirect` (and the `Referer` fallback) must now be a
+  path inside `web_ui.path_prefix`; anything else returns to the admin index. Links pointing outside the admin no
+  longer bounce there.
+- **CSRF required for the admin UI**: enable `framework.csrf_protection` and `framework.form.csrf_protection`
+  (`symfony/security-csrf` is now a dependency), or set `web_ui.enabled: false`. The container refuses to compile
+  otherwise.
+- **`security.access_roles: []`** with the default checker and **`security.allow_unauthenticated: true` in `prod`** (or
+  in any non-debug kernel whose environment does not start with `test`) now fail the compilation: configure a role (or a `security.access_checker`), keep the demo switch out of production.
+- **`retentionDays`** must be between 0 and 3650 (`default_retention_days` 1 to 3650). Check existing forms: a negative
+  value is now ignored by the cleanup (submissions kept) — set the intended number of days.
+- **Length caps** on public values (`public_field_max_length.text: 255`, `.textarea: 10000`, phone 32): raise them in
+  config if your forms collect longer answers. Admin name / slug are limited to 120 characters, the privacy URL to 500
+  and `http(s)` only.
+- **Field names** must match `^[a-z][a-z0-9_]*$` (not `gdpr_consent` / `_token`) when a field is saved through the
+  wizard; rename legacy fields that do not. **File fields** need `file_upload.service`.
+- **Rate limiting** counts every POST; optionally set `public_submission_rate_limit.limiter` to a
+  `symfony/rate-limiter` factory.
+- **Flex recipe**: `config/packages/security_nowo_contact_form.yaml` is no longer installed. If it is in your
+  project, move its `access_control` line into `config/packages/security.yaml` and delete the file.
 
 UiKit page contract (REQ-UI-003). No schema change. Hosts that relied on the bundle's own admin layout or on copies of
 its admin templates must act; hosts that already pointed `web_ui.layout_template` at their layout keep working through a

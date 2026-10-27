@@ -55,7 +55,7 @@ final class WiringTestKernel extends Kernel
         private readonly array $contactFormConfig = [],
         private readonly bool $withSecurity = true,
     ) {
-        parent::__construct('wiring' . substr(md5(serialize([$frameworkConfig, $contactFormConfig, $withSecurity])), 0, 12), false);
+        parent::__construct('test_wiring' . substr(md5(serialize([$frameworkConfig, $contactFormConfig, $withSecurity])), 0, 12), false);
     }
 
     public function registerBundles(): iterable
@@ -111,8 +111,9 @@ final class WiringTestKernel extends Kernel
             'http_method_override' => false,
             'php_errors'           => ['log' => true],
             'router'               => ['utf8' => true],
-            'form'                 => ['enabled' => true, 'csrf_protection' => ['enabled' => false]],
-            'csrf_protection'      => false,
+            'form'                 => ['enabled' => true, 'csrf_protection' => ['enabled' => true]],
+            'csrf_protection'      => true,
+            'session'              => ['storage_factory_id' => 'session.storage.factory.mock_file'],
             'translator'           => ['enabled' => true, 'fallbacks' => ['en']],
         ], $this->frameworkConfig));
         $container->loadFromExtension('doctrine', [

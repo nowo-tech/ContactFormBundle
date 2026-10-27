@@ -203,6 +203,21 @@ final class NowoContactFormExtensionTest extends TestCase
         self::assertFalse($container->hasDefinition('clock'));
     }
 
+    public function testLoadWiresTheOptionalRateLimiterFactoryAndLengthCaps(): void
+    {
+        $container = new ContainerBuilder();
+        (new NowoContactFormExtension())->load([array_merge($this->baseConfig(), [
+            'public_submission_rate_limit' => ['limiter' => 'limiter.contact_form'],
+            'public_field_max_length'      => ['text' => 120, 'textarea' => 2000],
+        ])], $container);
+
+        $limiter = $container->getDefinition(ContactFormSubmissionRateLimiter::class)->getArgument(4);
+        self::assertInstanceOf(Reference::class, $limiter);
+        self::assertSame('limiter.contact_form', (string) $limiter);
+        self::assertSame(120, $container->getParameter('nowo_contact_form.public_field_max_length.text'));
+        self::assertSame(2000, $container->getParameter('nowo_contact_form.public_field_max_length.textarea'));
+    }
+
     public function testGetAlias(): void
     {
         self::assertSame('nowo_contact_form', (new NowoContactFormExtension())->getAlias());

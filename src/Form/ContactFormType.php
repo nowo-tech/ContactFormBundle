@@ -11,7 +11,11 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\Email;
+use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Validator\Constraints\Range;
+use Symfony\Component\Validator\Constraints\Url;
 
 /**
  * Admin form type for contact form definitions.
@@ -35,32 +39,38 @@ class ContactFormType extends AbstractType
                 'label'       => $prefix . 'name',
                 'help'        => $prefix . 'name_help',
                 'empty_data'  => '',
-                'constraints' => [new NotBlank()],
+                'constraints' => [new NotBlank(), new Length(max: 120)],
             ]);
             $this->addTextField('slug', [
                 'label'       => $prefix . 'slug',
                 'help'        => $prefix . 'slug_help',
                 'empty_data'  => '',
-                'constraints' => [new NotBlank()],
+                'constraints' => [new NotBlank(), new Length(max: 120)],
             ]);
             $this->addCheckboxField('enabled', [
                 'label'    => $prefix . 'enabled',
                 'help'     => $prefix . 'enabled_help',
                 'required' => false,
             ]);
+            // Rendered as a link on the public page: http(s) only (no javascript: / data: URLs).
             $this->addUrlField('privacyPolicyUrl', [
-                'label'    => $prefix . 'privacy_policy_url',
-                'help'     => $prefix . 'privacy_policy_url_help',
-                'required' => false,
+                'label'            => $prefix . 'privacy_policy_url',
+                'help'             => $prefix . 'privacy_policy_url_help',
+                'required'         => false,
+                'default_protocol' => 'https',
+                'constraints'      => [new Url(protocols: ['http', 'https'], requireTld: true), new Length(max: 500)],
             ]);
+            // 0 = keep forever; a negative value would make the retention cleanup delete every submission.
             $this->addIntegerField('retentionDays', [
-                'label' => $prefix . 'retention_days',
-                'help'  => $prefix . 'retention_days_help',
+                'label'       => $prefix . 'retention_days',
+                'help'        => $prefix . 'retention_days_help',
+                'constraints' => [new NotBlank(), new Range(min: ContactForm::RETENTION_DAYS_MIN, max: ContactForm::RETENTION_DAYS_MAX)],
             ]);
             $this->addEmailField('notificationEmail', [
-                'label'    => $prefix . 'notification_email',
-                'help'     => $prefix . 'notification_email_help',
-                'required' => false,
+                'constraints' => [new Email(), new Length(max: 255)],
+                'label'       => $prefix . 'notification_email',
+                'help'        => $prefix . 'notification_email_help',
+                'required'    => false,
             ]);
             $this->addCheckboxField('requireConsent', [
                 'label'    => $prefix . 'require_consent',

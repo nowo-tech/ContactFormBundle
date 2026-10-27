@@ -9,6 +9,7 @@ use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ContactFormRepository::class)]
 #[ORM\Table(name: 'nowo_contact_form')]
@@ -18,6 +19,11 @@ use Nowo\ContactFormBundle\Repository\ContactFormRepository;
  */
 class ContactForm
 {
+    /** Retention bounds in days; 0 keeps the submissions forever (no automatic cleanup). */
+    public const RETENTION_DAYS_MIN = 0;
+
+    public const RETENTION_DAYS_MAX = 3650;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::INTEGER)]
@@ -34,9 +40,11 @@ class ContactForm
     private bool $enabled = true;
 
     #[ORM\Column(name: 'privacy_policy_url', length: 500, nullable: true)]
+    #[Assert\Url(protocols: ['http', 'https'], requireTld: true)]
     private ?string $privacyPolicyUrl = null;
 
     #[ORM\Column(name: 'retention_days', options: ['default' => 365])]
+    #[Assert\Range(min: self::RETENTION_DAYS_MIN, max: self::RETENTION_DAYS_MAX)]
     private int $retentionDays = 365;
 
     #[ORM\Column(name: 'require_consent', options: ['default' => false])]

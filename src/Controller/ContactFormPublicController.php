@@ -53,8 +53,12 @@ class ContactFormPublicController extends AbstractController
         $symfonyForm = $this->formBuilder->createForm($contactForm, $locale);
         $symfonyForm->handleRequest($request);
 
-        if ($symfonyForm->isSubmitted() && $symfonyForm->isValid()) {
+        // Every submission attempt counts (valid or not): invalid floods are throttled too.
+        if ($symfonyForm->isSubmitted()) {
             $this->submissionRateLimiter->consume($request, $slug);
+        }
+
+        if ($symfonyForm->isSubmitted() && $symfonyForm->isValid()) {
 
             $this->submissionProcessor->process(
                 $contactForm,

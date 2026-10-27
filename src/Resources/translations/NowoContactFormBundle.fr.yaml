@@ -116,8 +116,11 @@ nowo_contact_form:
       fields:
         name: Nom du champ
         name_help: Nom interne enregistré dans les soumissions (ex. email, phone). Utilisez des minuscules, des chiffres et des underscores.
+        name_invalid: 'Utilisez des minuscules, des chiffres et des tirets bas, en commençant par une lettre (120 caractères au plus).'
+        name_reserved: '« %name% » est réservé par le formulaire public ; choisissez un autre nom.'
         type: Type de champ
         type_help: Contrôle l'entrée affichée sur le formulaire public. Les champs select nécessitent des valeurs d'option ; les champs téléphone prennent en charge le sélecteur de préfixes Symfony ou Phone Input Bundle.
+        type_file_unavailable: 'Les champs fichier nécessitent un gestionnaire d''envoi (nowo_contact_form.file_upload.service) : sans lui, chaque soumission avec un fichier échoue.'
         required: Obligatoire
         required_help: Si activé, le champ doit être rempli avant de pouvoir envoyer le formulaire.
         sort_order: Ordre

@@ -46,6 +46,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Security
+
+- **Open redirect in the admin locale switch (CWE-601, affects 1.0.0–1.5.1).** `{prefix}/locale/{locale}?redirect=`
+  accepted any value starting with `/` but not `//`: `/%5Cevil.example/`, `/%09/evil.example/` or `%5C%5Cevil.example`
+  were followed by browsers to another host. The `redirect` parameter and the same-host `Referer` fallback now go
+  through `Security\SafeRelativePath` (single leading `/`, no backslash / whitespace / control character, no `.` /
+  `..` segment even percent-encoded, inside `web_ui.path_prefix`).
+- The admin access guard keys on the admin controller classes, not only on route names (a host route `name_prefix`,
+  fragments and sub-requests are now guarded).
+- The admin UI refuses to compile without form CSRF protection and a CSRF token manager; `symfony/security-csrf` moves
+  to `require`. An empty `security.access_roles` with the default checker, and `security.allow_unauthenticated` in the
+  `prod` environment or in any non-debug kernel outside `test*` environments, fail the container compilation.
+- Privacy policy URL: `http(s)` only (`Url` constraint, `https` default protocol); a stored `javascript:` / `data:` value
+  is no longer rendered as a link.
+- Retention: `retentionDays` is validated (0 to 3650) and the cleanup skips forms with 0 or a negative value (a
+  negative value used to make every submission expire).
+- Public form: values are length-capped (`public_field_max_length`, text 255, textarea 10 000, phone 32), every POST
+  counts against the rate limit (valid or not), and `public_submission_rate_limit.limiter` accepts a
+  `symfony/rate-limiter` factory for atomic counting.
+- Consent-label sanitizer drops comments, processing instructions and CDATA and rejects `/\host` links.
+- Field wizard: a tampered hidden field type is a validation error (no 500); field names must match
+  `^[a-z][a-z0-9_]*$` and cannot be `gdpr_consent` / `_token` (checked on every step, including the hidden name of the
+  later steps); file fields are refused without a
+  `file_upload.service`; the notification e-mail is validated; admin name / slug / URL lengths match the columns.
+- Flex recipe: the separate `security_nowo_contact_form.yaml` (a second `access_control` list, refused by Symfony) is
+  replaced by a post-install note.
+
 ### Added
 
 - **UiKit page contract (REQ-UI-003).** The admin pages extend the UiKit scaffolds — `page/list` (contact forms,

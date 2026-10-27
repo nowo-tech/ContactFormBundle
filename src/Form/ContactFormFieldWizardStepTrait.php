@@ -7,8 +7,10 @@ namespace Nowo\ContactFormBundle\Form;
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
 use Symfony\Component\Form\CallbackTransformer;
+use Symfony\Component\Form\Exception\TransformationFailedException;
 use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvent;
 use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
@@ -29,9 +31,19 @@ trait ContactFormFieldWizardStepTrait
     {
         $builder
             ->add('name', HiddenType::class)
-            ->add($this->createHiddenField($builder, 'type', static fn (?ContactFieldType $type): string => ($type ?? ContactFieldType::Text)->value, static fn (?string $value): ?ContactFieldType => ($value !== null && $value !== '') ? ContactFieldType::from($value) : null))
+            ->add($this->createHiddenField($builder, 'type', static fn (?ContactFieldType $type): string => ($type ?? ContactFieldType::Text)->value, static fn (?string $value): ?ContactFieldType => ($value !== null && $value !== '') ? (ContactFieldType::tryFrom($value) ?? throw new TransformationFailedException('Unknown contact field type.')) : null))
             ->add($this->createHiddenField($builder, 'required', static fn (?bool $required): string => ($required ?? false) ? '1' : '0', static fn (mixed $value): bool => in_array($value, [true, 1, '1', 'true', 'on'], true)))
             ->add($this->createHiddenField($builder, 'sortOrder', static fn (?int $sortOrder): string => (string) ($sortOrder ?? 0), static fn (mixed $value): int => (int) $value));
+
+        // The hidden name of the later steps is re-validated: a tampered value is refused like on the definition step.
+        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event): void {
+            $name      = (string) $event->getForm()->get('name')->getData();
+            $violation = ContactFormFieldDefinitionStepType::nameViolation($name);
+
+            if ($violation !== null) {
+                $event->getForm()->addError(new FormError($this->translator->trans('nowo_contact_form.admin.field.fields.' . $violation, ['%name%' => $name], 'NowoContactFormBundle')));
+            }
+        });
     }
 
     /**

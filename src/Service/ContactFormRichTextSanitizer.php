@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Service;
 
 use DOMAttr;
+use DOMCdataSection;
+use DOMComment;
 use DOMDocument;
 use DOMElement;
 use DOMNode;
+use DOMProcessingInstruction;
+use Nowo\ContactFormBundle\Security\SafeRelativePath;
 
 use function assert;
 use function in_array;
@@ -72,7 +76,10 @@ final class ContactFormRichTextSanitizer
         while ($child instanceof DOMNode) {
             $next = $child->nextSibling;
 
-            if ($child instanceof DOMElement) {
+            if ($child instanceof DOMComment || $child instanceof DOMProcessingInstruction || $child instanceof DOMCdataSection) {
+                // Comments, processing instructions and CDATA are never consent-label content.
+                $node->removeChild($child);
+            } elseif ($child instanceof DOMElement) {
                 $tag = strtolower($child->nodeName);
 
                 if (!isset(self::ALLOWED_ELEMENTS[$tag])) {
@@ -134,8 +141,8 @@ final class ContactFormRichTextSanitizer
             return false;
         }
 
-        if (str_starts_with($href, '/')) {
-            return !str_starts_with($href, '//');
+        if (str_starts_with($href, '/') || str_starts_with($href, '\\')) {
+            return SafeRelativePath::isSafe($href);
         }
 
         return (bool) preg_match('#^https?://#i', $href) || str_starts_with($href, 'mailto:');

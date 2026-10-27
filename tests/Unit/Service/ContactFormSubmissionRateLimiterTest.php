@@ -11,6 +11,8 @@ use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
+use Symfony\Component\RateLimiter\Storage\InMemoryStorage;
 
 #[CoversClass(ContactFormSubmissionRateLimiter::class)]
 final class ContactFormSubmissionRateLimiterTest extends TestCase
@@ -74,5 +76,22 @@ final class ContactFormSubmissionRateLimiterTest extends TestCase
         $request = Request::create('/');
 
         $limiter->consume($request, 'contact');
+    }
+
+    /**
+     * L4: with a symfony/rate-limiter factory the counting is the limiter's (atomic with a lock store).
+     */
+    public function testUsesTheRateLimiterFactoryWhenConfigured(): void
+    {
+        $clock   = new MockClock('2026-10-27 12:00:00');
+        $factory = new RateLimiterFactory(['id' => 'contact', 'policy' => 'fixed_window', 'limit' => 2, 'interval' => '1 minute'], new InMemoryStorage());
+        $limiter = new ContactFormSubmissionRateLimiter(new ArrayAdapter(), 0, 0, $clock, $factory);
+        $request = Request::create('/en/contact/support', 'POST', server: ['REMOTE_ADDR' => '203.0.113.7']);
+
+        $limiter->consume($request, 'support');
+        $limiter->consume($request, 'support');
+
+        $this->expectException(TooManyRequestsHttpException::class);
+        $limiter->consume($request, 'support');
     }
 }

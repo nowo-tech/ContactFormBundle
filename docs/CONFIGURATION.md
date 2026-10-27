@@ -8,7 +8,7 @@ Extension alias: `nowo_contact_form`.
 | `client_label_property` | `email` | Property or getter used as client label in admin |
 | `client_user_accessor` | `null` | Method on authenticated user returning the client (e.g. `getClient`) |
 | `ip_anonymization_salt` | `%kernel.secret%` | Salt for SHA-256 IP hashing (GDPR) |
-| `default_retention_days` | `365` | Default retention for new forms |
+| `default_retention_days` | `365` | Default retention for new forms (1 to 3650; a form may set 0 = keep forever) |
 | `notifications.enabled` | `false` | Enable submission notifications |
 | `notifications.service` | `null` | Custom `ContactSubmissionNotifierInterface` service id |
 | `notifications.default_recipient` | `null` | Fallback recipient when form has no `notification_email` |
@@ -38,6 +38,9 @@ Extension alias: `nowo_contact_form`.
 | `public_submission_rate_limit.enabled` | `true` | Enable per-IP rate limiting on public POST |
 | `public_submission_rate_limit.limit` | `5` | Max submissions per interval |
 | `public_submission_rate_limit.interval_seconds` | `60` | Rate-limit window in seconds |
+| `public_submission_rate_limit.limiter` | `null` | Optional `symfony/rate-limiter` factory service id (atomic counting; its own limit / interval apply) |
+| `public_field_max_length.text` | `255` | Max characters of text / email / URL values |
+| `public_field_max_length.textarea` | `10000` | Max characters of textarea values |
 | `doctrine.table_prefix` | `""` | Prefix prepended to entity table names (`nowo_contact_form`, …). Empty = no prefix |
 
 ## Table of contents
@@ -157,7 +160,22 @@ security:
 
 ## Public submission rate limiting
 
-When `public_submission_rate_limit.enabled` is `true` (default) and the app provides `cache.app` (FrameworkBundle always does), submissions are limited per client IP and form slug. Exceeding the limit returns HTTP 429. Set `enabled: false` or `limit: 0` to disable.
+When `public_submission_rate_limit.enabled` is `true` (default) and the app provides `cache.app` (FrameworkBundle always does), submission attempts — every POST, valid or not (since 1.6) — are limited per client IP and form slug. Exceeding the limit returns HTTP 429. Set `enabled: false` or `limit: 0` to disable.
+
+The `cache.app` counter is not atomic under concurrent requests. For strict counting, configure a
+`symfony/rate-limiter` limiter (with a lock store) and point the bundle at its factory:
+
+```yaml
+framework:
+    rate_limiter:
+        contact_form:
+            policy: fixed_window
+            limit: 5
+            interval: '1 minute'
+nowo_contact_form:
+    public_submission_rate_limit:
+        limiter: limiter.contact_form
+```
 
 ## File upload limits
 
@@ -206,7 +224,7 @@ php bin/console nowo:contact-form:cleanup-submissions
 php bin/console nowo:contact-form:cleanup-submissions --dry-run
 ```
 
-Each form's `retention_days` defines when its submissions are eligible for deletion.
+Each form's `retention_days` (0 to 3650) defines when its submissions are eligible for deletion; `0` keeps them forever (the cleanup skips the form).
 
 ## FormKit profile (`contact_form`)
 

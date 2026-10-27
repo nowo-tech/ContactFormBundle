@@ -85,4 +85,19 @@ final class ContactFormRichTextSanitizerTest extends TestCase
 
         self::assertStringNotContainsString('javascript:', $result);
     }
+
+    /**
+     * I1: comments, processing instructions and CDATA never survive; links to "/\\host" are dropped (shared M1 rule).
+     */
+    public function testDropsCommentsProcessingInstructionsAndBackslashLinks(): void
+    {
+        $sanitizer = new ContactFormRichTextSanitizer();
+
+        self::assertSame('I agree', $sanitizer->sanitize('I agree<!-- <script>x</script> --><?php echo 1 ?>'));
+        // Depending on the libxml version the CDATA marker is a dropped node or escaped text: never live markup.
+        self::assertStringNotContainsString('<![CDATA[', $sanitizer->sanitize('<b><![CDATA[x]]></b>'));
+        self::assertStringNotContainsString('href', $sanitizer->sanitize('<a href="/\\evil.example">x</a>'));
+        self::assertStringNotContainsString('href', $sanitizer->sanitize('<a href="\\\\evil.example">x</a>'));
+        self::assertStringContainsString('href="/privacy"', $sanitizer->sanitize('<a href="/privacy">x</a>'));
+    }
 }
