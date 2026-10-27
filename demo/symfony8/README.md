@@ -9,7 +9,7 @@ make up
 # Open http://localhost:8021 (or the PORT from .env)
 ```
 
-`make up` copies `.env.example` → `.env` when missing, installs Composer dependencies, runs migrations, seeds demo forms, and prints `Demo started at: http://localhost:<PORT>`.
+`make up` copies `.env.example` → `.env` when missing, installs Composer dependencies, runs migrations, seeds demo forms and a submissions inbox, and prints `Demo started at: http://localhost:<PORT>`.
 
 Language is switched via URL locale prefix (`en`, `es`).
 
@@ -25,6 +25,20 @@ Replace `{locale}` with `en` or `es`:
 | `/{locale}/contact/job-application` | Public job application form |
 | `/{locale}/contact/partner-inquiry` | Public partner inquiry form |
 | `/admin/contact-forms` | Admin CRUD (forms, fields, submissions) |
+
+## UiKit host layouts
+
+`config/packages/nowo_ui_kit.yaml` points `nowo_ui_kit.layouts.admin` / `.guest` at `templates/layouts/admin.html.twig`
+and `guest.html.twig`: the demo shell (`base.html.twig`, Bootstrap 5) with the UiKit canonical blocks through
+`@NowoUiKit/layout/_bridge.html.twig`. The bundle admin pages and the public forms render there — the demo overrides no
+bundle template.
+
+## Playwright e2e and screenshots
+
+```bash
+make test-e2e           # happy path: public form, admin lists, confirm dialog, wizard, submission detail
+make demo-screenshots   # refreshes ../../docs/images/demo/*.webp (reseeds the inbox first)
+```
 
 ## Web Profiler toolbar
 

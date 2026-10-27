@@ -10,6 +10,7 @@ Contributions are welcome. Please open an issue or a pull request on [GitHub](ht
 - [Code of Conduct](#code-of-conduct)
 - [Cursor Agent](#cursor-agent)
 - [Git hooks (REQ-GIT-001)](#git-hooks-req-git-001)
+- [Demo e2e and screenshots (REQ-DEMO-013)](#demo-e2e-and-screenshots-req-demo-013)
 
 ## Code of Conduct
 
@@ -41,3 +42,17 @@ make check-no-cursor-coauthor
 
 `make setup-hooks` installs `.githooks/commit-msg` (or sets `core.hooksPath` to `.githooks`). Run it once per clone before your first commit.
 If CI fails because trailers are already on the remote, see [GITHUB_CI.md](GITHUB_CI.md) (REQ-GIT-001) and run `make strip-cursor-coauthor-from-history` before `git push --force-with-lease`.
+
+## Demo e2e and screenshots (REQ-DEMO-013)
+
+Playwright lives in `demo/symfony8/e2e` and runs in the official Playwright Docker image against the running demo
+(`PORT` from `demo/symfony8/.env`):
+
+```bash
+make test-e2e            # = make -C demo/symfony8 test-e2e: public form + admin pages (lists, confirm dialog, wizard, detail)
+make demo-screenshots    # reseeds the demo inbox, captures PNGs, converts them to WebP (sharp) in docs/images/demo/
+```
+
+`make release-check` runs `test-e2e` after the demo release check. Screenshots keep the full demo frame (navbar, page,
+Symfony WebProfiler toolbar); look at them before committing.
+

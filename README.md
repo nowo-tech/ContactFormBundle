@@ -1,6 +1,6 @@
 # Contact Form Bundle
 
-[![CI](https://github.com/nowo-tech/ContactFormBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/ContactFormBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/contact-form-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/contact-form-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/contact-form-bundle.svg)](https://packagist.org/packages/nowo-tech/contact-form-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7.4%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/contact-form-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/ContactFormBundle) [![Coverage](https://img.shields.io/badge/Coverage-99.62%25-brightgreen)](#tests-and-coverage)
+[![CI](https://github.com/nowo-tech/ContactFormBundle/actions/workflows/ci.yml/badge.svg)](https://github.com/nowo-tech/ContactFormBundle/actions/workflows/ci.yml) [![Packagist Version](https://img.shields.io/packagist/v/nowo-tech/contact-form-bundle.svg?style=flat)](https://packagist.org/packages/nowo-tech/contact-form-bundle) [![Packagist Downloads](https://img.shields.io/packagist/dt/nowo-tech/contact-form-bundle.svg)](https://packagist.org/packages/nowo-tech/contact-form-bundle) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) [![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php)](https://php.net) [![Symfony](https://img.shields.io/badge/Symfony-7.4%20%7C%208.0%20%7C%208.1%2B-000000?logo=symfony)](https://symfony.com) [![GitHub stars](https://img.shields.io/github/stars/nowo-tech/contact-form-bundle.svg?style=social&label=Star)](https://github.com/nowo-tech/ContactFormBundle) [![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen)](#tests-and-coverage)
 
 > ⭐ **Found this useful?** [Install from Packagist](https://packagist.org/packages/nowo-tech/contact-form-bundle) · Give it a **star** on [GitHub](https://github.com/nowo-tech/ContactFormBundle) so more developers can find it.
 
@@ -10,6 +10,23 @@
 
 This bundle is **FrankenPHP worker mode friendly**, including when the kernel is **not** reset between requests (`reset_kernel` / services resetter off). Audit: [docs/FRANKENPHP-WORKER-AUDIT.md](docs/FRANKENPHP-WORKER-AUDIT.md).
 
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/images/demo/overview.webp" alt="Public multilingual contact form with phone prefix, topic select and GDPR consent" />
+      <br /><sub>Public form — phone prefix, topic select, GDPR consent</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/images/demo/admin.webp" alt="Admin submissions inbox with view and delete row actions" />
+      <br /><sub>Admin inbox — submissions per form (UiKit list)</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/images/demo/submission.webp" alt="Submission detail with metadata, submitted values and delete action" />
+      <br /><sub>Submission detail — consent date and submitted values</sub>
+    </td>
+  </tr>
+</table>
+
 ## Features
 
 - ✅ **Admin CRUD** for form definitions, customizable fields, and submissions
@@ -17,8 +34,9 @@ This bundle is **FrankenPHP worker mode friendly**, including when the kernel is
 - ✅ **Customizable fields**: text, email, phone, textarea, select (options per field)
 - ✅ **GDPR**: required consent checkbox, privacy policy link, IP anonymization, retention days
 - ✅ **Client association**: optional link to an existing host client entity or anonymous submissions
-- ✅ **Public form** at `/contact/{slug}` with PRG flow and flash success message
-- ✅ **Override** Twig templates and translations from your application
+- ✅ **Public form** at `/{_locale}/contact/{slug}` with PRG flow and flash success message
+- ✅ **UiKit page contract** (REQ-UI-003): admin pages on UiKit list / form / wizard / show scaffolds, public form on the guest layout — your layout and CSS stack once in `nowo_ui_kit`, no template copies; deletes through the UiKit confirm dialog
+- ✅ **Override** Twig templates (per page via `web_ui.templates`) and translations from your application
 - ✅ **Pluggable notifications** (custom notifier, Symfony Mailer, or `ContactSubmissionCreatedEvent`)
 - ✅ **GDPR retention cleanup** via `nowo:contact-form:cleanup-submissions`
 
@@ -48,7 +66,7 @@ Run Doctrine migrations after mapping entities (bundle registers ORM mappings au
 - PHP 8.2+
 - Symfony 7.4+ or 8.0+
 - Doctrine ORM 2.17+ or 3.x
-- [UiKitBundle](https://github.com/nowo-tech/UiKitBundle) ^1.4 and [FormKitBundle](https://github.com/nowo-tech/FormKitBundle) ^2.0 (pulled transitively)
+- [UiKitBundle](https://github.com/nowo-tech/UiKitBundle) ^2.15.3 and [FormKitBundle](https://github.com/nowo-tech/FormKitBundle) ^2.13.3 (pulled transitively); set `nowo_ui_kit.layouts` to your layout ([Configuration](docs/CONFIGURATION.md#admin-web-ui-layout-and-css))
 - `twig/extra-bundle` + `twig/string-extra` (pulled transitively)
 
 ## Demo
@@ -57,7 +75,12 @@ Run Doctrine migrations after mapping entities (bundle registers ORM mappings au
 make -C demo/symfony8 up
 ```
 
-Default URL: `http://localhost:8021` (see demo `.env.example` for `PORT`).
+Default URL: `http://localhost:8021` (see demo `.env.example` for `PORT`). The demo seeds three forms and a small
+submissions inbox (`app:seed-contact-demo`) and renders every page through its UiKit host layouts
+(`templates/layouts/`).
+
+Playwright e2e and the README screenshots (REQ-DEMO-013): `make test-e2e`, `make demo-screenshots` (see
+[CONTRIBUTING](docs/CONTRIBUTING.md#demo-e2e-and-screenshots-req-demo-013)).
 
 **FrankenPHP worker mode:** default is `FRANKENPHP_MODE=worker` (see `.env.example`). Set `classic` for per-request PHP / easier hot-reload, then recreate the container (`docker compose up -d`). Details: [docs/DEMO-FRANKENPHP.md](docs/DEMO-FRANKENPHP.md).
 
@@ -97,7 +120,7 @@ make release-check
 
 | Language | Coverage |
 | --- | --- |
-| PHP | **99.62%** line coverage on the includable `src/` set (run `make test-coverage` to refresh). See [`docs/COVERAGE.md`](docs/COVERAGE.md). |
+| PHP | **100%** line coverage of `src/` (no exclusions; `make test-coverage` / CI fail below 100%). See [`docs/COVERAGE.md`](docs/COVERAGE.md). |
 | TS/JS | N/A |
 | Python | N/A |
 

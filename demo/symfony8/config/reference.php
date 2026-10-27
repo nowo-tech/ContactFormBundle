@@ -1023,12 +1023,15 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         country_prefix_selector?: bool|Param, // Enable the country prefix selector on PhoneInputBundle fields. // Default: true
  *         show_flag?: bool|Param, // Show country flags in PhoneInputBundle prefix selector. // Default: true
  *     },
- *     admin_route_prefix?: scalar|Param|null, // URL path prefix for admin CRUD routes (host should lock with security.access_control). // Default: "/admin/contact-forms"
+ *     admin_route_prefix?: scalar|Param|null, // Deprecated: The "nowo_contact_form.admin_route_prefix" option is deprecated, use "nowo_contact_form.web_ui.path_prefix" instead (REQ-UI-003). // Deprecated since 1.6: use web_ui.path_prefix. // Default: null
  *     web_ui?: array{
  *         enabled?: bool|Param, // When false, admin CRUD routes respond 404 even if the bundle routes are imported. // Default: true
- *         layout_template?: scalar|Param|null, // Twig layout extended by admin pages (global nowo_contact_form_layout_template). Set to your app layout or a one-file bridge. // Default: "@NowoContactFormBundle/admin/layout.html.twig"
- *         css_framework?: "bootstrap"|"bootstrap4"|"bootstrap5"|"tailwind"|"foundation"|"custom"|"tabler"|"none"|Param, // Host CSS stack hint: bootstrap5 | bootstrap4 | bootstrap | tailwind | foundation | tabler | custom | none. // Default: "bootstrap5"
- *         icon_set?: "bootstrap-icons"|"tabler-icons"|"ux_icon"|"svg_inline"|"none"|Param, // Default: "bootstrap-icons"
+ *         path_prefix?: scalar|Param|null, // URL path prefix of the admin routes (default /admin/contact-forms; host should lock it with security.access_control). // Default: null
+ *         layout_template?: scalar|Param|null, // Layout the admin pages extend (REQ-UI-003). Null (default) = nowo_ui_kit.layouts.admin. A 1.x layout without the UiKit canonical blocks is wrapped in a deprecated bridge. // Default: null
+ *         public_layout_template?: scalar|Param|null, // Layout of the public contact form page. Null (default) = nowo_ui_kit.layouts.guest. // Default: null
+ *         templates?: array<string, scalar|Param|null>,
+ *         css_framework?: "bootstrap"|"bootstrap4"|"bootstrap5"|"tailwind"|"foundation"|"custom"|"tabler"|"none"|Param, // Deprecated: The "nowo_contact_form.web_ui.css_framework" option is deprecated, set "nowo_ui_kit.css_framework" instead (REQ-UI-003). // Deprecated since 1.6: the CSS stack is inherited from nowo_ui_kit.css_framework (copied there when the host did not set it). // Default: null
+ *         icon_set?: "bootstrap-icons"|"tabler-icons"|"ux_icon"|"svg_inline"|"none"|Param, // Deprecated: The "nowo_contact_form.web_ui.icon_set" option is deprecated, set "nowo_ui_kit.icon_set" instead (REQ-UI-003). // Deprecated since 1.6: inherited from nowo_ui_kit.icon_set (copied there when the host did not set it). // Default: null
  *         list_page_size?: int|Param, // Default page size for admin form and submission lists. // Default: 20
  *     },
  *     security?: array{
@@ -1142,6 +1145,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         tokens_dark?: array<string, mixed>,
  *         confirm_message_in_header?: bool|Param, // Confirm dialogs and the full-page confirm render the message inside the header, under the title (hosts whose dialog header is title + message). View\Confirm::messageInHeader wins when set. // Default: false
  *         popover_menus?: bool|Param, // 2.4: menu / kebab / row-action menus render their panel as a native [popover] (browser top layer: never clipped by table scrollers or cards; nowo-ui-popover.js places it). The partial option `popover` wins. // Default: false
+ *         form_errors_after_widget?: bool|Param, // 2.10: the UiKit form theme (form/nowo_ui_layout.html.twig) prints a field's errors after its widget (and before the help), instead of Symfony's order (label, errors, widget, help). // Default: false
  *         bundles?: array<string, array{ // Default: []
  *             framework_defaults?: bool|Param, // Override of theme.framework_defaults for this bundle (unset = inherit).
  *             classes?: array<string, mixed>,
@@ -1161,6 +1165,35 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             attributes?: array<string, array<string, mixed>>,
  *             header_actions_in_filters?: bool|Param, // list only: render the page-header actions at the end of the filter row instead of the page header (ListPage::headerActionsInFilters wins when set; unset = false).
  *         }>,
+ *     },
+ *     error_pages?: array{ // Kit error pages (2.6): templates/bundles/TwigBundle/Exception/error.html.twig = {% extends '@NowoUiKit/error/status.html.twig' %}.
+ *         layout_template?: scalar|Param|null, // Document the status template extends: the kit layout, or a host template extending it (own <head> assets, brand, chat dock…). // Default: "@NowoUiKit/error/layout.html.twig"
+ *         translation_domain?: scalar|Param|null, // Domain of the page texts (e.g. messages). Keys missing there fall back to UiKit's own NowoUiKitBundle error.* texts. // Default: "NowoUiKitBundle"
+ *         translation_prefix?: scalar|Param|null, // Key prefix: <prefix>.<code>.title|lead|hint|image_alt, <prefix>.generic.*, <prefix>.home|retry|back|retry_after|auto_retry|skip_to_content. // Default: "error"
+ *         home_path?: scalar|Param|null, // Href of the "Back to home" button. // Default: "/"
+ *         illustrations?: array<string, Param|string|array{ // Default: []
+ *             path?: scalar|Param|null,
+ *             width?: int|Param, // Default: null
+ *             height?: int|Param, // Default: null
+ *             webp?: bool|Param|null, // Default: null
+ *             extension?: scalar|Param|null, // Default: null
+ *         }>,
+ *         illustration_width?: int|Param, // Default intrinsic width of the illustrations. // Default: 1024
+ *         illustration_height?: int|Param, // Default intrinsic height of the illustrations. // Default: 683
+ *         webp?: bool|Param, // Illustrations ship a .webp next to the fallback image (<source type="image/webp">). // Default: true
+ *         retry_statuses?: list<int|Param>,
+ *         back_link_statuses?: list<int|Param>,
+ *         auto_retry_seconds?: int|Param, // A 5xx on GET reloads itself after this many seconds (REQ-ERROR-001 item 10; 0 = never). Never on POST. // Default: 600
+ *         theme_storage?: scalar|Param|null, // localStorage key of the theme (data-nowo-ui-theme-storage on <html> and the toggle), e.g. the host's beacon-theme. // Default: "nowo-ui-theme"
+ *         theme_toggle?: bool|Param, // Render the light / dark toggle in the top controls. // Default: true
+ *         html_attributes?: array<string, mixed>,
+ *     },
+ *     shell?: array{ // Signed-in app shell (2.6, @NowoUiKit/shell/_open|_close|_shell|_burger.html.twig; Twig global nowo_ui_kit_shell).
+ *         kit_styles?: bool|Param, // Add the kit shell classes (nowo-ui-shell, nowo-ui-header, nowo-ui-aside…) painted by nowo-ui.css and driven by nowo-ui-shell.js. false: only the app_* slot classes (host shell CSS / JS). // Default: true
+ *         sidebar_cookie?: scalar|Param|null, // Cookie holding the desktop aside mode (e.g. beacon_sidebar), read server-side so the first paint is already collapsed / rail; null = expanded unless the template passes collapsed. // Default: null
+ *         sidebar_hidden_value?: scalar|Param|null, // Cookie value of the hidden aside. // Default: "collapsed"
+ *         sidebar_rail_value?: scalar|Param|null, // Cookie value of the icons-only rail. // Default: "rail"
+ *         sidebar_storage?: scalar|Param|null, // localStorage key of the aside mode (data-nowo-ui-sidebar-storage on the shell root; kit_styles + rail only). // Default: null
  *     },
  * }
  * @psalm-type NowoPhoneInputConfig = array{

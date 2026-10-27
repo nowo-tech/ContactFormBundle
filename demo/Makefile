@@ -6,7 +6,7 @@ COMPOSE ?= $(shell docker compose version >/dev/null 2>&1 && echo "docker compos
 
 DEMOS := symfony8
 
-.PHONY: help clean test-all test-coverage-all verify-all release-check release-verify demo-smoke
+.PHONY: help clean test-all test-coverage-all verify-all release-check release-verify demo-smoke test-e2e demo-screenshots
 .PHONY: $(foreach demo,$(DEMOS),up-$(demo) down-$(demo) restart-$(demo) build-$(demo) install-$(demo) update-bundle-$(demo) shell-$(demo) logs-$(demo) test-$(demo) test-coverage-$(demo) verify-$(demo))
 .PHONY: up down restart build install update-bundle test shell logs test-coverage verify
 
@@ -188,6 +188,13 @@ release-verify:
 		echo "OK $$demo (HTTP $$code)"; \
 	done
 	@echo "Demo passed release-verify."
+
+# REQ-DEMO-013 — Playwright e2e and README screenshots against the primary demo (symfony8)
+test-e2e:
+	@$(MAKE) -C symfony8 test-e2e
+
+demo-screenshots:
+	@$(MAKE) -C symfony8 demo-screenshots
 
 # REQ-TEST-011 — boot + one HTTP 200 (final response after redirects)
 demo-smoke: release-verify
