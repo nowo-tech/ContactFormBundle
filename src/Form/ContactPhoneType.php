@@ -12,6 +12,7 @@ use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Extension\Core\Type\TelType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\Regex;
 
 use function is_array;
@@ -56,6 +57,7 @@ class ContactPhoneType extends AbstractType
                 'autocomplete' => 'tel-national',
             ],
             'constraints' => [
+                new Length(max: 32),
                 new Regex(
                     pattern: '/^[\d\s().-]*$/',
                     message: 'nowo_contact_form.public.phone_number_invalid',

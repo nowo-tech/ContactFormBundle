@@ -8,6 +8,7 @@ use Psr\Cache\CacheItemPoolInterface;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 
 use function hash;
 use function sprintf;
@@ -24,17 +25,32 @@ final readonly class ContactFormSubmissionRateLimiter
         private int $limit,
         private int $intervalSeconds,
         private ClockInterface $clock,
+        private ?RateLimiterFactoryInterface $limiterFactory = null,
     ) {
     }
 
+    /**
+     * Counts one submission attempt (called for every POST, valid or not) and throws 429 above the limit.
+     */
     public function consume(Request $request, string $formSlug): void
     {
+        $key = hash('sha256', $formSlug . '|' . ($request->getClientIp() ?? 'unknown'));
+
+        if ($this->limiterFactory instanceof RateLimiterFactoryInterface) {
+            $result = $this->limiterFactory->create($key)->consume();
+
+            if (!$result->isAccepted()) {
+                throw new TooManyRequestsHttpException(max(1, $result->getRetryAfter()->getTimestamp() - $this->clock->now()->getTimestamp()), 'Too many submissions.');
+            }
+
+            return;
+        }
+
         if ($this->limit <= 0 || $this->intervalSeconds <= 0 || !$this->cachePool instanceof CacheItemPoolInterface) {
             return;
         }
 
-        $key  = self::CACHE_KEY_PREFIX . hash('sha256', $formSlug . '|' . ($request->getClientIp() ?? 'unknown'));
-        $item = $this->cachePool->getItem($key);
+        $item = $this->cachePool->getItem(self::CACHE_KEY_PREFIX . $key);
         $now  = $this->clock->now()->getTimestamp();
         $data = $item->isHit() ? $item->get() : null;
 

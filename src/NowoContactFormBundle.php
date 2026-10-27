@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle;
 
 use Doctrine\Bundle\DoctrineBundle\DependencyInjection\Compiler\DoctrineOrmMappingsPass;
+use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormCsrfProtectionPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormSecurityPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\TwigPathsPass;
@@ -22,6 +23,7 @@ final class NowoContactFormBundle extends Bundle
     {
         $container->addCompilerPass(new TwigPathsPass());
         $container->addCompilerPass(new ContactFormSecurityPass());
+        $container->addCompilerPass(new ContactFormCsrfProtectionPass());
         $container->addCompilerPass(new ContactFormOptionalServicesPass());
 
         $entityDir = __DIR__ . '/Entity';

@@ -116,8 +116,11 @@ nowo_contact_form:
       fields:
         name: Field name
         name_help: Machine name stored in submissions (e.g. email, phone). Use lowercase letters, numbers, and underscores.
+        name_invalid: 'Use lowercase letters, numbers and underscores, starting with a letter (at most 120 characters).'
+        name_reserved: '"%name%" is reserved by the public form; choose another name.'
         type: Field type
         type_help: Controls the input rendered on the public form. Select fields require option values; phone fields support Symfony prefix selector or Phone Input Bundle.
+        type_file_unavailable: 'File fields need a file upload handler (nowo_contact_form.file_upload.service): without one the uploads are discarded.'
         required: Required
         required_help: When enabled, the field must be filled in before the form can be submitted.
         sort_order: Sort order

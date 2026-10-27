@@ -31,6 +31,7 @@ use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints\Email;
 use Symfony\Component\Validator\Constraints\File;
 use Symfony\Component\Validator\Constraints\IsTrue;
+use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Url;
 use Symfony\Contracts\Translation\TranslatorInterface;
@@ -60,6 +61,12 @@ final readonly class DynamicContactFormBuilder
     public const FORM_KIT_FORM_NAME = 'public_contact';
 
     /** Default max upload size for file fields (nowo_contact_form.file_upload.max_size). */
+    /** Default maximum length of single-line values (text, email, URL), in characters. */
+    public const DEFAULT_TEXT_MAX_LENGTH = 255;
+
+    /** Default maximum length of textarea values, in characters. */
+    public const DEFAULT_TEXTAREA_MAX_LENGTH = 10000;
+
     public const DEFAULT_FILE_MAX_SIZE = '5M';
 
     /**
@@ -92,6 +99,10 @@ final readonly class DynamicContactFormBuilder
         private FormOptionsMerger $formOptionsMerger,
         private ?string $fileMaxSize = self::DEFAULT_FILE_MAX_SIZE,
         private array $fileMimeTypes = self::DEFAULT_FILE_MIME_TYPES,
+        /** @var positive-int */
+        private int $textMaxLength = self::DEFAULT_TEXT_MAX_LENGTH,
+        /** @var positive-int */
+        private int $textareaMaxLength = self::DEFAULT_TEXTAREA_MAX_LENGTH,
     ) {
     }
 
@@ -184,14 +195,16 @@ final readonly class DynamicContactFormBuilder
                 $field->getName(),
                 EmailType::class,
                 array_merge($options, [
-                    'constraints' => array_merge($constraints, [new Email()]),
+                    'constraints' => array_merge($constraints, [new Email(), new Length(max: $this->textMaxLength)]),
                 ]),
             )),
             ContactFieldType::Phone    => $this->addPhoneField($builder, $field, $options),
             ContactFieldType::Textarea => $builder->add($field->getName(), TextareaType::class, $this->withProfileOptions(
                 $field->getName(),
                 TextareaType::class,
-                $options,
+                array_merge($options, [
+                    'constraints' => array_merge($constraints, [new Length(max: $this->textareaMaxLength)]),
+                ]),
             )),
             ContactFieldType::Select => $builder->add($field->getName(), ChoiceType::class, $this->withProfileOptions(
                 $field->getName(),
@@ -231,7 +244,7 @@ final readonly class DynamicContactFormBuilder
                 UrlType::class,
                 array_merge($options, [
                     'default_protocol' => 'https',
-                    'constraints'      => array_merge($constraints, [new Url()]),
+                    'constraints'      => array_merge($constraints, [new Url(), new Length(max: $this->textMaxLength)]),
                 ]),
             )),
             ContactFieldType::File => $builder->add($field->getName(), FileType::class, $this->withProfileOptions(
@@ -244,7 +257,9 @@ final readonly class DynamicContactFormBuilder
             ContactFieldType::Text => $builder->add($field->getName(), TextType::class, $this->withProfileOptions(
                 $field->getName(),
                 TextType::class,
-                $options,
+                array_merge($options, [
+                    'constraints' => array_merge($constraints, [new Length(max: $this->textMaxLength)]),
+                ]),
             )),
         };
     }
@@ -315,6 +330,7 @@ final readonly class DynamicContactFormBuilder
         $prefixes = $this->phonePrefixResolver->resolveForField($field);
 
         if ($prefixes === []) {
+            $options['constraints'] = array_merge($options['constraints'] ?? [], [new Length(max: 32)]);
             $builder->add($field->getName(), TelType::class, $this->withProfileOptions(
                 $field->getName(),
                 TelType::class,

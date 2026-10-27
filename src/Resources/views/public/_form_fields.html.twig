@@ -13,7 +13,8 @@
 {% if form.gdpr_consent is defined %}
     <div class="{{ nowo_ui_class('form_row', _b) }}">
         {{ form_row(form.gdpr_consent) }}
-        {% if contactForm.privacyPolicyUrl and translation.privacyPolicyText %}
+        {#- http(s) only: a legacy javascript: / data: URL stored before 1.6 is not rendered as a link -#}
+        {% if contactForm.privacyPolicyUrl and translation.privacyPolicyText and contactForm.privacyPolicyUrl matches '{^https?://}i' %}
             <p class="{{ nowo_ui_class('muted', _b) }}">
                 <a href="{{ contactForm.privacyPolicyUrl }}" target="_blank" rel="noopener">{{ translation.privacyPolicyText }}</a>
             </p>

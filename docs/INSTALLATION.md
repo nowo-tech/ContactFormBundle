@@ -83,7 +83,11 @@ security:
         - { path: ^/admin/contact-forms, roles: ROLE_ADMIN }
 ```
 
-Keep `nowo_contact_form.security.allow_unauthenticated: false` in production. See [Configuration](CONFIGURATION.md) and [Usage](USAGE.md).
+Add the line to your own `access_control` list (Symfony refuses a second `security.access_control` file, so the Flex
+recipe only prints it). Keep `nowo_contact_form.security.allow_unauthenticated: false` — it is refused in the `prod`
+environment. The admin UI also requires `framework.csrf_protection` and `framework.form.csrf_protection` (the
+container refuses to compile without them). See [Configuration](CONFIGURATION.md), [Usage](USAGE.md) and
+[Security](SECURITY.md).
 
 ## GDPR cleanup
 

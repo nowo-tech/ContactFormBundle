@@ -13,6 +13,7 @@ use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Repository\WorkerSafeServiceEntityRepository;
 use Nowo\ContactFormBundle\Tests\Integration\IntegrationTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 
 use function sprintf;
@@ -142,6 +143,55 @@ final class ContactFormAdminCrudTest extends IntegrationTestCase
 
         $this->switchWithReferer($client, 'http://localhost/elsewhere');
         self::assertResponseRedirects('/admin/contact-forms/');
+    }
+
+    /**
+     * M1 (CWE-601, 1.0.0–1.5.1): raw query strings a browser would turn into //evil.example.
+     *
+     * @return iterable<string, array{string}>
+     */
+    public static function openRedirectVectors(): iterable
+    {
+        yield '/\\ (/%5C)' => ['/%5Cevil.example/'];
+        yield '/%09/' => ['/%09/evil.example/'];
+        yield '\\\\ (%5C%5C)' => ['%5C%5Cevil.example'];
+        yield '/%2F' => ['/%2Fevil.example'];
+        yield '//' => ['//evil.example'];
+        yield 'outside the admin' => ['/account/settings'];
+        yield 'absolute' => ['https://evil.example/'];
+    }
+
+    #[DataProvider('openRedirectVectors')]
+    public function testSwitchLocaleNeverRedirectsOffTheAdmin(string $rawRedirect): void
+    {
+        $client = self::createTestClient();
+        $this->resetDatabase();
+
+        $client->request('GET', '/admin/contact-forms/locale/es?redirect=' . $rawRedirect, [], [], ['HTTP_REFERER' => '']);
+        self::assertResponseRedirects('/admin/contact-forms/');
+
+        $client->request('GET', '/admin/contact-forms/locale/es', [], [], ['HTTP_REFERER' => 'http://localhost' . rawurldecode($rawRedirect)]);
+        self::assertResponseRedirects('/admin/contact-forms/');
+    }
+
+    public function testInvalidUrlRetentionAndEmailAreRejected(): void
+    {
+        $client = self::createTestClient();
+        $this->resetDatabase();
+        $crawler = $client->request('GET', '/admin/contact-forms/new');
+
+        $form                                         = $crawler->filter('[data-testid="contact-form-form"] form')->form();
+        $form['contact_form[name]']                   = 'Support';
+        $form['contact_form[slug]']                   = 'support';
+        $form['contact_form[privacyPolicyUrl]']       = 'javascript:alert(document.domain)';
+        $form['contact_form[retentionDays]']          = '-5';
+        $form['contact_form[notificationEmail]']      = 'not-an-email';
+        $form['contact_form[translations][0][title]'] = 'Contact us';
+        $form['contact_form[translations][1][title]'] = 'Contacto';
+        $client->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, self::getEntityManager()->getRepository(ContactForm::class)->count([]));
     }
 
     public function testAdminPagesFollowTheSessionLocale(): void

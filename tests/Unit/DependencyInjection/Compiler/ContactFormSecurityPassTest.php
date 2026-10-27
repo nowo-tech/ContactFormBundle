@@ -155,6 +155,37 @@ final class ContactFormSecurityPassTest extends TestCase
         $container->setAlias(ContactFormAccessCheckerInterface::class, NowoContactFormExtension::DEFAULT_ACCESS_CHECKER_ID);
     }
 
+    public function testAllowUnauthenticatedIsRefusedInProd(): void
+    {
+        $container = $this->baseContainer(allowUnauthenticated: true);
+        $container->setParameter('kernel.environment', 'prod');
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('refused in the prod environment');
+        (new ContactFormSecurityPass())->process($container);
+    }
+
+    public function testEmptyRolesWithTheDefaultCheckerFailAtCompileTime(): void
+    {
+        $container = $this->baseContainer(allowUnauthenticated: false, accessRoles: []);
+        $container->setAlias(ContactFormAccessCheckerInterface::class, NowoContactFormExtension::DEFAULT_ACCESS_CHECKER_ID);
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('access_roles is empty');
+        (new ContactFormSecurityPass())->process($container);
+    }
+
+    public function testEmptyRolesWithACustomCheckerAreAccepted(): void
+    {
+        $container = $this->baseContainer(allowUnauthenticated: false, accessRoles: []);
+        $container->setAlias(ContactFormAccessCheckerInterface::class, 'app.checker');
+        $container->register('security.authorization_checker');
+
+        (new ContactFormSecurityPass())->process($container);
+
+        self::assertTrue($container->hasDefinition(ContactFormAdminAccessSubscriber::class));
+    }
+
     /**
      * @param list<string> $accessRoles
      */

@@ -26,12 +26,12 @@ use PHPUnit\Framework\Attributes\CoversTrait;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\DomCrawler\Field\ChoiceFormField;
+use Symfony\Component\DomCrawler\Field\InputFormField;
 
+use function array_search;
 use function is_string;
 use function sprintf;
 use function str_ends_with;
-use function strtolower;
-use function ucfirst;
 
 /**
  * Field wizard (Symfony FormFlow on the UiKit wizard scaffold) end to end: definition → type-specific step → content,
@@ -109,6 +109,61 @@ final class ContactFormFieldWizardTest extends IntegrationTestCase
         $field = $this->field('topic');
         self::assertSame(['general', 'sales'], $field->getOptions());
         self::assertSame(['General', 'Ventas'], $field->findTranslation('es')?->getSelectOptions());
+    }
+
+    /**
+     * I3 / I6: field names are safe identifiers (not the reserved public-form children), and without a file upload
+     * service a file field is refused instead of silently discarding uploads.
+     */
+    public function testDefinitionRejectsUnsafeNamesAndFileFieldsWithoutAnUploadHandler(): void
+    {
+        $client = self::createTestClient();
+        $this->resetDatabase();
+        $form = $this->persistForm();
+        $base = sprintf('/admin/contact-forms/%d/fields', $form->getId());
+
+        foreach (['gdpr_consent' => 'is reserved by the public form', '_token' => 'is reserved by the public form', 'Bad Name' => 'Use lowercase letters', '1st' => 'Use lowercase letters'] as $name => $message) {
+            $crawler = $client->request('GET', $base . '/new/definition');
+            $this->submitStep($client, $crawler, 'Continue', [
+                'contact_form_field_flow[definition][name]' => $name,
+                'contact_form_field_flow[definition][type]' => 'text',
+            ]);
+            self::assertResponseStatusCodeSame(422, $name);
+            self::assertStringContainsString($message, (string) $client->getResponse()->getContent());
+        }
+
+        $crawler = $client->request('GET', $base . '/new/definition');
+        $this->submitStep($client, $crawler, 'Continue', [
+            'contact_form_field_flow[definition][name]' => 'cv',
+            'contact_form_field_flow[definition][type]' => 'file',
+        ]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertStringContainsString('File fields need a file upload handler', (string) $client->getResponse()->getContent());
+    }
+
+    /**
+     * I2: a tampered hidden field type is a validation error, not a 500.
+     */
+    public function testATamperedHiddenTypeIsAValidationError(): void
+    {
+        $client = self::createTestClient();
+        $this->resetDatabase();
+        $form  = $this->persistForm();
+        $field = $this->persistField($form, 'email', ContactFieldType::Email);
+        $base  = sprintf('/admin/contact-forms/%d/fields/%d', $form->getId(), $field->getId());
+
+        $crawler = $client->request('GET', $base . '/edit/definition');
+        $this->submitStep($client, $crawler, 'Continue', []);
+        self::assertResponseRedirects($base . '/edit/content');
+
+        $crawler = $client->request('GET', $base . '/edit/content');
+        $form    = $crawler->selectButton('Save field')->form();
+        $type    = $form->get('contact_form_field_flow[content][type]');
+        self::assertInstanceOf(InputFormField::class, $type);
+        $type->setValue('shell');
+        $client->submit($form);
+
+        self::assertResponseStatusCodeSame(422);
     }
 
     public function testCreateAPhoneFieldValidatesThePrefixes(): void
@@ -255,9 +310,8 @@ final class ContactFormFieldWizardTest extends IntegrationTestCase
         $form = $crawler->selectButton($button)->form();
         foreach ($values as $name => $value) {
             if (str_ends_with($name, '[type]') && is_string($value)) {
-                $value = $crawler->filter(sprintf('select[name="%s"] option', $name))
-                    ->reduce(static fn (Crawler $option): bool => $option->text() === ContactFieldType::from($value)->name || strtolower($option->text()) === $value || $option->text() === ucfirst($value))
-                    ->attr('value') ?? $value;
+                // The choice values are the indexes of ContactFieldType::cases().
+                $value = (string) array_search(ContactFieldType::from($value), ContactFieldType::cases(), true);
             }
             if ($value === true) {
                 $checkbox = $form->get($name);

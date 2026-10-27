@@ -89,4 +89,20 @@ final class SubmissionRetentionCleanupServiceTest extends TestCase
 
         self::assertSame([1, 2], $service->collectExpiredSubmissionIds());
     }
+
+    /**
+     * L3: 0 keeps submissions forever and a legacy negative value never yields a future threshold (delete-all).
+     */
+    public function testZeroOrNegativeRetentionKeepsEverything(): void
+    {
+        $formRepository = $this->createStub(ContactFormRepository::class);
+        $formRepository->method('findAll')->willReturn([(new ContactForm())->setRetentionDays(0), (new ContactForm())->setRetentionDays(-5)]);
+
+        $submissionRepository = $this->createMock(ContactSubmissionRepository::class);
+        $submissionRepository->expects(self::never())->method('findExpiredIdsByForm');
+
+        $service = new SubmissionRetentionCleanupService($formRepository, $submissionRepository, $this->createStub(EntityManagerInterface::class), new MockClock());
+
+        self::assertSame([], $service->collectExpiredSubmissionIds());
+    }
 }

@@ -116,8 +116,11 @@ nowo_contact_form:
       fields:
         name: Veldnaam
         name_help: Interne naam opgeslagen in inzendingen (bijv. email, phone). Gebruik kleine letters, cijfers en underscores.
+        name_invalid: 'Gebruik kleine letters, cijfers en underscores, beginnend met een letter (maximaal 120 tekens).'
+        name_reserved: '"%name%" is gereserveerd door het openbare formulier; kies een andere naam.'
         type: Veldtype
         type_help: Bepaalt de invoer op het openbare formulier. Select-velden vereisen optiewaarden; telefoonvelden ondersteunen Symfony-prefixselector of Phone Input Bundle.
+        type_file_unavailable: 'Bestandsvelden hebben een upload-handler nodig (nowo_contact_form.file_upload.service): zonder handler worden uploads weggegooid.'
         required: Verplicht
         required_help: Indien ingeschakeld moet het veld worden ingevuld voordat het formulier kan worden verzonden.
         sort_order: Sorteervolgorde

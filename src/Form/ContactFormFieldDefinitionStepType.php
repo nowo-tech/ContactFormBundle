@@ -6,11 +6,20 @@ namespace Nowo\ContactFormBundle\Form;
 
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
+use Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface;
+use Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler;
 use Nowo\FormKitBundle\Attribute\FormKitConfig;
 use Nowo\FormKitBundle\Form\FormOptionsTrait;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormError;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Contracts\Translation\TranslatorInterface;
+
+use function in_array;
+use function preg_match;
 
 /**
  * First wizard step: field identity and behavior.
@@ -23,6 +32,18 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 class ContactFormFieldDefinitionStepType extends AbstractType
 {
     use FormOptionsTrait;
+
+    /** Field names are submission keys and form children: a safe identifier, never a name the public form uses. */
+    public const NAME_PATTERN = '/^[a-z][a-z0-9_]{0,119}$/';
+
+    /** Children of the public form the bundle adds itself. */
+    public const RESERVED_NAMES = ['gdpr_consent', '_token'];
+
+    public function __construct(
+        private readonly ?TranslatorInterface $translator = null,
+        private readonly ?ContactFormFileUploadHandlerInterface $fileUploadHandler = null,
+    ) {
+    }
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
@@ -53,6 +74,32 @@ class ContactFormFieldDefinitionStepType extends AbstractType
                 'help'  => $prefix . 'sort_order_help',
             ]);
         });
+
+        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event): void {
+            $form = $event->getForm();
+            $name = (string) $form->get('name')->getData();
+
+            if (in_array($name, self::RESERVED_NAMES, true)) {
+                $form->get('name')->addError(new FormError($this->message('name_reserved', ['%name%' => $name])));
+            } elseif (preg_match(self::NAME_PATTERN, $name) !== 1) {
+                $form->get('name')->addError(new FormError($this->message('name_invalid')));
+            }
+
+            // Without a file_upload.service the null handler discards uploads: a file field would lose them silently.
+            if ($form->get('type')->getData() === ContactFieldType::File && $this->fileUploadHandler instanceof NullContactFormFileUploadHandler) {
+                $form->get('type')->addError(new FormError($this->message('type_file_unavailable')));
+            }
+        });
+    }
+
+    /**
+     * @param array<string, string> $parameters
+     */
+    private function message(string $key, array $parameters = []): string
+    {
+        $id = 'nowo_contact_form.admin.field.fields.' . $key;
+
+        return $this->translator instanceof TranslatorInterface ? $this->translator->trans($id, $parameters, 'NowoContactFormBundle') : $id;
     }
 
     public function configureOptions(OptionsResolver $resolver): void

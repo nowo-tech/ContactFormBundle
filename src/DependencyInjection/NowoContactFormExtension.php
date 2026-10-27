@@ -167,6 +167,8 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
         $container->setParameter('nowo_contact_form.phone_input', $config['phone_input']);
         $container->setParameter('nowo_contact_form.file_upload.max_size', $config['file_upload']['max_size'] === null ? null : (string) $config['file_upload']['max_size']);
         $container->setParameter('nowo_contact_form.file_upload.mime_types', array_values($config['file_upload']['mime_types']));
+        $container->setParameter('nowo_contact_form.public_field_max_length.text', $config['public_field_max_length']['text']);
+        $container->setParameter('nowo_contact_form.public_field_max_length.textarea', $config['public_field_max_length']['textarea']);
         $webUi      = $config['web_ui'];
         $pathPrefix = $webUi['path_prefix'] ?? $config['admin_route_prefix'] ?? Configuration::DEFAULT_PATH_PREFIX;
         $container->setParameter('nowo_contact_form.web_ui.path_prefix', $pathPrefix);
@@ -276,6 +278,9 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
         $rateLimit = $config['public_submission_rate_limit'];
         $limit     = $rateLimit['enabled'] ? (int) $rateLimit['limit'] : 0;
         $interval  = $rateLimit['enabled'] ? (int) $rateLimit['interval_seconds'] : 0;
+        $limiter   = $rateLimit['enabled'] && is_string($rateLimit['limiter']) && $rateLimit['limiter'] !== ''
+            ? new Reference($rateLimit['limiter'])
+            : null;
 
         $container->register(ContactFormSubmissionRateLimiter::class)
             ->setAutowired(false)
@@ -285,6 +290,7 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
                 $limit,
                 $interval,
                 new Reference('clock'),
+                $limiter,
             ]);
     }
 

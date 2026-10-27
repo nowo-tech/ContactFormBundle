@@ -9,6 +9,7 @@ use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormTranslation;
 use Nowo\ContactFormBundle\Form\ContactFormType;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
+use Nowo\ContactFormBundle\Security\SafeRelativePath;
 use Nowo\ContactFormBundle\Service\ContactFormEnabledLocales;
 use Nowo\ContactFormBundle\Ui\ContactFormPageFactory;
 use Nowo\FormKitBundle\Form\CsrfOnlyFormFactory;
@@ -212,11 +213,18 @@ class ContactFormAdminController extends AbstractController
         return $form;
     }
 
+    /**
+     * Where to go back after a locale switch: the `redirect` query parameter or the same-host Referer, only when it is
+     * a safe same-origin path inside the admin prefix (SafeRelativePath: no `//`, `\`, whitespace or control
+     * characters — open redirect CWE-601 fixed in 1.6.0).
+     */
     private function resolveSafeRedirectUrl(Request $request): ?string
     {
-        $redirect = $request->query->getString('redirect');
+        $adminPrefix = $this->parameterBag->get('nowo_contact_form.web_ui.path_prefix');
+        $adminPrefix = is_string($adminPrefix) ? $adminPrefix : '';
+        $redirect    = $request->query->getString('redirect');
 
-        if ($redirect !== '' && str_starts_with($redirect, '/') && !str_starts_with($redirect, '//')) {
+        if ($redirect !== '' && SafeRelativePath::isSafeUnder($redirect, $adminPrefix)) {
             return $redirect;
         }
 
@@ -227,21 +235,15 @@ class ContactFormAdminController extends AbstractController
         }
 
         $refererHost = parse_url($referer, PHP_URL_HOST);
-        $currentHost = $request->getHost();
-
-        if ($refererHost !== null && $refererHost !== $currentHost) {
-            return null;
-        }
-
         $refererPath = parse_url($referer, PHP_URL_PATH);
 
-        $adminPrefix = $this->parameterBag->get('nowo_contact_form.web_ui.path_prefix');
-        if (!is_string($adminPrefix) || !is_string($refererPath) || !str_starts_with($refererPath, $adminPrefix)) {
+        if ($refererHost !== $request->getHost() || !is_string($refererPath)) {
             return null;
         }
 
         $query = parse_url($referer, PHP_URL_QUERY);
+        $path  = $refererPath . (is_string($query) && $query !== '' ? '?' . $query : '');
 
-        return $refererPath . ($query ? '?' . $query : '');
+        return SafeRelativePath::isSafeUnder($path, $adminPrefix) ? $path : null;
     }
 }
