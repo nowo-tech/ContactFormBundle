@@ -67,7 +67,7 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 ### Forms
 
 - **FR-FORM-001**: Form/field types, wizard steps, translation types, `ContactPhoneType`.
-- **FR-FORM-002**: `ContactFormFieldWizardStepTrait` shared step logic.
+- **FR-FORM-002**: `ContactFormFieldWizardStepTrait` shared step logic; `ContactFormFieldStepDataInterface` (the flow hands the field to its `inherit_data` steps).
 
 ### Services
 
@@ -76,6 +76,7 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 - **FR-SVC-003**: Phone prefix/options resolvers, availability, `ContactPhoneValue`.
 - **FR-SVC-004**: Select options synchronizer, file upload handler interface + null impl.
 - **FR-SVC-005**: `IpAnonymizer`, `SubmissionRetentionCleanupService`.
+- **FR-SVC-006**: `ContactFormEnabledLocales` (admin content locales, `en` fallback).
 
 ### Notifications
 
@@ -93,7 +94,8 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 
 - **FR-TWIG-001**: `ContactFormAdminTwigExtension`.
 - **FR-TWIG-002**: Admin and public Twig templates.
-- **FR-TWIG-003**: CSP — inline `<script>`/`<style>` in bundle templates emit `nonce` from request attribute `csp_nonce` when set; no inline event handlers (delete confirmation uses `data-confirm` + delegated listener in `admin/base.html.twig`); enforced by `InlineBlocksDeclareNonceTest`.
+- **FR-TWIG-003**: CSP — inline `<script>`/`<style>` in bundle templates emit `nonce` from request attribute `csp_nonce` when set; no inline event handlers and no `confirm()` (deletes use the UiKit confirm `<dialog>`); enforced by `InlineBlocksDeclareNonceTest` and the page contract test.
+- **FR-UI-001**: UiKit page contract (REQ-UI-003) — admin pages extend the UiKit list / form / wizard / show scaffolds with view models built by `Ui\ContactFormPageFactory`; the public form is a unique page on the guest layout; `Ui\ContactFormPages` resolves `web_ui.layout_template` / `public_layout_template` (null = `nowo_ui_kit.layouts`), `web_ui.templates.<page>` and the deprecated 1.x layout bridge; `tests/Integration/Contract/PageContractTest.php`.
 - **FR-I18N-001**: Seven locale YAML files.
 
 ### DI
@@ -108,7 +110,7 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 
 ## Success Criteria
 
-- **SC-001**: **94/94** files under `src/` mapped in [`code-inventory.md`](code-inventory.md) (audited 2026-10-20).
+- **SC-001**: **95/95** files under `src/` mapped in [`code-inventory.md`](code-inventory.md) (audited 2026-10-27).
 - **SC-002**: Config matches `docs/CONFIGURATION.md`.
 - **SC-003**: QA/CI green.
 

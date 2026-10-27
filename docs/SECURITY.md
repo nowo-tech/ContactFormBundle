@@ -51,7 +51,7 @@ The bundle ships a **default admin access checker** (`security.access_roles`, de
 ### Unprotected admin routes
 
 - **Risk**: Anyone can create, edit, or delete forms and view submissions if admin URLs are public.
-- **Mitigation**: Bundle-level `ContactFormAccessCheckerInterface` (default roles from `security.access_roles`) plus host `access_control` on `admin_route_prefix` (default `/admin/contact-forms/**`). With `web_ui.enabled: false` the admin routes respond 404 even if the bundle `routes.yaml` is imported. Keep `security.allow_unauthenticated: false` in production. See [`CONFIGURATION.md`](CONFIGURATION.md) and [`USAGE.md`](USAGE.md).
+- **Mitigation**: Bundle-level `ContactFormAccessCheckerInterface` (default roles from `security.access_roles`) plus host `access_control` on `web_ui.path_prefix` (default `/admin/contact-forms/**`). With `web_ui.enabled: false` the admin routes respond 404 even if the bundle `routes.yaml` is imported. Keep `security.allow_unauthenticated: false` in production. See [`CONFIGURATION.md`](CONFIGURATION.md) and [`USAGE.md`](USAGE.md).
 
 ### Spam and abuse on public forms
 

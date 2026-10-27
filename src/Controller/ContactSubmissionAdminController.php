@@ -9,9 +9,12 @@ use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactSubmission;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Repository\ContactSubmissionRepository;
+use Nowo\ContactFormBundle\Ui\ContactFormPageFactory;
+use Nowo\FormKitBundle\Form\CsrfOnlyFormFactory;
+use Nowo\UiKitBundle\View\Pagination;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use Symfony\Component\Form\Extension\Core\Type\FormType;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -37,6 +40,8 @@ class ContactSubmissionAdminController extends AbstractController
         private readonly ContactSubmissionRepository $submissionRepository,
         private readonly TranslatorInterface $translator,
         private readonly ParameterBagInterface $parameterBag,
+        private readonly ContactFormPageFactory $pages,
+        private readonly CsrfOnlyFormFactory $csrfOnlyForms,
     ) {
     }
 
@@ -52,14 +57,21 @@ class ContactSubmissionAdminController extends AbstractController
             $page = $pages;
         }
 
-        return $this->render('@NowoContactFormBundle/admin/submission/index.html.twig', [
+        $submissions = $this->submissionRepository->findByFormOrderedPage($form, $page, $pageSize);
+        $deleteForms = [];
+        foreach ($submissions as $submission) {
+            $deleteForms[(int) $submission->getId()] = $this->deleteForm($form, $submission)->createView();
+        }
+
+        return $this->render($this->pages->template('submission_index'), $this->pages->context([
+            'page' => $this->pages->submissionIndex(
+                $form,
+                $submissions,
+                new Pagination($page, $pageSize, $total, $pages, 'nowo_contact_form_submissions_index', $request->query->all(), ['formId' => $formId]),
+                $deleteForms,
+            ),
             'contactForm' => $form,
-            'submissions' => $this->submissionRepository->findByFormOrderedPage($form, $page, $pageSize),
-            'page'        => $page,
-            'pages'       => $pages,
-            'total'       => $total,
-            'pageSize'    => $pageSize,
-        ]);
+        ]));
     }
 
     #[Route('/{id}', name: 'show', requirements: ['id' => '\d+'], methods: ['GET'])]
@@ -68,19 +80,11 @@ class ContactSubmissionAdminController extends AbstractController
         $form       = $this->getContactForm($formId);
         $submission = $this->getSubmission($form, $id);
 
-        // REQ-TWIG-005: the delete button is a Symfony form; `_token` keeps the id checked by delete().
-        $deleteForm = $this->container->get('form.factory')->createNamed('', FormType::class, null, [
-            'action'          => $this->generateUrl('nowo_contact_form_submissions_delete', ['formId' => $formId, 'id' => $submission->getId()]),
-            'method'          => 'POST',
-            'csrf_field_name' => '_token',
-            'csrf_token_id'   => 'delete-submission-' . $submission->getId(),
-        ]);
-
-        return $this->render('@NowoContactFormBundle/admin/submission/show.html.twig', [
+        return $this->render($this->pages->template('submission_show'), $this->pages->context([
+            'page'        => $this->pages->submissionShow($form, $submission, $this->deleteForm($form, $submission)->createView()),
             'contactForm' => $form,
             'submission'  => $submission,
-            'deleteForm'  => $deleteForm->createView(),
-        ]);
+        ]));
     }
 
     #[Route('/{id}/delete', name: 'delete', requirements: ['id' => '\d+'], methods: ['POST'])]
@@ -99,6 +103,19 @@ class ContactSubmissionAdminController extends AbstractController
         $this->addFlash('success', $this->translator->trans('nowo_contact_form.admin.submission.deleted', [], 'NowoContactFormBundle'));
 
         return $this->redirectToRoute('nowo_contact_form_submissions_index', ['formId' => $formId]);
+    }
+
+    /**
+     * CSRF-only delete form (REQ-TWIG-005): posts `_token` with the id checked by delete().
+     *
+     * @return FormInterface<mixed>
+     */
+    private function deleteForm(ContactForm $form, ContactSubmission $submission): FormInterface
+    {
+        return $this->csrfOnlyForms->create(
+            $this->generateUrl('nowo_contact_form_submissions_delete', ['formId' => $form->getId(), 'id' => $submission->getId()]),
+            'delete-submission-' . $submission->getId(),
+        );
     }
 
     private function getContactForm(int $formId): ContactForm

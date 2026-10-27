@@ -1,9 +1,11 @@
 {#
   Translations of a contact field as locale tabs: FormKit locale_tabs (mode entries) rendered through the UiKit
   locale_tabs partial (default locale first and marked ★, required locales *, invalid tabs ! and opened first,
-  keyboard navigation, no Bootstrap JS). Required: form (with a `translations` collection).
+  keyboard navigation, no Bootstrap JS). Required: form (with a `translations` collection); optional bundle (theme
+  exceptions of the UiKit slots, default NowoContactFormBundle).
 #}
 {% if form.translations is defined %}
+{% set _b = bundle|default('NowoContactFormBundle') %}
 {% set _locales = contact_form_admin_locales() %}
 {% set _default = contact_form_admin_default_locale() %}
 {% set _labels = {} %}
@@ -11,8 +13,8 @@
     {% set _labels = _labels|merge({(_locale): ('nowo_contact_form.admin.locales.' ~ _locale)|trans({}, 'NowoContactFormBundle')}) %}
 {% endfor %}
 
-<fieldset class="mb-3">
-    <legend class="form-label fs-6 fw-semibold">
+<fieldset class="{{ nowo_ui_class('form_row', _b) }}">
+    <legend class="{{ nowo_ui_class('form_label', _b) }}">
         {{ 'nowo_contact_form.admin.field.fields.translations'|trans({}, 'NowoContactFormBundle') }}
     </legend>
 
@@ -29,7 +31,7 @@
             testid: 'field-translation-tabs',
         }), with_context: false) }}
     {% else %}
-        <p class="text-muted mb-0">{{ 'nowo_contact_form.admin.field.fields.translations_empty'|trans({}, 'NowoContactFormBundle') }}</p>
+        <p class="{{ nowo_ui_class('muted', _b) }}">{{ 'nowo_contact_form.admin.field.fields.translations_empty'|trans({}, 'NowoContactFormBundle') }}</p>
     {% endif %}
 </fieldset>
 

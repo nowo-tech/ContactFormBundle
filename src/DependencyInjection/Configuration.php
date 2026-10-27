@@ -5,10 +5,18 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\DependencyInjection;
 
 use Nowo\ContactFormBundle\Service\DynamicContactFormBuilder;
+use Nowo\ContactFormBundle\Ui\ContactFormPages;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
+use function array_diff;
+use function array_keys;
+use function implode;
 use function is_scalar;
+use function is_string;
+use function sprintf;
+use function trim;
 
 /**
  * Defines the configuration tree for the contact form bundle.
@@ -18,6 +26,12 @@ use function is_scalar;
 class Configuration implements ConfigurationInterface
 {
     public const ALIAS = 'nowo_contact_form';
+
+    /** Default admin route prefix (web_ui.path_prefix / deprecated admin_route_prefix unset). */
+    public const DEFAULT_PATH_PREFIX = '/admin/contact-forms';
+
+    /** 1.x default layout (removed in 1.6; mapped to null = nowo_ui_kit.layouts.admin). */
+    public const LEGACY_DEFAULT_LAYOUT = '@NowoContactFormBundle/admin/layout.html.twig';
 
     public const CSS_FRAMEWORKS = ['bootstrap', 'bootstrap4', 'bootstrap5', 'tailwind', 'foundation', 'custom', 'tabler', 'none'];
 
@@ -85,30 +99,67 @@ class Configuration implements ConfigurationInterface
                     ->end()
                 ->end()
                 ->scalarNode('admin_route_prefix')
-                    ->defaultValue('/admin/contact-forms')
-                    ->cannotBeEmpty()
-                    ->info('URL path prefix for admin CRUD routes (host should lock with security.access_control).')
+                    ->defaultNull()
+                    ->setDeprecated('nowo-tech/contact-form-bundle', '1.6', 'The "%path%" option is deprecated, use "nowo_contact_form.web_ui.path_prefix" instead (REQ-UI-003).')
+                    ->info('Deprecated since 1.6: use web_ui.path_prefix.')
                 ->end()
                 ->arrayNode('web_ui')
                     ->addDefaultsIfNotSet()
+                    ->beforeNormalization()
+                        ->ifArray()
+                        ->then(static function (array $v): array {
+                            // The 1.x default layout was removed (REQ-UI-003): null = nowo_ui_kit.layouts.admin.
+                            if (($v['layout_template'] ?? null) === self::LEGACY_DEFAULT_LAYOUT) {
+                                $v['layout_template'] = null;
+                            }
+
+                            return $v;
+                        })
+                    ->end()
                     ->children()
                         ->booleanNode('enabled')
                             ->defaultTrue()
                             ->info('When false, admin CRUD routes respond 404 even if the bundle routes are imported.')
                         ->end()
+                        ->scalarNode('path_prefix')
+                            ->defaultNull()
+                            ->info('URL path prefix of the admin routes (default /admin/contact-forms; host should lock it with security.access_control).')
+                            ->validate()
+                                ->ifTrue(static fn (mixed $v): bool => $v !== null && (!is_string($v) || trim($v) === ''))
+                                ->thenInvalid('web_ui.path_prefix must be a non-empty path or null.')
+                            ->end()
+                        ->end()
                         ->scalarNode('layout_template')
-                            ->defaultValue('@NowoContactFormBundle/admin/layout.html.twig')
-                            ->cannotBeEmpty()
-                            ->info('Twig layout extended by admin pages (global nowo_contact_form_layout_template). Set to your app layout or a one-file bridge.')
+                            ->defaultNull()
+                            ->info('Layout the admin pages extend (REQ-UI-003). Null (default) = nowo_ui_kit.layouts.admin. A 1.x layout without the UiKit canonical blocks is wrapped in a deprecated bridge.')
+                        ->end()
+                        ->scalarNode('public_layout_template')
+                            ->defaultNull()
+                            ->info('Layout of the public contact form page. Null (default) = nowo_ui_kit.layouts.guest.')
+                        ->end()
+                        ->arrayNode('templates')
+                            ->info('Per-page template overrides (page id => template): form_index, form_form, field_index, field_form, submission_index, submission_show, public_form. Extend @!NowoContactFormBundle/... and override a data block.')
+                            ->useAttributeAsKey('page')
+                            ->normalizeKeys(false)
+                            ->scalarPrototype()->cannotBeEmpty()->end()
+                            ->validate()
+                                ->ifTrue(static fn (array $v): bool => array_diff(array_keys($v), array_keys(ContactFormPages::TEMPLATES)) !== [])
+                                ->then(static function (array $v): never {
+                                    throw new InvalidConfigurationException(sprintf('Unknown web_ui.templates page(s) "%s"; known: %s.', implode('", "', array_diff(array_keys($v), array_keys(ContactFormPages::TEMPLATES))), implode(', ', array_keys(ContactFormPages::TEMPLATES))));
+                                })
+                            ->end()
                         ->end()
                         ->enumNode('css_framework')
                             ->values(self::CSS_FRAMEWORKS)
-                            ->defaultValue('bootstrap5')
-                            ->info('Host CSS stack hint: bootstrap5 | bootstrap4 | bootstrap | tailwind | foundation | tabler | custom | none.')
+                            ->defaultNull()
+                            ->setDeprecated('nowo-tech/contact-form-bundle', '1.6', 'The "%path%" option is deprecated, set "nowo_ui_kit.css_framework" instead (REQ-UI-003).')
+                            ->info('Deprecated since 1.6: the CSS stack is inherited from nowo_ui_kit.css_framework (copied there when the host did not set it).')
                         ->end()
                         ->enumNode('icon_set')
                             ->values(['bootstrap-icons', 'tabler-icons', 'ux_icon', 'svg_inline', 'none'])
-                            ->defaultValue('bootstrap-icons')
+                            ->defaultNull()
+                            ->setDeprecated('nowo-tech/contact-form-bundle', '1.6', 'The "%path%" option is deprecated, set "nowo_ui_kit.icon_set" instead (REQ-UI-003).')
+                            ->info('Deprecated since 1.6: inherited from nowo_ui_kit.icon_set (copied there when the host did not set it).')
                         ->end()
                         ->integerNode('list_page_size')
                             ->defaultValue(20)

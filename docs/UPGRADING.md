@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+  - [Template contract](#template-contract)
 - [To 1.5.1](#to-151)
 - [To 1.5.0](#to-150)
 - [To 1.4.1](#to-141)
@@ -51,6 +52,57 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+UiKit page contract (REQ-UI-003). No schema change. Hosts that relied on the bundle's own admin layout or on copies of
+its admin templates must act; hosts that already pointed `web_ui.layout_template` at their layout keep working through a
+deprecated bridge.
+
+1. **Layouts once in UiKit.** Set `nowo_ui_kit.layouts.admin` (and `.guest`, used by the public contact form) to your
+   layout or a one-file bridge (`{% use '@NowoUiKit/layout/_bridge.html.twig' %}`, see
+   [CONFIGURATION](CONFIGURATION.md#admin-web-ui-layout-and-css)). Then remove `web_ui.layout_template` (default
+   `null`). A 1.x layout still set there keeps rendering the pages inside its `content` block through
+   `admin/_legacy_layout.html.twig` (deprecation; removed in 2.0). The value `@NowoContactFormBundle/admin/layout.html.twig`
+   (the removed 1.x default) is mapped to `null`.
+2. **CSS stack.** The bundle layout that loaded Bootstrap from a CDN is gone: your layout loads the CSS framework.
+   Move `web_ui.css_framework` / `icon_set` to `nowo_ui_kit.css_framework` / `icon_set` (still copied there while
+   UiKit has none; deprecated). Register a form theme (`twig.form_themes: ['bootstrap_5_layout.html.twig']`, …): the
+   admin templates no longer force Bootstrap 5, and the seeded FormKit `contact_form` profile no longer adds
+   `form-control` / `form-select` / `mb-2`.
+3. **Route prefix.** Rename `admin_route_prefix` to `web_ui.path_prefix` (the old key still applies; deprecated). The
+   container parameter `nowo_contact_form.admin_route_prefix` keeps the resolved value.
+4. **Template overrides.** Copies of `admin/layout.html.twig`, `admin/base.html.twig`, `admin/_pagination.html.twig`,
+   `admin/_locale_switch.html.twig` are dead: delete them. Overrides of the page templates were written for the 1.x
+   variables: delete them and re-apply only what you need with `web_ui.templates.<page>` and a thin
+   `{% extends '@!NowoContactFormBundle/...' %}` overriding one data block, or with the UiKit theme
+   (`nowo_ui_kit.theme`, `theme.bundles.NowoContactFormBundle`). See [TEMPLATES](TEMPLATES.md).
+5. **Public form.** `public/contact_form.html.twig` now extends the UiKit guest layout (`web_ui.public_layout_template`,
+   null = `nowo_ui_kit.layouts.guest`) instead of printing a bare HTML document; flashes come from the layout. An app
+   override of this template keeps working but freezes it (REQ-TWIG-001).
+6. **Interface language.** The admin no longer renders its own locale switch: link
+   `path('nowo_contact_form_admin_switch_locale', {locale: …})` from your layout's switcher.
+7. **Deletes.** Contact forms, fields and submissions are deleted through the UiKit confirm dialog; the inline
+   `data-confirm` script is gone. Hosts with their own CSP keep working (no inline handler).
+
+### Template contract
+
+| Page (`web_ui.templates` id) | Template | Scaffold | View model (`page`) | Data blocks |
+| --- | --- | --- | --- | --- |
+| `form_index` | `admin/form/index.html.twig` | `page/list` | `ListPage` | `nowo_ui_list_row` |
+| `form_form` | `admin/form/form.html.twig` | `page/form` | `FormPage` | `nowo_ui_form_body` |
+| `field_index` | `admin/field/index.html.twig` | `page/list` | `ListPage` | `nowo_ui_list_row` |
+| `field_form` | `admin/field/form.html.twig` | `page/wizard` | `WizardPage` | `nowo_ui_wizard_step` |
+| `submission_index` | `admin/submission/index.html.twig` | `page/list` | `ListPage` | `nowo_ui_list_row` |
+| `submission_show` | `admin/submission/show.html.twig` | `page/show` | `ShowPage` | — |
+| `public_form` | `public/contact_form.html.twig` | guest layout (unique page) | `header` (`PageHeader`), `page_layout` | `nowo_ui_page_header`, `nowo_ui_content` |
+
+| Removed / deprecated | Replacement |
+| --- | --- |
+| `admin/layout.html.twig`, `admin/base.html.twig` | `nowo_ui_kit.layouts.admin` (UiKit layouts) |
+| `admin/_pagination.html.twig` | UiKit `pagination` partial (scaffold) |
+| `admin/_locale_switch.html.twig` | host locale switcher → `nowo_contact_form_admin_switch_locale` |
+| `data-confirm` + `window.confirm()` | UiKit confirm `<dialog>` (`Action::delete` + `Confirm`) |
+| globals `nowo_contact_form_layout_template` / `_css_framework` / `_icon_set` (deprecated) | `nowo_ui_layout`, `nowo_ui_kit.*` |
+| 1.x page variables (`forms`, `fields`, `submissions`, `pages`, `total`, `pageSize`, `flow`, `deleteForm`, int `page`) | the `page` view model |
 
 ## To 1.5.1
 

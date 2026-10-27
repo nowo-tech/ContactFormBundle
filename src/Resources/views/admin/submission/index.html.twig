@@ -1,61 +1,25 @@
-{% extends '@NowoContactFormBundle/admin/base.html.twig' %}
-{% import '@NowoUiKitBundle/macros/ui.html.twig' as ui %}
-{% set _css_fw = nowo_contact_form_css_framework|default('bootstrap5') %}
+{#
+  Submissions of a contact form (REQ-UI-003): UiKit list scaffold. Variable: page (View\ListPage from
+  ContactFormPageFactory::submissionIndex(): header nowo_contact_form.admin.submission.index_title (intro = form name)
+  with a back link to the forms; columns date, client, locale; rows = list<ContactSubmission>; row actions View /
+  Delete (POST + CSRF FormView behind a Confirm); Pagination; EmptyState nowo_contact_form.admin.submission.empty).
+  Data block filled: nowo_ui_list_row (cells).
+#}
+{% extends '@NowoUiKit/page/list.html.twig' %}
+{% trans_default_domain 'NowoContactFormBundle' %}
 
-{% block title %}{{ 'nowo_contact_form.admin.submission.index_title'|trans({}, 'NowoContactFormBundle') }}{% endblock %}
-
-{% block content %}
-    <div class="mb-4">
-        <p class="text-muted mb-1">{{ contactForm.name }}</p>
-        <h1 class="h2 mb-0">{{ 'nowo_contact_form.admin.submission.index_title'|trans({}, 'NowoContactFormBundle') }}</h1>
-    </div>
-
-    <div class="card shadow-sm mb-4">
-        <div class="table-responsive">
-            <table class="table table-striped table-hover mb-0 align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>{{ 'nowo_contact_form.admin.submission.columns.date'|trans({}, 'NowoContactFormBundle') }}</th>
-                        <th>{{ 'nowo_contact_form.admin.submission.columns.client'|trans({}, 'NowoContactFormBundle') }}</th>
-                        <th>{{ 'nowo_contact_form.admin.submission.columns.locale'|trans({}, 'NowoContactFormBundle') }}</th>
-                        <th class="text-end">{{ 'nowo_contact_form.admin.submission.columns.actions'|trans({}, 'NowoContactFormBundle') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for submission in submissions %}
-                        <tr>
-                            <td>{{ submission.createdAt|date('Y-m-d H:i') }}</td>
-                            <td>
-                                {% if submission.anonymous %}
-                                    <span class="text-muted">{{ 'nowo_contact_form.admin.submission.anonymous'|trans({}, 'NowoContactFormBundle') }}</span>
-                                {% else %}
-                                    {{ submission.clientLabel ?? submission.clientId }}
-                                {% endif %}
-                            </td>
-                            <td><span class="badge text-bg-light border">{{ submission.locale }}</span></td>
-                            <td class="text-end">
-                                <div class="{{ ui.row_actions(_css_fw) }}">
-                                    <a href="{{ path('nowo_contact_form_submissions_show', { formId: contactForm.id, id: submission.id }) }}" class="{{ ui.btn('secondary', 'sm', _css_fw) }} nowo-ui-action-view">
-                                        {{ 'nowo_contact_form.admin.actions.view'|trans({}, 'NowoContactFormBundle') }}
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                    {% else %}
-                        <tr>
-                            <td colspan="4" class="text-center text-muted py-4">
-                                {{ 'nowo_contact_form.admin.submission.empty'|trans({}, 'NowoContactFormBundle') }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    {% include '@NowoContactFormBundle/admin/_pagination.html.twig' %}
-
-    <a href="{{ path('nowo_contact_form_admin_index') }}" class="{{ ui.btn('secondary', null, _css_fw) }} nowo-ui-action-cancel">
-        {{ 'nowo_contact_form.admin.back'|trans({}, 'NowoContactFormBundle') }}
-    </a>
+{% block nowo_ui_list_row %}
+    {% set _b = page.bundle %}
+    {% set _cell = nowo_ui_class('table_cell', _b) %}
+    <td class="{{ _cell }}" data-label="{{ 'nowo_contact_form.admin.submission.columns.date'|trans }}" data-required="1">{{ row.createdAt|date('Y-m-d H:i') }}</td>
+    <td class="{{ _cell }}" data-label="{{ 'nowo_contact_form.admin.submission.columns.client'|trans }}">
+        {% if row.anonymous %}
+            <span class="{{ nowo_ui_class('muted', _b) }}">{{ 'nowo_contact_form.admin.submission.anonymous'|trans }}</span>
+        {% else %}
+            {{ row.clientLabel ?? row.clientId }}
+        {% endif %}
+    </td>
+    <td class="{{ _cell }}" data-label="{{ 'nowo_contact_form.admin.submission.columns.locale'|trans }}" data-nowo-ui-priority="2">
+        <span class="{{ nowo_ui_class('badge_neutral', _b) }}">{{ row.locale }}</span>
+    </td>
 {% endblock %}

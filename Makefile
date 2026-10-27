@@ -1,5 +1,5 @@
 # Contact Form Bundle - Development
-.PHONY: help up down down-dev build shell install test test-coverage coverage-check cs-check cs-fix qa clean ensure-up rector rector-dry phpstan igor release-check release-check-demos composer-sync update validate validate-translations check-no-cursor-coauthor check-open-prs strip-cursor-coauthor-from-history check-twig-extra check-no-raw-html-form demo-smoke assets
+.PHONY: help up down down-dev build shell install test test-coverage coverage-check cs-check cs-fix qa clean ensure-up rector rector-dry phpstan igor release-check release-check-demos composer-sync update validate validate-translations check-no-cursor-coauthor check-open-prs strip-cursor-coauthor-from-history check-twig-extra check-no-raw-html-form demo-smoke assets test-e2e demo-screenshots
 
 COMPOSE_FILE ?= docker-compose.yml
 # Prefer Compose V2 plugin (GitHub Actions / modern Docker Desktop); fall back to docker-compose V1 (REQ-MAKE-010).
@@ -21,7 +21,7 @@ help:
 	@echo "  install       Install Composer dependencies"
 	@echo "  assets        No-op (no frontend build in this bundle)"
 	@echo "  test          Run PHPUnit tests"
-	@echo "  test-coverage Run tests with coverage and enforce >= 99% lines"
+	@echo "  test-coverage Run tests with coverage and enforce 100% PHP lines"
 	@echo "  cs-check      Check code style"
 	@echo "  cs-fix        Fix code style"
 	@echo "  rector        Apply Rector refactoring"
@@ -42,6 +42,8 @@ help:
 	@echo "  check-twig-extra / check-no-raw-html-form  Twig gates (REQ-TWIG-004 / REQ-TWIG-005)"
 	@echo "  check-open-prs Fail if unresolved open GitHub PRs remain (REQ-REL-003)"
 	@echo "  demo-smoke    Boot the demo and assert a final HTTP 200 (REQ-TEST-011)"
+	@echo "  test-e2e      Playwright e2e against demo/symfony8: public form + admin pages (REQ-DEMO-013)"
+	@echo "  demo-screenshots Refresh README screenshots docs/images/demo/*.webp (REQ-DEMO-013)"
 	@echo ""
 	@echo "Demo: make -C demo/symfony8"
 	@echo ""
@@ -82,7 +84,7 @@ test-coverage: ensure-up
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer install --no-interaction
 	$(COMPOSE) exec -T $(SERVICE_PHP) composer test-coverage | tee coverage-php.txt
 	sh .scripts/php-coverage-percent.sh coverage-php.txt
-	sh .scripts/coverage-fail-under.sh coverage-php.txt 99
+	sh .scripts/coverage-fail-under.sh coverage-php.txt 100
 
 # Alias kept for existing scripts/docs
 coverage-check: test-coverage
@@ -120,7 +122,7 @@ check-twig-extra:
 # Run Igor worker-state audit (REQ-CS-008)
 igor: ensure-up
 	$(COMPOSE) exec -T php composer igor
-release-check: ensure-up check-no-cursor-coauthor check-open-prs check-twig-extra check-no-raw-html-form validate-translations composer-sync cs-fix cs-check rector-dry phpstan igor test-coverage release-check-demos
+release-check: ensure-up check-no-cursor-coauthor check-open-prs check-twig-extra check-no-raw-html-form validate-translations composer-sync cs-fix cs-check rector-dry phpstan igor test-coverage release-check-demos test-e2e
 
 release-check-demos:
 	@$(MAKE) -C demo release-check
@@ -166,6 +168,13 @@ check-no-raw-html-form:
 # REQ-TEST-011 — boot the demo and assert a final HTTP 200
 demo-smoke:
 	@$(MAKE) -C demo demo-smoke
+
+# REQ-DEMO-013 — Playwright e2e + WebP README screenshots (demo/symfony8/e2e, Playwright Docker image)
+test-e2e:
+	@$(MAKE) -C demo/symfony8 test-e2e
+
+demo-screenshots:
+	@$(MAKE) -C demo/symfony8 demo-screenshots
 
 # No frontend build in this bundle (REQ-MAKE-001 common block)
 assets:

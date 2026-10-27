@@ -4,16 +4,21 @@ declare(strict_types=1);
 
 namespace App\Command;
 
+use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Entity\ContactFormFieldTranslation;
 use Nowo\ContactFormBundle\Entity\ContactFormTranslation;
+use Nowo\ContactFormBundle\Entity\ContactSubmission;
+use Nowo\ContactFormBundle\Entity\ContactSubmissionValue;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
+use Nowo\ContactFormBundle\Repository\ContactSubmissionRepository;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -30,8 +35,14 @@ final class SeedContactDemoCommand extends Command
     public function __construct(
         private readonly ContactFormRepository $formRepository,
         private readonly EntityManagerInterface $entityManager,
+        private readonly ContactSubmissionRepository $submissionRepository,
     ) {
         parent::__construct();
+    }
+
+    protected function configure(): void
+    {
+        $this->addOption('reset-submissions', null, InputOption::VALUE_NONE, 'Replace the submissions of the general contact form with the demo inbox (screenshots).');
     }
 
     public function execute(InputInterface $input, OutputInterface $output): int
@@ -50,6 +61,7 @@ final class SeedContactDemoCommand extends Command
         }
 
         $this->entityManager->flush();
+        $this->seedSubmissions((bool) $input->getOption('reset-submissions'));
 
         $io->success(sprintf(
             'Demo contact forms seeded: %s.',
@@ -57,6 +69,56 @@ final class SeedContactDemoCommand extends Command
         ));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Realistic inbox for the admin screens (only when the general contact form has no submission yet).
+     */
+    private function seedSubmissions(bool $reset): void
+    {
+        $form = $this->formRepository->findOneBy(['slug' => 'contact']);
+
+        if (!$form instanceof ContactForm) {
+            return;
+        }
+
+        if ($reset) {
+            foreach ($this->submissionRepository->findBy(['form' => $form]) as $submission) {
+                $this->entityManager->remove($submission);
+            }
+            $this->entityManager->flush();
+        } elseif ($this->submissionRepository->countByForm($form) > 0) {
+            return;
+        }
+
+        $submissions = [
+            ['2026-10-27 09:12', 'en', 'olivia.bennett@example.com', 'Quote for 40 seats', 'billing', 'Hi! We are a 40-person agency evaluating the annual plan. Could you send a quote with the education discount?', 'olivia.bennett@example.com'],
+            ['2026-10-26 17:45', 'es', 'lucia.romero@example.com', 'Error al exportar', 'technical_support', 'Al exportar los envíos a CSV el archivo llega vacío desde ayer. ¿Podéis revisarlo?', null],
+            ['2026-10-26 11:03', 'en', 'k.tanaka@example.com', 'Integration partnership', 'partnership', 'We build a CRM for clinics and would love to sync contact submissions automatically. Is there a webhook?', null],
+            ['2026-10-25 16:20', 'en', 'marc.dubois@example.com', 'GDPR data request', 'general_inquiry', 'Please send me a copy of the personal data you store about me (art. 15 GDPR).', 'marc.dubois@example.com'],
+            ['2026-10-24 08:57', 'es', 'pablo.garcia@example.com', 'Factura duplicada', 'billing', 'Me habéis cobrado dos veces la factura de octubre. Adjunto el número de pedido 2026-1043.', null],
+        ];
+
+        foreach ($submissions as $index => [$date, $locale, $email, $subject, $topic, $message, $client]) {
+            $createdAt  = new DateTimeImmutable($date);
+            $submission = (new ContactSubmission())
+                ->setForm($form)
+                ->setLocale($locale)
+                ->setCreatedAt($createdAt)
+                ->setConsentGivenAt($createdAt);
+
+            if ($client !== null) {
+                $submission->setClientId(1001 + $index)->setClientLabel($client);
+            }
+
+            foreach (['email' => $email, 'subject' => $subject, 'topic' => $topic, 'message' => $message] as $name => $value) {
+                $submission->addValue((new ContactSubmissionValue())->setFieldName($name)->setValue($value));
+            }
+
+            $this->entityManager->persist($submission);
+        }
+
+        $this->entityManager->flush();
     }
 
     /**

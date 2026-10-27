@@ -32,8 +32,8 @@
     "require": {
         "doctrine/doctrine-bundle": "^2.13 || ^3.0",
         "doctrine/orm": "^3.7",
-        "nowo-tech/form-kit-bundle": "^2.13",
-        "nowo-tech/ui-kit-bundle": "^2.5.1",
+        "nowo-tech/form-kit-bundle": "^2.13.3",
+        "nowo-tech/ui-kit-bundle": "^2.15.3",
         "php": ">=8.2 <8.6",
         "psr/clock": "^1.0",
         "symfony/clock": "^7.4 || ^8.0",
@@ -108,7 +108,7 @@
     "scripts": {
         "test": "@php vendor/bin/phpunit --color=always",
         "test-coverage": "@php vendor/bin/phpunit --colors=always --coverage-text --coverage-clover coverage.xml --coverage-html coverage",
-        "coverage-check": "phpunit --colors=always --coverage-text=coverage-output.txt --coverage-clover coverage.xml && sh .scripts/coverage-fail-under.sh coverage-output.txt 99",
+        "coverage-check": "phpunit --colors=always --coverage-text=coverage-output.txt --coverage-clover coverage.xml && sh .scripts/coverage-fail-under.sh coverage-output.txt 100",
         "cs-check": "@php vendor/bin/php-cs-fixer fix --dry-run --diff",
         "cs-fix": "@php vendor/bin/php-cs-fixer fix",
         "rector": "@php vendor/bin/rector process",

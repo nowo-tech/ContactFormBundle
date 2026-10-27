@@ -22,6 +22,7 @@ nowo_contact_form:
       fields: Champs
       submissions: Soumissions
       view: Voir
+      delete: 'Supprimer'
     locales:
       en: Anglais
       es: Espagnol
@@ -34,6 +35,8 @@ nowo_contact_form:
       created: Formulaire de contact créé.
       updated: Formulaire de contact mis à jour.
       deleted: Formulaire de contact supprimé.
+      delete_title: 'Supprimer le formulaire de contact'
+      delete_confirm: 'Supprimer ce formulaire de contact ? Ses champs, traductions et soumissions sont également supprimés.'
       empty: Aucun formulaire de contact pour le moment.
       columns:
         name: Nom
@@ -78,6 +81,8 @@ nowo_contact_form:
       created: Champ créé.
       updated: Champ mis à jour.
       deleted: Champ supprimé.
+      delete_title: 'Supprimer le champ'
+      delete_confirm: 'Supprimer ce champ ? Les soumissions existantes conservent les valeurs déjà enregistrées.'
       empty: Aucun champ configuré.
       consent_row:
         hint: Configuré au niveau du formulaire (pas un champ personnalisé).
@@ -158,6 +163,7 @@ nowo_contact_form:
       value_column: Valeur
       delete_confirm: Êtes-vous sûr de vouloir supprimer cette soumission ?
       deleted: Soumission supprimée.
+      delete_title: 'Supprimer la soumission'
       empty: Aucune soumission pour le moment.
       anonymous: Anonyme
       consent_at: Consentement enregistré le

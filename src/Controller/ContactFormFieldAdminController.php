@@ -11,18 +11,22 @@ use Nowo\ContactFormBundle\Entity\ContactFormFieldTranslation;
 use Nowo\ContactFormBundle\Form\ContactFormFieldFlowType;
 use Nowo\ContactFormBundle\Repository\ContactFormFieldRepository;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
-use RuntimeException;
+use Nowo\ContactFormBundle\Service\ContactFormEnabledLocales;
+use Nowo\ContactFormBundle\Ui\ContactFormPageFactory;
+use Nowo\FormKitBundle\Form\CsrfOnlyFormFactory;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
-use Symfony\Component\Form\Flow\AbstractFlowType;
 use Symfony\Component\Form\Flow\DataStorage\SessionDataStorage;
 use Symfony\Component\Form\Flow\FormFlowInterface;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+use function array_keys;
+use function assert;
+use function in_array;
 use function is_array;
 use function sprintf;
 
@@ -42,8 +46,10 @@ class ContactFormFieldAdminController extends AbstractController
         private readonly ContactFormRepository $formRepository,
         private readonly ContactFormFieldRepository $fieldRepository,
         private readonly TranslatorInterface $translator,
-        private readonly ParameterBagInterface $parameterBag,
+        private readonly ContactFormEnabledLocales $enabledLocales,
         private readonly RequestStack $requestStack,
+        private readonly ContactFormPageFactory $pages,
+        private readonly CsrfOnlyFormFactory $csrfOnlyForms,
     ) {
     }
 
@@ -52,10 +58,16 @@ class ContactFormFieldAdminController extends AbstractController
     {
         $form = $this->getContactForm($formId);
 
-        return $this->render('@NowoContactFormBundle/admin/field/index.html.twig', [
+        $fields      = $this->fieldRepository->findByFormOrdered($form);
+        $deleteForms = [];
+        foreach ($fields as $field) {
+            $deleteForms[(int) $field->getId()] = $this->deleteForm($form, $field)->createView();
+        }
+
+        return $this->render($this->pages->template('field_index'), $this->pages->context([
+            'page'        => $this->pages->fieldIndex($form, $fields, $deleteForms),
             'contactForm' => $form,
-            'fields'      => $this->fieldRepository->findByFormOrdered($form),
-        ]);
+        ]));
     }
 
     #[Route('/new', name: 'new_redirect', methods: ['GET'])]
@@ -136,24 +148,17 @@ class ContactFormFieldAdminController extends AbstractController
         bool $isNew,
         string $step,
     ): Response {
-        if (!class_exists(AbstractFlowType::class)) {
-            throw new RuntimeException('Contact form field wizard requires symfony/form with FormFlow support (Symfony 7.4+ / 8.1+).');
-        }
-
-        if (!ContactFormFieldFlowType::isValidStep($step)) {
-            throw $this->createNotFoundException();
-        }
-
-        $storageKey = $this->buildFieldFlowStorageKey($contactForm, $field, $isNew);
-        $field      = $this->syncFieldFlowStepFromUrl($storageKey, $field, $step, $request);
+        // The route requirement (ContactFormFieldFlowType::STEP_REQUIREMENT) only lets known steps through; symfony/form
+        // ^7.4 ships FormFlow.
+        $managedField = $field;
+        $storageKey   = $this->buildFieldFlowStorageKey($contactForm, $field, $isNew);
+        $field        = $this->syncFieldFlowStepFromUrl($storageKey, $field, $step, $request);
 
         $flow = $this->createFieldFlow($storageKey, $field);
         $flow->handleRequest($request);
 
         $field = $flow->getData();
-        if (!$field instanceof ContactFormField) {
-            throw new RuntimeException('Unexpected field wizard data.');
-        }
+        assert($field instanceof ContactFormField, 'The field wizard works on a ContactFormField (data_class).');
 
         $this->ensureTranslationsForEnabledLocales($field);
 
@@ -161,6 +166,10 @@ class ContactFormFieldAdminController extends AbstractController
             if ($isNew) {
                 $contactForm->addField($field);
                 $entityManager->persist($field);
+            } else {
+                // The flow data comes back from the session storage as a detached copy: apply it to the managed
+                // field so the flush below persists the edit.
+                $field = $this->applyWizardResult($managedField, $field);
             }
 
             // @igor-ignore - HTTP handler delegates to services; no controller worker state.
@@ -193,26 +202,60 @@ class ContactFormFieldAdminController extends AbstractController
         }
 
         $currentStep = $flow->getCursor()->getCurrentStep();
-
-        if ($request->isMethod('GET') && $currentStep !== $step) {
-            return $this->redirectToRoute(
-                $isNew ? 'nowo_contact_form_fields_new' : 'nowo_contact_form_fields_edit',
-                [
-                    'formId' => $contactForm->getId(),
-                    'step'   => $currentStep,
-                    ...($isNew ? [] : ['id' => $field->getId()]),
-                ],
-            );
+        $flowView    = $flow->createView();
+        $steps       = [];
+        foreach (array_keys(is_array($flowView->vars['visible_steps'] ?? null) ? $flowView->vars['visible_steps'] : []) as $visibleStep) {
+            $steps[] = (string) $visibleStep;
+        }
+        if (!in_array($currentStep, $steps, true)) {
+            $steps[] = $currentStep;
         }
 
-        return $this->render('@NowoContactFormBundle/admin/field/form.html.twig', [
+        return $this->render($this->pages->template('field_form'), $this->pages->context([
+            'page'        => $this->pages->fieldWizard($contactForm, $isNew ? null : $field->getId(), $flowView, $steps, $currentStep),
             'contactForm' => $contactForm,
             'field'       => $field,
-            'form'        => $flow,
-            'flow'        => $flow,
             'isNew'       => $isNew,
             'currentStep' => $currentStep,
-        ]);
+        ]), new Response(null, $flow->isSubmitted() ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
+    }
+
+    /**
+     * Copies the wizard result (definition, type options, translations) onto the managed field and returns it.
+     */
+    private function applyWizardResult(ContactFormField $managed, ContactFormField $result): ContactFormField
+    {
+        // @igor-ignore - HTTP handler delegates to services; no controller worker state.
+        $managed
+            ->setName($result->getName())
+            ->setType($result->getType())
+            ->setRequired($result->isRequired())
+            ->setSortOrder($result->getSortOrder())
+            ->setOptions($result->getOptions());
+
+        // Both sides carry one translation per enabled locale (ensureTranslationsForEnabledLocales()).
+        foreach ($result->getTranslations() as $translation) {
+            $managed->findTranslation($translation->getLocale())
+                ?->setLabel($translation->getLabel())
+                ->setPlaceholder($translation->getPlaceholder())
+                ->setHelp($translation->getHelp())
+                ->setSelectOptions($translation->getSelectOptions());
+        }
+
+        return $managed;
+    }
+
+    /**
+     * CSRF-only delete form (REQ-TWIG-005): posts `_token` with the id checked by delete().
+     *
+     * @return FormInterface<mixed>
+     */
+    private function deleteForm(ContactForm $form, ContactFormField $field): FormInterface
+    {
+        return $this->csrfOnlyForms->create(
+            $this->generateUrl('nowo_contact_form_fields_delete', ['formId' => $form->getId(), 'id' => $field->getId()]),
+            'delete-contact-field-' . $field->getId(),
+        );
     }
 
     private function buildFieldFlowStorageKey(ContactForm $contactForm, ContactFormField $field, bool $isNew): string
@@ -263,23 +306,9 @@ class ContactFormFieldAdminController extends AbstractController
 
     private function ensureTranslationsForEnabledLocales(ContactFormField $field): void
     {
-        foreach ($this->getEnabledLocales() as $locale) {
+        foreach ($this->enabledLocales->all() as $locale) {
             $this->ensureTranslationForLocale($field, $locale);
         }
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function getEnabledLocales(): array
-    {
-        $locales = $this->parameterBag->get('kernel.enabled_locales');
-
-        if (!is_array($locales) || $locales === []) {
-            return ['en'];
-        }
-
-        return array_values($locales);
     }
 
     private function ensureTranslationForLocale(ContactFormField $field, string $locale): void
@@ -289,7 +318,7 @@ class ContactFormFieldAdminController extends AbstractController
         }
 
         $field->addTranslation(
-            (new ContactFormFieldTranslation())->setLocale($locale !== '' ? $locale : 'en'),
+            (new ContactFormFieldTranslation())->setLocale($locale),
         );
     }
 

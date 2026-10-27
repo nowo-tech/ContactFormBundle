@@ -270,16 +270,11 @@ jobs:
             "symfony/yaml:^7.4"
           composer update "symfony/*" "doctrine/*" --with-all-dependencies --no-interaction --prefer-dist --no-progress
 
-      - name: Run tests with coverage
+      - name: Run tests with coverage and the 100% PHP line gate (REQ-TEST-003)
         run: |
           echo "🧪 Running tests with coverage..."
           rm -rf .phpunit.cache
-          composer test-coverage
-          if [ $? -ne 0 ]; then
-            echo "❌ ERROR: Tests failed"
-            exit 1
-          fi
-          echo "✅ All tests passed successfully"
+          composer coverage-check
 
       - name: Validate coverage file
         run: |

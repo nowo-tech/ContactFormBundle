@@ -10,6 +10,7 @@ use Nowo\ContactFormBundle\Service\ClientResolverInterface;
 use Nowo\ContactFormBundle\Service\ContactFormSubmissionRateLimiter;
 use Nowo\ContactFormBundle\Service\ContactSubmissionProcessor;
 use Nowo\ContactFormBundle\Service\DynamicContactFormBuilder;
+use Nowo\ContactFormBundle\Ui\ContactFormPageFactory;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,6 +35,7 @@ class ContactFormPublicController extends AbstractController
         private readonly ContactSubmissionProcessor $submissionProcessor,
         private readonly ClientResolverInterface $clientResolver,
         private readonly ContactFormSubmissionRateLimiter $submissionRateLimiter,
+        private readonly ContactFormPageFactory $pages,
     ) {
     }
 
@@ -73,7 +75,9 @@ class ContactFormPublicController extends AbstractController
             ]);
         }
 
-        return $this->render('@NowoContactFormBundle/public/contact_form.html.twig', [
+        return $this->render($this->pages->template('public_form'), [
+            'header'      => $this->pages->publicHeader($translation),
+            'page_layout' => $this->pages->publicLayout(),
             'contactForm' => $contactForm,
             'translation' => $translation,
             'form'        => $symfonyForm,

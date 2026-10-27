@@ -54,8 +54,6 @@ abstract class IntegrationTestCase extends WebTestCase
 
     protected function tearDown(): void
     {
-        restore_exception_handler();
-        restore_error_handler();
         parent::tearDown();
         self::ensureKernelShutdown();
     }

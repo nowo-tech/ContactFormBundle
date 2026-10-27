@@ -11,7 +11,7 @@ else
 COMPOSE ?= $(shell $(DOCKER_BIN) compose version >/dev/null 2>&1 && echo "$(DOCKER_BIN) compose" || echo "docker-compose")
 endif
 
-.PHONY: help up down build install shell logs test test-coverage cache-clear link-bundle update-bundle ensure-up restart
+.PHONY: help up down build install shell logs test test-coverage cache-clear link-bundle update-bundle ensure-up restart test-e2e demo-screenshots
 
 help:
 	@echo "Symfony 8.0 Demo - Contact Form Bundle"
@@ -28,6 +28,8 @@ help:
 	@echo "  make cache-clear    Clear Symfony cache"
 	@echo "  make link-bundle    Use bundle from /var/contact-form-bundle (see demo/README.md)"
 	@echo "  make update-bundle  Update nowo-tech/contact-form-bundle from path repo and clear cache"
+	@echo "  make test-e2e       Playwright e2e: public form + admin pages (REQ-DEMO-013)"
+	@echo "  make demo-screenshots Refresh README screenshots docs/images/demo/*.webp (REQ-DEMO-013)"
 	@echo ""
 
 up:
@@ -97,6 +99,34 @@ update-bundle: ensure-up
 	$(COMPOSE) exec php php bin/console cache:clear --env=dev
 	@echo "Bundle updated. Reload the page in the browser."
 
+# REQ-DEMO-013: Playwright e2e + README screenshots (official Playwright image, PNG -> WebP with sharp).
+PLAYWRIGHT_IMAGE ?= mcr.microsoft.com/playwright:v1.63.0-jammy
+
+test-e2e: ensure-up
+	@$(MAKE) link-bundle
+	@$(COMPOSE) exec -T php php bin/console app:seed-contact-demo --no-interaction >/dev/null
+	@mkdir -p e2e/node_modules
+	@PORT=$$(grep -E '^PORT=' .env 2>/dev/null | cut -d= -f2); PORT=$${PORT:-8021}; \
+	docker run --rm --network host \
+		-v "$(CURDIR)/e2e:/e2e" -w /e2e \
+		-e DEMO_BASE_URL=http://127.0.0.1:$$PORT \
+		$(PLAYWRIGHT_IMAGE) \
+		bash -lc 'npm ci --no-fund --no-audit && npx playwright test --project=chromium --workers=1'
+
+demo-screenshots: ensure-up
+	@$(MAKE) link-bundle
+	@$(COMPOSE) exec -T php php bin/console app:seed-contact-demo --reset-submissions --no-interaction >/dev/null
+	@mkdir -p ../../docs/images/demo e2e/node_modules
+	@PORT=$$(grep -E '^PORT=' .env 2>/dev/null | cut -d= -f2); PORT=$${PORT:-8021}; \
+	docker run --rm --network host \
+		-v "$(CURDIR)/e2e:/e2e" \
+		-v "$(CURDIR)/../../docs/images/demo:/screenshots" \
+		-w /e2e \
+		-e DEMO_BASE_URL=http://127.0.0.1:$$PORT \
+		-e SCREENSHOT_DIR=/screenshots \
+		$(PLAYWRIGHT_IMAGE) \
+		bash -lc 'npm ci --no-fund --no-audit && npx playwright test --project=screenshots --workers=1 && node scripts/to-webp.mjs /screenshots'
+	@echo "Screenshots written under docs/images/demo/ (WebP)"
 
 # REQ-MAKE-008: update-deps (REQ-MAKE-008)
 COMPOSE := $(COMPOSE)

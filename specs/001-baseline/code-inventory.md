@@ -2,7 +2,7 @@
 
 **Baseline spec**: [`spec.md`](spec.md)  
 **Package**: `nowo-tech/contact-form-bundle`  
-**Last audited**: 2026-10-20
+**Last audited**: 2026-10-27
 
 ## Symfony config
 
@@ -89,6 +89,7 @@
 | `Form/ContactFormFieldPhonePrefixesStepType.php` | Phone step | FR-FORM-001 |
 | `Form/ContactFormFieldTranslationType.php` | Field translation | FR-FORM-001 |
 | `Form/ContactFormFieldWizardStepTrait.php` | Wizard shared | FR-FORM-002 |
+| `Form/ContactFormFieldStepDataInterface.php` | Flow → step data mapping | FR-FORM-002 |
 | `Form/ContactPhoneType.php` | Phone field | FR-FORM-001 |
 
 ## Services
@@ -113,6 +114,7 @@
 | `Service/NullContactFormFileUploadHandler.php` | Null upload | FR-SVC-004 |
 | `Service/IpAnonymizer.php` | GDPR IP mask | FR-SVC-005 |
 | `Service/SubmissionRetentionCleanupService.php` | Retention purge | FR-SVC-005 |
+| `Service/ContactFormEnabledLocales.php` | Admin content locales | FR-SVC-006 |
 
 ## Notifications
 
@@ -141,6 +143,13 @@
 | --- | --- | --- |
 | `Twig/ContactFormAdminTwigExtension.php` | Admin helpers | FR-TWIG-001 |
 
+## UI view models
+
+| Source file | Spec section | Requirement IDs |
+| --- | --- | --- |
+| `Ui/ContactFormPageFactory.php` | UiKit view models of the pages | FR-UI-001 |
+| `Ui/ContactFormPages.php` | Layouts, per-page templates, 1.x layout bridge | FR-UI-001 |
+
 ## Translations
 
 | Source file | Spec section | Requirement IDs |
@@ -157,24 +166,21 @@
 
 | Source file | Spec section | Requirement IDs |
 | --- | --- | --- |
-| `Resources/views/admin/layout.html.twig` | Admin root layout (full HTML) | FR-TWIG-002 |
-| `Resources/views/admin/base.html.twig` | Admin page shell (`parent()` stack) | FR-TWIG-002 |
-| `Resources/views/admin/_locale_switch.html.twig` | Locale switch | FR-TWIG-002 |
-| `Resources/views/admin/_pagination.html.twig` | List pagination | FR-TWIG-002 |
-| `Resources/views/admin/form/index.html.twig` | Form list | FR-TWIG-002 |
-| `Resources/views/admin/form/form.html.twig` | Form edit | FR-TWIG-002 |
+| `Resources/views/admin/_legacy_layout.html.twig` | Deprecated 1.x layout bridge | FR-UI-001 |
+| `Resources/views/admin/form/index.html.twig` | Form list (list scaffold) | FR-TWIG-002, FR-UI-001 |
+| `Resources/views/admin/form/form.html.twig` | Form edit (form scaffold) | FR-TWIG-002, FR-UI-001 |
 | `Resources/views/admin/form/_translation_tabs.html.twig` | Form i18n tabs | FR-TWIG-002 |
-| `Resources/views/admin/field/index.html.twig` | Field list | FR-TWIG-002 |
-| `Resources/views/admin/field/form.html.twig` | Field edit | FR-TWIG-002 |
+| `Resources/views/admin/field/index.html.twig` | Field list (list scaffold) | FR-TWIG-002, FR-UI-001 |
+| `Resources/views/admin/field/form.html.twig` | Field wizard (wizard scaffold) | FR-TWIG-002, FR-UI-001 |
 | `Resources/views/admin/field/_translation_tabs.html.twig` | Field i18n tabs | FR-TWIG-002 |
-| `Resources/views/admin/submission/index.html.twig` | Submissions list | FR-TWIG-002 |
-| `Resources/views/admin/submission/show.html.twig` | Submission detail | FR-TWIG-002 |
+| `Resources/views/admin/submission/index.html.twig` | Submissions list (list scaffold) | FR-TWIG-002, FR-UI-001 |
+| `Resources/views/admin/submission/show.html.twig` | Submission detail (show scaffold) | FR-TWIG-002, FR-UI-001 |
 
 ## Twig views — public
 
 | Source file | Spec section | Requirement IDs |
 | --- | --- | --- |
-| `Resources/views/public/contact_form.html.twig` | Public page | FR-TWIG-002 |
+| `Resources/views/public/contact_form.html.twig` | Public page (unique page, guest layout) | FR-TWIG-002, FR-UI-001 |
 | `Resources/views/public/_form_fields.html.twig` | Field partial | FR-TWIG-002 |
 | `Resources/views/form/contact_phone.html.twig` | Phone widget | FR-TWIG-002 |
 
@@ -189,15 +195,16 @@
 | Repositories | 7 | 7 |
 | Enums & events | 6 | 6 |
 | Controllers | 5 | 5 |
-| Forms | 10 | 10 |
-| Services | 18 | 18 |
+| Forms | 11 | 11 |
+| Services | 19 | 19 |
 | Notifications | 4 | 4 |
 | Phone | 1 | 1 |
 | CLI | 1 | 1 |
 | Twig PHP | 1 | 1 |
+| UI view models | 2 | 2 |
 | Translations | 7 | 7 |
-| Twig admin | 12 | 12 |
+| Twig admin | 9 | 9 |
 | Twig public | 3 | 3 |
-| **Total production sources** | **94** | **94** |
+| **Total production sources** | **95** | **95** |
 
-Audit command: `git ls-files src | wc -l` → 94.
+Audit command: `git ls-files src | wc -l` → 95.

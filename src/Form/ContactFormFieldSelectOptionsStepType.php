@@ -27,7 +27,7 @@ use function count;
  * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
  */
 #[FormKitConfig('contact_form')]
-class ContactFormFieldSelectOptionsStepType extends AbstractType
+class ContactFormFieldSelectOptionsStepType extends AbstractType implements ContactFormFieldStepDataInterface
 {
     use ContactFormFieldWizardStepTrait;
     use FormOptionsTrait;
@@ -52,17 +52,6 @@ class ContactFormFieldSelectOptionsStepType extends AbstractType
             'translation_domain' => $options['translation_domain'],
         ]);
 
-        $builder->addEventListener(FormEvents::POST_SET_DATA, function (FormEvent $event): void {
-            $field = $this->resolveField($event);
-
-            if (!$field instanceof ContactFormField || !$event->getForm()->has('optionsMachineNamesLines')) {
-                return;
-            }
-
-            $values = $field->getOptions() ?? [];
-            $event->getForm()->get('optionsMachineNamesLines')->setData(implode("\n", $values));
-        });
-
         $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event): void {
             $field = $this->resolveField($event);
 
@@ -71,10 +60,6 @@ class ContactFormFieldSelectOptionsStepType extends AbstractType
             }
 
             $form = $event->getForm();
-
-            if (!$form->has('optionsMachineNamesLines')) {
-                return;
-            }
 
             $values = $this->parseLines((string) $form->get('optionsMachineNamesLines')->getData());
 
@@ -87,15 +72,18 @@ class ContactFormFieldSelectOptionsStepType extends AbstractType
         });
     }
 
+    public function mapFieldToStep(FormInterface $stepForm, ContactFormField $field): void
+    {
+
+        $stepForm->get('optionsMachineNamesLines')->setData(implode("\n", $field->getOptions() ?? []));
+    }
+
     /**
      * @param FormInterface<ContactFormField|null> $form
      * @param list<string> $values
      */
     private function validateMachineNames(FormInterface $form, array $values): bool
     {
-        if (!$form->has('optionsMachineNamesLines')) {
-            return true;
-        }
 
         $linesField = $form->get('optionsMachineNamesLines');
         $valid      = true;

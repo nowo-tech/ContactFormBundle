@@ -46,6 +46,83 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **UiKit page contract (REQ-UI-003).** The admin pages extend the UiKit scaffolds — `page/list` (contact forms,
+  fields, submissions), `page/form` (contact form), `page/wizard` (field wizard over the Symfony FormFlow) and
+  `page/show` (submission) — and fill data blocks only; `Ui\ContactFormPageFactory` builds the view models (page
+  headers with back links, columns, row actions, `Pagination`, `EmptyState`, detail sections, wizard steps) and
+  `Ui\ContactFormPages` resolves the layouts and per-page templates. The public contact form is a unique page on the
+  UiKit guest layout. Contract test `tests/Integration/Contract/PageContractTest.php` (UiKit `PageContractTestCase`,
+  strict missing-translation rule) and `LegacyLayoutBridgeTest`.
+- Delete actions on the contact form and field lists, in the contact form delete zone and in the submission header,
+  behind the UiKit confirm `<dialog>` (POST + CSRF-only FormKit form); the routes existed but had no button.
+- Canonical configuration keys: `web_ui.path_prefix`, `web_ui.public_layout_template`, `web_ui.templates.<page>`
+  (`form_index`, `form_form`, `field_index`, `field_form`, `submission_index`, `submission_show`, `public_form`).
+- Demo: UiKit host layouts (`templates/layouts/`), seeded submissions inbox (`app:seed-contact-demo
+  [--reset-submissions]`), Playwright e2e (`make test-e2e`, also in `release-check`) and WebP README screenshots
+  (`make demo-screenshots`) — REQ-DEMO-013.
+- Docs: `docs/TEMPLATES.md` (pages → scaffolds, unique page, per-page overrides, REQ-TWIG-001 freeze rule, upgrade-safe
+  alternatives, recovery procedure and `<subpath>` table); USAGE / CONFIGURATION / INSTALLATION updated.
+
+### Changed
+
+- `web_ui.layout_template` defaults to `null` (= `nowo_ui_kit.layouts.admin`); the CSS stack, icon set and row-action
+  display are inherited from `nowo_ui_kit`. The FormKit `contact_form` profile seed is framework neutral
+  (`nowo-ui-input`, no row classes) and sets `convention_requires_translation: true`; the admin templates no longer
+  force `bootstrap_5_layout.html.twig` — the host form theme applies.
+- `ContactPhoneType` and its form theme carry no Bootstrap classes (`.nowo-contact-form-phone`, `role="group"`).
+- `ContactPhoneInputAvailability` checks that the PhoneInputBundle `PhoneType` is a form type and accepts a forced
+  answer (`new ContactPhoneInputAvailability(true|false)`); a phone field set to the Phone Input widget falls back to the
+  Symfony prefix widget when the type is missing, instead of disappearing from the form.
+- `nowo-tech/ui-kit-bundle` ^2.15.3, `nowo-tech/form-kit-bundle` ^2.13.3.
+- PHPUnit: native deprecation gate (`failOnDeprecation`, `ignoreSuppressionOfDeprecations`,
+  `ignoreIndirectDeprecations`), `failOnRisky` and `failOnWarning` (REQ-SF-005); the 21 risky integration tests (error
+  handlers removed in `tearDown()`) are fixed.
+- Coverage: no `<exclude>` left in `phpunit.xml.dist`; the gate is 100% PHP lines in `make test-coverage`,
+  `composer coverage-check` and the CI coverage job (REQ-TEST-003).
+
+### Deprecated
+
+- `admin_route_prefix` (use `web_ui.path_prefix`), `web_ui.css_framework` / `web_ui.icon_set` (set `nowo_ui_kit.*`).
+- A `web_ui.layout_template` that does not render the UiKit canonical blocks is wrapped in the
+  `admin/_legacy_layout.html.twig` bridge with a deprecation (removed in 2.0).
+- Twig globals `nowo_contact_form_layout_template`, `nowo_contact_form_css_framework`, `nowo_contact_form_icon_set`
+  (the pages no longer read them).
+
+### Removed
+
+- Local chrome: `admin/layout.html.twig` (loaded Bootstrap from a CDN), `admin/base.html.twig` (inline locale-switch
+  and `window.confirm()` script), `admin/_pagination.html.twig`, `admin/_locale_switch.html.twig`. The interface
+  language switch moves to the host layout (route `nowo_contact_form_admin_switch_locale` unchanged).
+
+### Fixed
+
+- Field wizard: editing an existing field saved nothing (the FormFlow returns the session copy; it is now applied to
+  the managed field), and the step data hooks never ran because Symfony does not dispatch `*_SET_DATA` on
+  `inherit_data` steps — the select option labels per locale were missing, and editing a phone / select field showed
+  empty prefixes / machine names. The flow now hands the field to each step (`ContactFormFieldStepDataInterface`).
+- Contact form admin: a blank name, slug or title is a validation error instead of a 500 (`TypeError` on the setter).
+- Placeholder convention keys (`contact_form.name.placeholder`, …) no longer leak as raw text into the admin forms.
+- The admin interface language also applies under a custom `web_ui.path_prefix` (route-name match instead of the
+  hard-coded `/admin/contact-forms` path).
+
+#### Template contract
+
+| Page | Template | Scaffold | Data blocks |
+| --- | --- | --- | --- |
+| Contact forms | `admin/form/index.html.twig` | `page/list` | `nowo_ui_list_row` |
+| Contact form | `admin/form/form.html.twig` | `page/form` | `nowo_ui_form_body` |
+| Fields | `admin/field/index.html.twig` | `page/list` | `nowo_ui_list_row` |
+| Field wizard | `admin/field/form.html.twig` | `page/wizard` | `nowo_ui_wizard_step` |
+| Submissions | `admin/submission/index.html.twig` | `page/list` | `nowo_ui_list_row` |
+| Submission | `admin/submission/show.html.twig` | `page/show` | — |
+| Public form (unique) | `public/contact_form.html.twig` | guest layout | `nowo_ui_page_header`, `nowo_ui_content` |
+
+The page variable is `page` (UiKit view model); the 1.x variables `forms`, `fields`, `submissions`, `page` (int),
+`pages`, `total`, `pageSize`, `form`, `flow`, `deleteForm` are gone (`contactForm`, `field`, `isNew`, `currentStep`,
+`submission` remain).
+
 ## [1.5.1] - 2026-10-24
 
 Bundle views render form bodies through the child loop (REQ-TWIG-003). See [UPGRADING](UPGRADING.md#to-151).

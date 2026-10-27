@@ -34,7 +34,7 @@ use function is_string;
  * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
  */
 #[FormKitConfig('contact_form')]
-class ContactFormFieldContentStepType extends AbstractType
+class ContactFormFieldContentStepType extends AbstractType implements ContactFormFieldStepDataInterface
 {
     use ContactFormFieldWizardStepTrait;
     use FormOptionsTrait;
@@ -67,14 +67,15 @@ class ContactFormFieldContentStepType extends AbstractType
             ],
         ]);
 
-        $builder->addEventListener(FormEvents::PRE_SUBMIT, static function (FormEvent $event): void {
+        $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event): void {
             $submitted = $event->getData();
 
             if (!is_array($submitted)) {
                 return;
             }
 
-            $field = $event->getForm()->getConfig()->getData();
+            // The step is an inherit_data child of the flow: the field is the flow data, not the step config data.
+            $field = $this->resolveField($event);
 
             if (!$field instanceof ContactFormField) {
                 return;
@@ -130,16 +131,6 @@ class ContactFormFieldContentStepType extends AbstractType
             $event->setData($submitted);
         });
 
-        $builder->addEventListener(FormEvents::POST_SET_DATA, function (FormEvent $event) use ($prefix, $options): void {
-            $field = $this->resolveField($event);
-
-            if (!$field instanceof ContactFormField) {
-                return;
-            }
-
-            $this->configureSelectOptionsFields($event->getForm(), $field, $prefix . 'translation.', $options['translation_domain']);
-        });
-
         $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event): void {
             $field = $this->resolveField($event);
 
@@ -154,16 +145,9 @@ class ContactFormFieldContentStepType extends AbstractType
             $form         = $event->getForm();
             $machineNames = $field->getOptions() ?? [];
 
-            if (!$form->has('translations')) {
-                return;
-            }
-
             foreach ($form->get('translations') as $translationForm) {
+                /** @var ContactFormFieldTranslation $translation entries of ContactFormFieldTranslationType */
                 $translation = $translationForm->getData();
-
-                if (!$translation instanceof ContactFormFieldTranslation) {
-                    continue;
-                }
 
                 if ($translationForm->has('selectOptionsLines')) {
                     $labels = $this->parseLines((string) $translationForm->get('selectOptionsLines')->getData());
@@ -192,6 +176,18 @@ class ContactFormFieldContentStepType extends AbstractType
         });
     }
 
+    public function mapFieldToStep(FormInterface $stepForm, ContactFormField $field): void
+    {
+        $config = $stepForm->getConfig();
+
+        $this->configureSelectOptionsFields(
+            $stepForm,
+            $field,
+            $config->getOption('label_prefix') . 'translation.',
+            (string) $config->getOption('translation_domain'),
+        );
+    }
+
     /**
      * @param FormInterface<ContactFormField|null> $form
      */
@@ -201,10 +197,6 @@ class ContactFormFieldContentStepType extends AbstractType
         string $labelPrefix,
         string $translationDomain,
     ): void {
-        if (!$form->has('translations')) {
-            return;
-        }
-
         $isSelect = $field->getType() === ContactFieldType::Select;
 
         foreach ($form->get('translations') as $translationForm) {
@@ -235,17 +227,8 @@ class ContactFormFieldContentStepType extends AbstractType
      */
     private function populateSelectOptionsLinesForTranslation(FormInterface $translationForm): void
     {
-        if (!$translationForm->has('selectOptionsLines')) {
-            return;
-        }
-
         $translation = $translationForm->getData();
-
-        if (!$translation instanceof ContactFormFieldTranslation) {
-            return;
-        }
-
-        $labels = $translation->getSelectOptions() ?? [];
+        $labels      = $translation instanceof ContactFormFieldTranslation ? $translation->getSelectOptions() ?? [] : [];
         $translationForm->get('selectOptionsLines')->setData(implode("\n", $labels));
     }
 

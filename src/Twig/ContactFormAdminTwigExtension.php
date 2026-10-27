@@ -14,21 +14,27 @@ use function is_array;
 use function is_string;
 
 /**
- * Exposes admin helpers and Web UI globals to Twig templates.
+ * Exposes admin helpers (enabled / default content locales) and the deprecated 1.x Web UI globals to Twig templates.
  */
 final class ContactFormAdminTwigExtension extends AbstractExtension implements GlobalsInterface
 {
+    /** @deprecated since 1.6 (REQ-UI-003: the pages resolve their layout through the view models) */
     public const GLOBAL_LAYOUT_TEMPLATE = 'nowo_contact_form_layout_template';
 
+    /** @deprecated since 1.6 (read nowo_ui_kit.css_framework) */
     public const GLOBAL_CSS_FRAMEWORK = 'nowo_contact_form_css_framework';
 
+    /** @deprecated since 1.6 (read nowo_ui_kit.icon_set) */
     public const GLOBAL_ICON_SET = 'nowo_contact_form_icon_set';
+
+    /** Value of the deprecated layout global when web_ui.layout_template is null. */
+    public const DEFAULT_LAYOUT_TEMPLATE = '@NowoUiKit/layout/admin.html.twig';
 
     public function __construct(
         private readonly ParameterBagInterface $parameterBag,
-        private readonly string $layoutTemplate = '@NowoContactFormBundle/admin/layout.html.twig',
-        private readonly string $cssFramework = 'bootstrap5',
-        private readonly string $iconSet = 'bootstrap-icons',
+        private readonly ?string $layoutTemplate = null,
+        private readonly ?string $cssFramework = null,
+        private readonly ?string $iconSet = null,
     ) {
     }
 
@@ -40,11 +46,17 @@ final class ContactFormAdminTwigExtension extends AbstractExtension implements G
         ];
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * Deprecated since 1.6, removed in 2.0 (REQ-UI-003: bundles must not add layout globals; the bundle pages do not
+     * read them): `nowo_contact_form_layout_template` (web_ui.layout_template, else the UiKit admin layout),
+     * `nowo_contact_form_css_framework` / `nowo_contact_form_icon_set` (null unless the deprecated web_ui keys are set).
+     *
+     * @return array<string, mixed>
+     */
     public function getGlobals(): array
     {
         return [
-            self::GLOBAL_LAYOUT_TEMPLATE => $this->layoutTemplate,
+            self::GLOBAL_LAYOUT_TEMPLATE => $this->layoutTemplate ?? self::DEFAULT_LAYOUT_TEMPLATE,
             self::GLOBAL_CSS_FRAMEWORK   => $this->cssFramework,
             self::GLOBAL_ICON_SET        => $this->iconSet,
         ];

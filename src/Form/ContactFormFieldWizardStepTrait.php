@@ -39,14 +39,15 @@ trait ContactFormFieldWizardStepTrait
      */
     protected function addPreservedDefinitionFieldsPreSubmitListener(FormBuilderInterface $builder): void
     {
-        $builder->addEventListener(FormEvents::PRE_SUBMIT, static function (FormEvent $event): void {
+        $builder->addEventListener(FormEvents::PRE_SUBMIT, function (FormEvent $event): void {
             $submitted = $event->getData();
 
             if (!is_array($submitted)) {
                 return;
             }
 
-            $field = $event->getForm()->getConfig()->getData();
+            // The step is an inherit_data child of the flow: the field is the flow data, not the step config data.
+            $field = $this->resolveField($event);
 
             if (!$field instanceof ContactFormField) {
                 return;

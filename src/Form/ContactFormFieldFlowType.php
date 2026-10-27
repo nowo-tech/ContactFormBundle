@@ -11,6 +11,8 @@ use Nowo\FormKitBundle\Form\FormOptionsTrait;
 use Symfony\Component\Form\Flow\AbstractFlowType;
 use Symfony\Component\Form\Flow\FormFlowBuilderInterface;
 use Symfony\Component\Form\Flow\Type\NavigatorFlowType;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 use function in_array;
@@ -63,6 +65,20 @@ class ContactFormFieldFlowType extends AbstractFlowType
         );
         $builder->addStep('content', ContactFormFieldContentStepType::class);
         $this->addWithDefaults($builder, 'navigator', NavigatorFlowType::class, []);
+
+        // Steps are inherit_data children: Symfony does not dispatch their *_SET_DATA events, so the flow hands the
+        // field to each step (unmapped textareas, dynamic option-label fields) once its own data is set.
+        $builder->addEventListener(FormEvents::POST_SET_DATA, static function (FormEvent $event): void {
+            $field = $event->getData();
+
+            foreach ($event->getForm() as $child) {
+                $step = $child->getConfig()->getType()->getInnerType();
+
+                if ($field instanceof ContactFormField && $step instanceof ContactFormFieldStepDataInterface) {
+                    $step->mapFieldToStep($child, $field);
+                }
+            }
+        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void

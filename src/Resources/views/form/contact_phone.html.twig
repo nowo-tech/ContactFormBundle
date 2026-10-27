@@ -1,5 +1,9 @@
+{#
+  Form theme of ContactPhoneType (Symfony widget: prefix select + number). Framework neutral: the semantic hook
+  `nowo-contact-form-phone` (role group) lets the host lay out the two controls (e.g. display: flex).
+#}
 {% block contact_phone_widget %}
-    <div class="input-group">
+    <div class="nowo-contact-form-phone" role="group">
         {{ form_widget(form.prefix) }}
         {{ form_widget(form.number) }}
     </div>

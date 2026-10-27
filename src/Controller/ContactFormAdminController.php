@@ -9,9 +9,14 @@ use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormTranslation;
 use Nowo\ContactFormBundle\Form\ContactFormType;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
+use Nowo\ContactFormBundle\Service\ContactFormEnabledLocales;
+use Nowo\ContactFormBundle\Ui\ContactFormPageFactory;
+use Nowo\FormKitBundle\Form\CsrfOnlyFormFactory;
+use Nowo\UiKitBundle\View\Pagination;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -20,7 +25,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 use function ceil;
 use function in_array;
-use function is_array;
 use function is_string;
 use function max;
 
@@ -42,6 +46,9 @@ class ContactFormAdminController extends AbstractController
         #[Autowire(param: 'nowo_contact_form.default_retention_days')]
         private readonly int $defaultRetentionDays,
         private readonly ParameterBagInterface $parameterBag,
+        private readonly ContactFormEnabledLocales $enabledLocales,
+        private readonly ContactFormPageFactory $pages,
+        private readonly CsrfOnlyFormFactory $csrfOnlyForms,
     ) {
     }
 
@@ -56,19 +63,25 @@ class ContactFormAdminController extends AbstractController
             $page = $pages;
         }
 
-        return $this->render('@NowoContactFormBundle/admin/form/index.html.twig', [
-            'forms'    => $this->formRepository->findOrderedPage($page, $pageSize),
-            'page'     => $page,
-            'pages'    => $pages,
-            'total'    => $total,
-            'pageSize' => $pageSize,
-        ]);
+        $forms       = $this->formRepository->findOrderedPage($page, $pageSize);
+        $deleteForms = [];
+        foreach ($forms as $form) {
+            $deleteForms[(int) $form->getId()] = $this->deleteForm($form)->createView();
+        }
+
+        return $this->render($this->pages->template('form_index'), $this->pages->context([
+            'page' => $this->pages->formIndex(
+                $forms,
+                new Pagination($page, $pageSize, $total, $pages, 'nowo_contact_form_admin_index', $request->query->all()),
+                $deleteForms,
+            ),
+        ]));
     }
 
     #[Route('/locale/{locale}', name: 'switch_locale', methods: ['GET'], priority: 10)]
     public function switchLocale(string $locale, Request $request, LocaleSwitcher $localeSwitcher): Response
     {
-        if (!in_array($locale, $this->getEnabledLocales(), true)) {
+        if (!in_array($locale, $this->enabledLocales->all(), true)) {
             throw $this->createNotFoundException();
         }
 
@@ -150,32 +163,31 @@ class ContactFormAdminController extends AbstractController
             return $this->redirectToRoute('nowo_contact_form_admin_index');
         }
 
-        return $this->render('@NowoContactFormBundle/admin/form/form.html.twig', [
+        return $this->render($this->pages->template('form_form'), $this->pages->context([
+            'page'        => $this->pages->formForm($symfonyForm->createView(), $contactForm, $isNew, $isNew ? null : $this->deleteForm($contactForm)->createView()),
             'contactForm' => $contactForm,
-            'form'        => $symfonyForm,
             'isNew'       => $isNew,
-        ]);
+        ]), new Response(null, $symfonyForm->isSubmitted() ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
+    }
+
+    /**
+     * CSRF-only delete form (REQ-TWIG-005): posts `_token` with the id checked by delete().
+     *
+     * @return FormInterface<mixed>
+     */
+    private function deleteForm(ContactForm $form): FormInterface
+    {
+        return $this->csrfOnlyForms->create(
+            $this->generateUrl('nowo_contact_form_admin_delete', ['id' => $form->getId()]),
+            'delete-contact-form-' . $form->getId(),
+        );
     }
 
     private function ensureTranslationsForEnabledLocales(ContactForm $form): void
     {
-        foreach ($this->getEnabledLocales() as $locale) {
+        foreach ($this->enabledLocales->all() as $locale) {
             $this->ensureTranslationForLocale($form, $locale);
         }
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function getEnabledLocales(): array
-    {
-        $locales = $this->parameterBag->get('kernel.enabled_locales');
-
-        if (!is_array($locales) || $locales === []) {
-            return ['en'];
-        }
-
-        return array_values($locales);
     }
 
     private function ensureTranslationForLocale(ContactForm $form, string $locale): void
@@ -185,7 +197,7 @@ class ContactFormAdminController extends AbstractController
         }
 
         $form->addTranslation(
-            (new ContactFormTranslation())->setLocale($locale !== '' ? $locale : 'en'),
+            (new ContactFormTranslation())->setLocale($locale),
         );
     }
 
@@ -223,7 +235,7 @@ class ContactFormAdminController extends AbstractController
 
         $refererPath = parse_url($referer, PHP_URL_PATH);
 
-        $adminPrefix = $this->parameterBag->get('nowo_contact_form.admin_route_prefix');
+        $adminPrefix = $this->parameterBag->get('nowo_contact_form.web_ui.path_prefix');
         if (!is_string($adminPrefix) || !is_string($refererPath) || !str_starts_with($refererPath, $adminPrefix)) {
             return null;
         }

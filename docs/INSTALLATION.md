@@ -14,8 +14,8 @@
 
 ## Requirements
 
-- **FormKitBundle** (`nowo-tech/form-kit-bundle` ^2.0) — admin Symfony forms (`FormOptionsTrait`, profile `contact_form`) **and** public `DynamicContactFormBuilder` fields (same profile, form name `public_contact`). Register `NowoFormKitBundle` in `config/bundles.php` (Flex / demo). Optional host YAML: `config/packages/nowo_form_kit.yaml` (e.g. `profiles.contact_form.defaults.row_attr.class: mb-5`).
-- **UiKitBundle** (`nowo-tech/ui-kit-bundle` ^1.4) — admin Twig macros / `nowo-ui.css` asset package. Register `NowoUiKitBundle` and run `assets:install`.
+- **FormKitBundle** (`nowo-tech/form-kit-bundle` ^2.13.3) — admin Symfony forms (`FormOptionsTrait`, profile `contact_form`) **and** public `DynamicContactFormBuilder` fields (same profile, form name `public_contact`). Register `NowoFormKitBundle` in `config/bundles.php` (Flex / demo). Optional host YAML: `config/packages/nowo_form_kit.yaml` (e.g. `profiles.contact_form.defaults.row_attr.class: mb-5`).
+- **UiKitBundle** (`nowo-tech/ui-kit-bundle` ^2.15.3) — page contract (layouts, scaffolds, view models, theme) of the admin pages and the public form, `nowo-ui.css` asset package. Register `NowoUiKitBundle`, set `nowo_ui_kit.layouts` and run `assets:install`.
 - PHP `>=8.2` (<8.6). Symfony **8.0** and **8.1** require **PHP 8.4+**.
 - Symfony **7.4**, **8.0**, or **8.1** (minimum tested minors).
 - Doctrine ORM + `doctrine/doctrine-bundle`.
@@ -57,6 +57,11 @@ nowo_contact_form:
 ```
 
 3. Copy defaults from `vendor/nowo-tech/contact-form-bundle/src/Resources/config/packages/nowo_contact_form.yaml` to `config/packages/nowo_contact_form.yaml`.
+
+4. Register `Nowo\UiKitBundle\NowoUiKitBundle` and `Nowo\FormKitBundle\NowoFormKitBundle` (required) and point
+   `nowo_ui_kit.layouts.admin` / `.guest` at your layout (or a one-file bridge): the admin and the public form render on
+   the UiKit page contract and ship no layout of their own — see [Configuration](CONFIGURATION.md#admin-web-ui-layout-and-css).
+   Run `php bin/console assets:install` for the UiKit assets (`nowo_ui_kit` asset package).
 
 ## Database
 

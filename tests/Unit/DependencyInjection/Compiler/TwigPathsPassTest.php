@@ -79,4 +79,24 @@ final class TwigPathsPassTest extends TestCase
 
         self::assertSame('addPath', $loader->getMethodCalls()[0][0]);
     }
+
+    public function testProcessFollowsAnAliasChainAndFallsBackToTheFilesystemLoader(): void
+    {
+        $container = new ContainerBuilder();
+        $loader    = new Definition();
+        $container->setDefinition('twig.loader.chain_target', $loader);
+        $container->setAlias('twig.loader.native_alias', new Alias('twig.loader.chain_target'));
+        $container->setAlias('twig.loader.native', new Alias('twig.loader.native_alias'));
+
+        (new TwigPathsPass())->process($container);
+        self::assertSame('addPath', $loader->getMethodCalls()[0][0], 'alias chain resolved to its definition');
+
+        $fallback   = new ContainerBuilder();
+        $filesystem = new Definition();
+        $fallback->setDefinition('twig.loader.filesystem', $filesystem);
+        $fallback->setAlias('twig.loader.native', new Alias('missing.loader'));
+
+        (new TwigPathsPass())->process($fallback);
+        self::assertSame('addPath', $filesystem->getMethodCalls()[0][0], 'dangling alias: twig.loader.filesystem');
+    }
 }

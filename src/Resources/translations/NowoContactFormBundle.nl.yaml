@@ -22,6 +22,7 @@ nowo_contact_form:
       fields: Velden
       submissions: Inzendingen
       view: Bekijken
+      delete: 'Verwijderen'
     locales:
       en: Engels
       es: Spaans
@@ -34,6 +35,8 @@ nowo_contact_form:
       created: Contactformulier aangemaakt.
       updated: Contactformulier bijgewerkt.
       deleted: Contactformulier verwijderd.
+      delete_title: 'Contactformulier verwijderen'
+      delete_confirm: 'Dit contactformulier verwijderen? De velden, vertalingen en inzendingen worden ook verwijderd.'
       empty: Nog geen contactformulieren.
       columns:
         name: Naam
@@ -78,6 +81,8 @@ nowo_contact_form:
       created: Veld aangemaakt.
       updated: Veld bijgewerkt.
       deleted: Veld verwijderd.
+      delete_title: 'Veld verwijderen'
+      delete_confirm: 'Dit veld verwijderen? Bestaande inzendingen behouden de al opgeslagen waarden.'
       empty: Geen velden geconfigureerd.
       consent_row:
         hint: Geconfigureerd op formulierniveau (geen aangepast veld).
@@ -158,6 +163,7 @@ nowo_contact_form:
       value_column: Waarde
       delete_confirm: Weet u zeker dat u deze inzending wilt verwijderen?
       deleted: Inzending verwijderd.
+      delete_title: 'Inzending verwijderen'
       empty: Nog geen inzendingen.
       anonymous: Anoniem
       consent_at: Toestemming gegeven op

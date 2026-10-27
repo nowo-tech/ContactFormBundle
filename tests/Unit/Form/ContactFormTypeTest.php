@@ -10,11 +10,21 @@ use Nowo\ContactFormBundle\Form\ContactFormTranslationType;
 use Nowo\ContactFormBundle\Form\ContactFormType;
 use Nowo\ContactFormBundle\Tests\Support\FormKitTestSupport;
 use PHPUnit\Framework\Attributes\CoversClass;
+use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
 use Symfony\Component\Form\Test\TypeTestCase;
+use Symfony\Component\Validator\Validation;
 
 #[CoversClass(ContactFormType::class)]
 final class ContactFormTypeTest extends TypeTestCase
 {
+    /**
+     * @return list<ValidatorExtension>
+     */
+    protected function getExtensions(): array
+    {
+        return [new ValidatorExtension(Validation::createValidator())];
+    }
+
     /**
      * @return list<object>
      */
