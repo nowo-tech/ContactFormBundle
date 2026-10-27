@@ -1054,10 +1054,15 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         max_size?: scalar|Param|null, // Default maximum upload size for file fields (Symfony File constraint format: 500k, 5M, 2Mi, bytes). Null = no bundle limit (PHP upload_max_filesize still applies). Overridable per field via options.max_size. // Default: "5M"
  *         mime_types?: list<scalar|Param|null>,
  *     },
- *     public_submission_rate_limit?: array{ // Rate limit for public form submissions per IP and form slug.
+ *     public_submission_rate_limit?: array{ // Rate limit for public form submissions (every POST, valid or not) per IP and form slug.
  *         enabled?: bool|Param, // Default: true
  *         limit?: int|Param, // Default: 5
  *         interval_seconds?: int|Param, // Default: 60
+ *         limiter?: scalar|Param|null, // Optional symfony/rate-limiter factory service id (e.g. limiter.contact_form): atomic counting with a lock store instead of the cache.app counter; limit / interval_seconds are then the limiter's own. // Default: null
+ *     },
+ *     public_field_max_length?: array{ // Maximum length (characters) of submitted values: text / email / URL fields and textareas.
+ *         text?: int|Param, // Default: 255
+ *         textarea?: int|Param, // Default: 10000
  *     },
  *     doctrine?: array{
  *         table_prefix?: scalar|Param|null, // Prefix prepended to table names (nowo_contact_form, nowo_contact_submission, …). Empty = no prefix. // Default: ""
