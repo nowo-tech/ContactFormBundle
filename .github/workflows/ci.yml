@@ -270,7 +270,7 @@ jobs:
             "symfony/yaml:^7.4"
           composer update "symfony/*" "doctrine/*" --with-all-dependencies --no-interaction --prefer-dist --no-progress
 
-      - name: Run tests with coverage (REQ-TEST-003 gate: 100% PHP lines, no exclusions)
+      - name: Run tests with coverage and the 100% PHP line gate (REQ-TEST-003)
         run: |
           echo "🧪 Running tests with coverage..."
           rm -rf .phpunit.cache
