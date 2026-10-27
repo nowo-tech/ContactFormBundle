@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.6.0] - 2026-10-27](#160---2026-10-27)
 - [[1.5.1] - 2026-10-24](#151---2026-10-24)
 - [[1.5.0] - 2026-10-21](#150---2026-10-21)
 - [[1.4.1] - 2026-10-20](#141---2026-10-20)
@@ -45,6 +46,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [[1.0.0] - 2026-07-13](#100---2026-07-13)
 
 ## [Unreleased]
+
+## [1.6.0] - 2026-10-27
+
+UiKit page contract, Playwright e2e + screenshots, 100% coverage; SEC-004 hardening: open redirect fix (GHSA), http(s) privacy URL, controller-class guard, CSRF/roles compile checks, length caps, rate limiting See [UPGRADING](UPGRADING.md#to-160).
 
 ### Security
 
@@ -288,6 +293,7 @@ Allows nowo-tech/ui-kit-bundle 2.x (^1.4 || ^2.2) so hosts can move to UiKit 2.2
 
 - **Worker safety (Igor):** justified `// @igor-ignore` annotations and/or `ResetInterface` / request-scoped fixes so `make igor` passes on package `src/`.
 
+[1.6.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.6.0
 [1.5.1]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.5.1
 [1.5.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.5.0
 [1.4.1]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.4.1
