@@ -31,6 +31,10 @@ final class SafeRelativePathTest extends TestCase
         yield 'DEL' => ["/\x7f/evil.example"];
         yield 'backslash later' => ['/admin/contact-forms\\..\\evil'];
         yield 'empty' => [''];
+        yield 'dot-dot segments' => ['/admin/contact-forms/../../evil'];
+        yield 'encoded dot-dot' => ['/admin/contact-forms/.%2e/.%2e//evil.example'];
+        yield 'encoded dot-dot upper case' => ['/admin/contact-forms/%2E%2E/evil'];
+        yield 'single dot' => ['/admin/contact-forms/./x'];
     }
 
     #[DataProvider('unsafePaths')]
@@ -43,6 +47,7 @@ final class SafeRelativePathTest extends TestCase
     public function testAcceptsSameOriginPathsInsideThePrefix(): void
     {
         self::assertTrue(SafeRelativePath::isSafe('/admin/contact-forms/3/fields?page=2'));
+        self::assertTrue(SafeRelativePath::isSafe('/admin/contact-forms/file.v2/..x?q=../a'), 'dots inside a segment or in the query are fine');
         self::assertTrue(SafeRelativePath::isSafeUnder('/admin/contact-forms', '/admin/contact-forms/'));
         self::assertTrue(SafeRelativePath::isSafeUnder('/admin/contact-forms/3/fields?page=2', '/admin/contact-forms'));
         self::assertTrue(SafeRelativePath::isSafeUnder('/anything', ''));

@@ -120,7 +120,7 @@ nowo_contact_form:
         name_reserved: '„%name%“ ist vom öffentlichen Formular reserviert; wählen Sie einen anderen Namen.'
         type: Feldtyp
         type_help: Steuert die Eingabe auf dem öffentlichen Formular. Select-Felder benötigen Optionswerte; Telefonfelder unterstützen Symfony-Vorwahlselektor oder Phone Input Bundle.
-        type_file_unavailable: 'Dateifelder benötigen einen Upload-Handler (nowo_contact_form.file_upload.service): ohne ihn werden Uploads verworfen.'
+        type_file_unavailable: 'Dateifelder benötigen einen Upload-Handler (nowo_contact_form.file_upload.service): ohne ihn schlägt jede Einsendung mit einer Datei fehl.'
         required: Erforderlich
         required_help: Wenn aktiviert, muss das Feld ausgefüllt werden, bevor das Formular abgesendet werden kann.
         sort_order: Sortierreihenfolge

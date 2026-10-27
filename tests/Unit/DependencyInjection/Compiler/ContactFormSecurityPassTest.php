@@ -165,6 +165,21 @@ final class ContactFormSecurityPassTest extends TestCase
         (new ContactFormSecurityPass())->process($container);
     }
 
+    public function testAllowUnauthenticatedIsRefusedInANonDebugKernelOutsideTests(): void
+    {
+        $test = $this->baseContainer(allowUnauthenticated: true);
+        $test->setParameter('kernel.environment', 'test_wiring');
+        $test->setParameter('kernel.debug', false);
+        (new ContactFormSecurityPass())->process($test);
+
+        $container = $this->baseContainer(allowUnauthenticated: true);
+        $container->setParameter('kernel.environment', 'staging');
+        $container->setParameter('kernel.debug', false);
+
+        $this->expectException(InvalidConfigurationException::class);
+        (new ContactFormSecurityPass())->process($container);
+    }
+
     public function testEmptyRolesWithTheDefaultCheckerFailAtCompileTime(): void
     {
         $container = $this->baseContainer(allowUnauthenticated: false, accessRoles: []);

@@ -14,6 +14,9 @@ use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Reference;
 
+use function is_string;
+use function str_starts_with;
+
 /**
  * Enforces SecurityBundle for admin UI unless allow_unauthenticated is true (REQ-UI-002) and always
  * registers the admin access subscriber (404 on admin routes when the web UI is disabled).
@@ -29,8 +32,12 @@ final class ContactFormSecurityPass implements CompilerPassInterface
         $webUiEnabled         = (bool) $container->getParameter(Configuration::ALIAS . '.web_ui.enabled');
         $allowUnauthenticated = (bool) $container->getParameter(Configuration::ALIAS . '.security.allow_unauthenticated');
 
-        if ($allowUnauthenticated && $container->hasParameter('kernel.environment') && $container->getParameter('kernel.environment') === 'prod') {
-            throw new InvalidConfigurationException('nowo_contact_form.security.allow_unauthenticated is a dev/demo switch: it opens the admin UI to anonymous users and is refused in the prod environment.');
+        // Production = the prod environment or any non-debug kernel outside the test environments (test*).
+        $environment = $container->hasParameter('kernel.environment') ? $container->getParameter('kernel.environment') : '';
+        $environment = is_string($environment) ? $environment : '';
+        $debug       = $container->hasParameter('kernel.debug') ? (bool) $container->getParameter('kernel.debug') : true;
+        if ($allowUnauthenticated && ($environment === 'prod' || (!$debug && !str_starts_with($environment, 'test')))) {
+            throw new InvalidConfigurationException('nowo_contact_form.security.allow_unauthenticated is a dev/demo switch: it opens the admin UI to anonymous users and is refused in the prod environment and in non-debug kernels (test* environments excepted).');
         }
 
         // An empty role list denies everyone: with the default checker nobody could use the admin UI (fail closed, but

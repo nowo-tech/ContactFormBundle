@@ -120,7 +120,7 @@ nowo_contact_form:
         name_reserved: '"%name%" está reservado por el formulario público; elige otro nombre.'
         type: Tipo de campo
         type_help: Controla el input en el formulario público. Los campos select requieren valores de opción; los teléfonos admiten selector Symfony o Phone Input Bundle.
-        type_file_unavailable: 'Los campos de archivo necesitan un gestor de subidas (nowo_contact_form.file_upload.service): sin él los archivos se descartan.'
+        type_file_unavailable: 'Los campos de archivo necesitan un gestor de subidas (nowo_contact_form.file_upload.service): sin él, cada envío con un archivo falla.'
         required: Obligatorio
         required_help: Si está activo, el campo debe completarse antes de poder enviar el formulario.
         sort_order: Orden

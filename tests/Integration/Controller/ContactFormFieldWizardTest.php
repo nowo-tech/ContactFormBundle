@@ -142,6 +142,36 @@ final class ContactFormFieldWizardTest extends IntegrationTestCase
     }
 
     /**
+     * N1: the later steps carry the name in a hidden field; a tampered value is refused there too.
+     */
+    public function testATamperedHiddenNameOnALaterStepIsRejected(): void
+    {
+        $client = self::createTestClient();
+        $this->resetDatabase();
+        $form  = $this->persistForm();
+        $field = $this->persistField($form, 'email', ContactFieldType::Email);
+        $base  = sprintf('/admin/contact-forms/%d/fields/%d', $form->getId(), $field->getId());
+
+        $crawler = $client->request('GET', $base . '/edit/definition');
+        $this->submitStep($client, $crawler, 'Continue', []);
+
+        foreach (['gdpr_consent' => 'is reserved by the public form', '_token' => 'is reserved by the public form', 'x]evil' => 'Use lowercase letters'] as $tampered => $message) {
+            $crawler = $client->request('GET', $base . '/edit/content');
+            $submit  = $crawler->selectButton('Save field')->form();
+            $name    = $submit->get('contact_form_field_flow[content][name]');
+            self::assertInstanceOf(InputFormField::class, $name);
+            $name->setValue($tampered);
+            $client->submit($submit);
+
+            self::assertResponseStatusCodeSame(422, $tampered);
+            self::assertStringNotContainsString('nowo_contact_form.admin.field.fields.name_', (string) $client->getResponse()->getContent(), 'translated, no raw key');
+            self::assertStringContainsString($message, (string) $client->getResponse()->getContent());
+        }
+
+        self::assertSame('email', $this->field('email')->getName());
+    }
+
+    /**
      * I2: a tampered hidden field type is a validation error, not a 500.
      */
     public function testATamperedHiddenTypeIsAValidationError(): void

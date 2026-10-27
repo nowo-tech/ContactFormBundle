@@ -16,6 +16,8 @@
     {{ form_start(_form, {attr: {class: nowo_ui_class('form', _b), 'data-nowo-ui-region': 'form'}}) }}
         {% for name, stepForm in _form %}
             {% if name == page.current %}
+                {#- errors of the step itself (e.g. a tampered hidden definition value) -#}
+                {{ form_errors(stepForm) }}
                 {% for child in stepForm %}
                     {% if not child.rendered and child.vars.name != 'translations' %}
                         {{ form_row(child) }}

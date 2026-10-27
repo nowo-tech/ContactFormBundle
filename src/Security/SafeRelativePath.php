@@ -6,6 +6,7 @@ namespace Nowo\ContactFormBundle\Security;
 
 use function explode;
 use function preg_match;
+use function rawurldecode;
 use function rtrim;
 use function str_starts_with;
 
@@ -22,7 +23,25 @@ final class SafeRelativePath
     {
         return str_starts_with($path, '/')
             && !str_starts_with($path, '//')
-            && preg_match('/[\\\\\x00-\x20\x7f]/', $path) !== 1;
+            && preg_match('/[\\\\\x00-\x20\x7f]/', $path) !== 1
+            && !self::hasDotSegment($path);
+    }
+
+    /**
+     * `.` / `..` path segments (also percent-encoded, any case) would let `/admin/../evil` or `/admin/.%2e/.%2e//host`
+     * leave the prefix once the browser resolves them.
+     */
+    private static function hasDotSegment(string $path): bool
+    {
+        $bare = rawurldecode(explode('?', $path, 2)[0]);
+
+        foreach (explode('/', $bare) as $segment) {
+            if ($segment === '.' || $segment === '..') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

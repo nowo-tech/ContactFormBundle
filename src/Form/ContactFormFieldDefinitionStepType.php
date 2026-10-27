@@ -76,20 +76,31 @@ class ContactFormFieldDefinitionStepType extends AbstractType
         });
 
         $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event): void {
-            $form = $event->getForm();
-            $name = (string) $form->get('name')->getData();
+            $form      = $event->getForm();
+            $violation = self::nameViolation((string) $form->get('name')->getData());
 
-            if (in_array($name, self::RESERVED_NAMES, true)) {
-                $form->get('name')->addError(new FormError($this->message('name_reserved', ['%name%' => $name])));
-            } elseif (preg_match(self::NAME_PATTERN, $name) !== 1) {
-                $form->get('name')->addError(new FormError($this->message('name_invalid')));
+            if ($violation !== null) {
+                $form->get('name')->addError(new FormError($this->message($violation, ['%name%' => (string) $form->get('name')->getData()])));
             }
 
-            // Without a file_upload.service the null handler discards uploads: a file field would lose them silently.
+            // Without a file_upload.service the null handler throws on every upload: the public form would fail.
             if ($form->get('type')->getData() === ContactFieldType::File && $this->fileUploadHandler instanceof NullContactFormFileUploadHandler) {
                 $form->get('type')->addError(new FormError($this->message('type_file_unavailable')));
             }
         });
+    }
+
+    /**
+     * Translation key (under nowo_contact_form.admin.field.fields.) of what is wrong with a field name, or null. Shared
+     * with the later wizard steps, which carry the name in a hidden field.
+     */
+    public static function nameViolation(string $name): ?string
+    {
+        if (in_array($name, self::RESERVED_NAMES, true)) {
+            return 'name_reserved';
+        }
+
+        return preg_match(self::NAME_PATTERN, $name) === 1 ? null : 'name_invalid';
     }
 
     /**

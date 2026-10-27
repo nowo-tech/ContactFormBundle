@@ -55,7 +55,7 @@ final class WiringTestKernel extends Kernel
         private readonly array $contactFormConfig = [],
         private readonly bool $withSecurity = true,
     ) {
-        parent::__construct('wiring' . substr(md5(serialize([$frameworkConfig, $contactFormConfig, $withSecurity])), 0, 12), false);
+        parent::__construct('test_wiring' . substr(md5(serialize([$frameworkConfig, $contactFormConfig, $withSecurity])), 0, 12), false);
     }
 
     public function registerBundles(): iterable

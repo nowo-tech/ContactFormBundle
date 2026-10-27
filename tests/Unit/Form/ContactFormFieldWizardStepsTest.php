@@ -291,4 +291,23 @@ final class ContactFormFieldWizardStepsTest extends TypeTestCase
 
         return $form;
     }
+
+    /**
+     * N1: the definition rule is shared with the hidden name of the later steps.
+     */
+    public function testNameViolations(): void
+    {
+        self::assertNull(ContactFormFieldDefinitionStepType::nameViolation('email_address'));
+        foreach (['gdpr_consent', '_token'] as $reserved) {
+            self::assertSame('name_reserved', ContactFormFieldDefinitionStepType::nameViolation($reserved));
+        }
+        foreach (['Bad Name', '1st', 'x]evil', str_repeat('a', 121), ''] as $invalid) {
+            self::assertSame('name_invalid', ContactFormFieldDefinitionStepType::nameViolation($invalid), $invalid);
+        }
+
+        $field = $this->field('topic', ContactFieldType::Select);
+        $form  = $this->stepForm(ContactFormFieldSelectOptionsStepType::class, $field);
+        $form->submit(['step' => ['name' => 'gdpr_consent', 'optionsMachineNamesLines' => 'a']]);
+        self::assertFalse($form->isValid());
+    }
 }

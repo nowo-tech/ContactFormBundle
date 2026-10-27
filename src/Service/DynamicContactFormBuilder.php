@@ -60,13 +60,13 @@ final readonly class DynamicContactFormBuilder
     /** Stable FormKit {@code by_form} key for public dynamic fields. */
     public const FORM_KIT_FORM_NAME = 'public_contact';
 
-    /** Default max upload size for file fields (nowo_contact_form.file_upload.max_size). */
     /** Default maximum length of single-line values (text, email, URL), in characters. */
     public const DEFAULT_TEXT_MAX_LENGTH = 255;
 
     /** Default maximum length of textarea values, in characters. */
     public const DEFAULT_TEXTAREA_MAX_LENGTH = 10000;
 
+    /** Default max upload size for file fields (nowo_contact_form.file_upload.max_size). */
     public const DEFAULT_FILE_MAX_SIZE = '5M';
 
     /**

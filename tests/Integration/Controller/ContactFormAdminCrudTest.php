@@ -159,6 +159,7 @@ final class ContactFormAdminCrudTest extends IntegrationTestCase
         yield '//' => ['//evil.example'];
         yield 'outside the admin' => ['/account/settings'];
         yield 'absolute' => ['https://evil.example/'];
+        yield 'dot segments' => ['/admin/contact-forms/.%252e/.%252e//evil.example'];
     }
 
     #[DataProvider('openRedirectVectors')]
