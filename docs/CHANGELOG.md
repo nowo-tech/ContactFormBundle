@@ -47,6 +47,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Performance
+
+- **Retention cleanup in chunks.** `SubmissionRetentionCleanupService::cleanup()` called `find()` for every expired
+  submission and removed them all in one flush (a 50 000-row backlog lived in one unit of work). Submissions are now
+  loaded with one `findBy(['id' => …])` per chunk of 500, then flushed and cleared per chunk.
+
 ## [1.6.0] - 2026-10-27
 
 UiKit page contract, Playwright e2e + screenshots, 100% coverage; SEC-004 hardening: open redirect fix (GHSA), http(s) privacy URL, controller-class guard, CSRF/roles compile checks, length caps, rate limiting See [UPGRADING](UPGRADING.md#to-160).

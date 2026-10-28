@@ -9,6 +9,7 @@ use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Repository\ContactSubmissionRepository;
 use Psr\Clock\ClockInterface;
 
+use function array_chunk;
 use function count;
 
 /**
@@ -16,6 +17,9 @@ use function count;
  */
 final readonly class SubmissionRetentionCleanupService
 {
+    /** Submissions loaded, removed and flushed per round (bounded unit of work, one SELECT per chunk). */
+    public const CHUNK_SIZE = 500;
+
     public function __construct(
         private ContactFormRepository $formRepository,
         private ContactSubmissionRepository $submissionRepository,
@@ -55,15 +59,15 @@ final readonly class SubmissionRetentionCleanupService
             return count($ids);
         }
 
-        foreach ($ids as $id) {
-            $submission = $this->submissionRepository->find($id);
-
-            if ($submission !== null) {
+        // One SELECT per chunk instead of find() per id, and flush + clear per chunk so a large backlog does not
+        // accumulate every submission (and its cascaded values) in one unit of work.
+        foreach (array_chunk($ids, self::CHUNK_SIZE) as $chunk) {
+            foreach ($this->submissionRepository->findBy(['id' => $chunk]) as $submission) {
                 $this->entityManager->remove($submission);
             }
+            $this->entityManager->flush();
+            $this->entityManager->clear();
         }
-
-        $this->entityManager->flush();
 
         return count($ids);
     }

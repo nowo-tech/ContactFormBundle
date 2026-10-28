@@ -14,6 +14,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
 
+use function count;
+
 #[CoversClass(SubmissionRetentionCleanupService::class)]
 final class SubmissionRetentionCleanupServiceTest extends TestCase
 {
@@ -52,11 +54,13 @@ final class SubmissionRetentionCleanupServiceTest extends TestCase
 
         $submissionRepository = $this->createMock(ContactSubmissionRepository::class);
         $submissionRepository->method('findExpiredIdsByForm')->willReturn([5]);
-        $submissionRepository->method('find')->with(5)->willReturn($submission);
+        $submissionRepository->expects(self::once())->method('findBy')->with(['id' => [5]])->willReturn([$submission]);
+        $submissionRepository->expects(self::never())->method('find');
 
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->expects(self::once())->method('remove')->with($submission);
         $entityManager->expects(self::once())->method('flush');
+        $entityManager->expects(self::once())->method('clear');
 
         $service = new SubmissionRetentionCleanupService(
             $formRepository,
@@ -66,6 +70,32 @@ final class SubmissionRetentionCleanupServiceTest extends TestCase
         );
 
         self::assertSame(1, $service->cleanup(false));
+    }
+
+    public function testCleanupLoadsAndFlushesExpiredSubmissionsInChunks(): void
+    {
+        $ids            = range(1, SubmissionRetentionCleanupService::CHUNK_SIZE + 2);
+        $formRepository = $this->createMock(ContactFormRepository::class);
+        $formRepository->method('findAll')->willReturn([(new ContactForm())->setRetentionDays(30)]);
+
+        $chunks               = [];
+        $submissionRepository = $this->createMock(ContactSubmissionRepository::class);
+        $submissionRepository->method('findExpiredIdsByForm')->willReturn($ids);
+        $submissionRepository->expects(self::exactly(2))->method('findBy')->willReturnCallback(static function (array $criteria) use (&$chunks): array {
+            $chunks[] = count($criteria['id']);
+
+            return [new ContactSubmission()];
+        });
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->expects(self::exactly(2))->method('remove');
+        $entityManager->expects(self::exactly(2))->method('flush');
+        $entityManager->expects(self::exactly(2))->method('clear');
+
+        $service = new SubmissionRetentionCleanupService($formRepository, $submissionRepository, $entityManager, new MockClock());
+
+        self::assertSame(count($ids), $service->cleanup(false));
+        self::assertSame([SubmissionRetentionCleanupService::CHUNK_SIZE, 2], $chunks);
     }
 
     public function testCollectExpiredSubmissionIds(): void
