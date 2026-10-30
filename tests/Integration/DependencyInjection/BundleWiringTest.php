@@ -12,6 +12,8 @@ use Nowo\ContactFormBundle\Security\ConfigurableContactFormAccessChecker;
 use Nowo\ContactFormBundle\Security\ContactFormAccessCheckerInterface;
 use Nowo\ContactFormBundle\Service\ContactFormSubmissionRateLimiter;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
+use Nowo\ContactFormBundle\Ui\ContactFormPages;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 use Psr\Cache\CacheItemPoolInterface;
 use ReflectionProperty;
@@ -168,6 +170,42 @@ final class BundleWiringTest extends TestCase
         $response = $kernel->handle(Request::create('/admin/contact-forms/'));
 
         self::assertContains($response->getStatusCode(), [Response::HTTP_UNAUTHORIZED, Response::HTTP_FORBIDDEN], (string) $response->headers);
+    }
+
+    /**
+     * The container injects the TwigBundle `twig` service into ContactFormPages, so a configured 1.x admin layout (no
+     * UiKit canonical blocks) is wrapped in the deprecated bridge. Up to 1.6.1 the argument used
+     * `#[Autowire('@?twig')]`, which is not an optional reference (the id became "?twig") and compiled to null: the
+     * bridge was never taken and the 1.x layout was extended directly.
+     */
+    #[IgnoreDeprecations]
+    public function testLegacyAdminLayoutIsWrappedInTheBridge(): void
+    {
+        $this->expectUserDeprecationMessageMatches('/legacy_admin\.html\.twig/');
+        $container = $this->boot(new WiringTestKernel(contactFormConfig: [
+            'security' => ['allow_unauthenticated' => true],
+            'web_ui'   => ['layout_template' => '@ContactFormWiring/legacy_admin.html.twig'],
+        ]))->getContainer();
+
+        $pages = $container->get(ContactFormPages::class);
+        self::assertInstanceOf(ContactFormPages::class, $pages);
+        self::assertSame(ContactFormPages::LEGACY_ADMIN_BRIDGE, $pages->layout());
+        $context = $pages->context([]);
+        self::assertSame('@ContactFormWiring/legacy_admin.html.twig', $context['nowo_contact_form_legacy_layout']);
+        self::assertSame(['nowo_ui_content'], $context['nowo_contact_form_legacy_blocks']);
+    }
+
+    public function testCanonicalAdminLayoutIsUsedAsIs(): void
+    {
+        $container = $this->boot(new WiringTestKernel(contactFormConfig: [
+            'security' => ['allow_unauthenticated' => true],
+            'web_ui'   => ['layout_template' => '@ContactFormWiring/canonical_admin.html.twig'],
+        ]))->getContainer();
+
+        $pages = $container->get(ContactFormPages::class);
+        self::assertInstanceOf(ContactFormPages::class, $pages);
+        self::assertSame('@ContactFormWiring/canonical_admin.html.twig', $pages->layout());
+        self::assertNull($pages->context([])['nowo_contact_form_legacy_layout']);
     }
 
     private function boot(KernelInterface $kernel): KernelInterface
