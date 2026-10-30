@@ -49,6 +49,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Security
+
+- **Contact form routes registered without being imported (REQ-SF-004 rule 7):** the controller services were autoconfigured, so on Symfony >= 7.3 their `#[Route]` tagged them `routing.controller` and a host's default `controllers: { resource: routing.controllers }` registered every bundle route — the unauthenticated public form (`GET|POST /{_locale}/contact/{slug}`, `/contact/{slug}`) and the admin pages at the root, without `web_ui.path_prefix` — even when the host never imported `@NowoContactFormBundle/Resources/config/routes.yaml`. (The admin routes stayed behind `ContactFormAdminAccessSubscriber`, which guards by route name.) The controllers are now registered with `autoconfigure: false` and explicit `controller.service_arguments` / `container.service_subscriber` tags: the routes exist only where the host imports `routes.yaml`. Regression test with a kernel whose routing is only `routing.controllers`.
+
 ## [1.6.2] - 2026-10-30
 
 ContactForm: 1.x admin layout bridge wired (Twig autowired by type) See [UPGRADING](UPGRADING.md#to-162).

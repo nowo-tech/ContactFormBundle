@@ -14,10 +14,16 @@ services:
             - '../../Service/ContactFormSubmissionRateLimiter.php'
             - '../../Security/'
             - '../../EventSubscriber/ContactFormAdminAccessSubscriber.php'
+            - '../../Controller/'
 
+    # REQ-SF-004 rule 7: the controllers carry #[Route] and must not be autoconfigured. On Symfony >= 7.3
+    # autoconfiguration tags them `routing.controller`, and the host's `controllers: { resource: routing.controllers }`
+    # would then register the contact form routes without the host importing routes.yaml (opt-in only, with
+    # web_ui.path_prefix). Tagged explicitly instead; they extend AbstractController, hence the service subscriber tag.
     Nowo\ContactFormBundle\Controller\:
         resource: '../../Controller/'
-        tags: ['controller.service_arguments']
+        autoconfigure: false
+        tags: ['controller.service_arguments', 'container.service_subscriber']
         public: true
 
     Nowo\ContactFormBundle\Service\ContactPhonePrefixResolver:
