@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.6.3](#to-163)
 - [To 1.6.2](#to-162)
 - [To 1.6.1](#to-161)
 - [To 1.6.0](#to-160)
@@ -56,6 +57,14 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## To 1.6.3
+
+From **1.6.2**:
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
 
 From **1.6.2**: no action if your `config/routes` imports `@NowoContactFormBundle/Resources/config/routes.yaml`. If the contact form pages appeared on Symfony >= 7.3 without that import (only through `controllers: { resource: routing.controllers }`), add the import now: the bundle routes are opt-in and no longer registered by `routing.controllers`.
 
