@@ -57,7 +57,8 @@ final readonly class ContactFormPages
         private ?string $publicLayoutTemplate = null,
         #[Autowire('%nowo_contact_form.web_ui.templates%')]
         private array $templates = [],
-        #[Autowire('@?twig')]
+        // Autowired by type: `#[Autowire('@?twig')]` is not an optional reference (the id becomes "?twig") and
+        // compiled to null, so the 1.x layout bridge was never taken.
         private ?Environment $twig = null,
     ) {
     }

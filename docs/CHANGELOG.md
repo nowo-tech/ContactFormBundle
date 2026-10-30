@@ -48,6 +48,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **1.x admin layout bridge never used:** `ContactFormPages` received `null` instead of the Twig environment because
+  `#[Autowire('@?twig')]` is not an optional reference (the attribute keeps `?` in the service id, `"?twig"`, and the
+  nullable argument turned the missing service into `null`). A configured 1.x `web_ui.layout_template` was therefore
+  extended directly instead of through the deprecated `admin/_legacy_layout.html.twig` bridge. The argument is now
+  autowired by type; a kernel test (`BundleWiringTest::testLegacyAdminLayoutIsWrappedInTheBridge`) covers the wiring.
+
 ## [1.6.1] - 2026-10-28
 
 Performance: retention cleanup loads, removes and flushes expired submissions in chunks of 500. See [UPGRADING](UPGRADING.md#to-161).

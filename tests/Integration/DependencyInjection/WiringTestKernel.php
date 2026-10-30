@@ -10,6 +10,7 @@ use Nowo\ContactFormBundle\NowoContactFormBundle;
 use Nowo\ContactFormBundle\Security\ContactFormAccessCheckerInterface;
 use Nowo\ContactFormBundle\Service\ContactFormSubmissionRateLimiter;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
+use Nowo\ContactFormBundle\Ui\ContactFormPages;
 use Nowo\FormKitBundle\NowoFormKitBundle;
 use Nowo\UiKitBundle\NowoUiKitBundle;
 use Psr\Log\NullLogger;
@@ -43,6 +44,7 @@ final class WiringTestKernel extends Kernel
     public const INSPECTED_IDS = [
         ContactFormSubmissionRateLimiter::class,
         SecurityClientResolver::class,
+        ContactFormPages::class,
         'clock',
     ];
 
@@ -120,7 +122,8 @@ final class WiringTestKernel extends Kernel
             'dbal' => ['url' => 'sqlite:///:memory:'],
             'orm'  => [],
         ]);
-        $container->loadFromExtension('twig', []);
+        // Host layouts of the legacy bridge wiring test (`@ContactFormWiring/legacy_admin.html.twig`, ...).
+        $container->loadFromExtension('twig', ['paths' => [__DIR__ . '/Fixtures/templates' => 'ContactFormWiring']]);
         if ($this->withSecurity) {
             $container->loadFromExtension('security', [
                 'firewalls' => ['main' => ['security' => false]],
