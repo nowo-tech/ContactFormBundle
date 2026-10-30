@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Routing\Loader\AttributeServicesLoader;
 use Symfony\Component\Routing\RouterInterface;
 
@@ -27,6 +28,8 @@ final class HostControllersRoutesTest extends TestCase
         }
 
         $kernel = new HostControllersRoutesKernel('test', true);
+        // The routing.controllers resource is not tracked against the container: start from a cold cache.
+        (new Filesystem())->remove($kernel->getCacheDir());
         $kernel->boot();
 
         try {
