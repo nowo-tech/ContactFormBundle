@@ -26,7 +26,7 @@ use function dirname;
 use function is_dir;
 use function mkdir;
 
-final class TestKernel extends Kernel
+class TestKernel extends Kernel
 {
     use MicroKernelTrait;
 
