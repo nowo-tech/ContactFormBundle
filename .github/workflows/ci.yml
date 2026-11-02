@@ -67,6 +67,9 @@ jobs:
             ${{ runner.os }}-php-${{ matrix.php }}-symfony-${{ matrix.symfony }}-composer-
             ${{ runner.os }}-php-${{ matrix.php }}-composer-
 
+      - name: Override Composer platform PHP (composer.json pins the minimum PHP for the lock)
+        run: composer config platform.php "${{ matrix.php }}.99"
+
       - name: Install dependencies with Symfony ${{ matrix.symfony }}
         run: |
           # doctrine-bundle 2.x lacks Symfony 8; SF8 support landed in 3.1+.
