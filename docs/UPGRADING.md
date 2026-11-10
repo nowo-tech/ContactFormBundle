@@ -58,6 +58,30 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 
 ## Unreleased
 
+Target **1.6.4**, from **1.6.3**:
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
+
+No schema change and no configuration change.
+
+- **`client_label_property`** is read through a getter / isser / hasser or a public property. If your client entity
+  exposed the label only through a private property, 1.6.3 failed every submission of an authenticated client; it now
+  stores the client id (or `client`) as label. Add a getter (`getEmail()`) to keep a meaningful label.
+- **Non-integer client ids** (UUID, ULID, strings): `client_id` stays null and only `client_label` identifies the
+  client, with a `warning` log entry per submission. Rows written by 1.0.0–1.6.3 for such clients hold a truncated id
+  (the leading digits of the id, `0`, or `1` for a `Uuid` object) that does **not** identify the client: do not use
+  `client_id` of those rows to attribute submissions, and consider clearing it (`UPDATE nowo_contact_submission SET
+  client_id = NULL WHERE created_at < '<upgrade date>'`, with your `doctrine.table_prefix` if set, when all your
+  client ids are non-integer). Integer ids are unaffected.
+- `ContactSubmission::isAnonymous()` is now true only when both `client_id` and `client_label` are null.
+
+Planned for the next minor (not in 1.6.4): `client_id` becomes a `VARCHAR(64)` column storing `(string) getId()`
+(existing integer values are kept as their string form) and `ContactSubmission::getClientId()` returns `?string`. It
+needs a schema migration (`doctrine:schema:update` or a host migration) and is a BC break for code reading
+`getClientId()` as `int`.
+
 ## To 1.6.3
 
 From **1.6.2**:

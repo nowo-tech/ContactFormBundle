@@ -13,10 +13,19 @@ use Nowo\ContactFormBundle\Notification\ContactSubmissionNotification;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Repository\ContactFormFieldRepository;
 use Psr\Clock\ClockInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Throwable;
+
+use function filter_var;
+use function get_debug_type;
+use function is_int;
+use function is_string;
+use function preg_match;
+
+use const FILTER_VALIDATE_INT;
 
 /**
  * Persists contact form submissions with GDPR metadata and optional client linkage.
@@ -34,6 +43,7 @@ final readonly class ContactSubmissionProcessor
         private ClockInterface $clock,
         private ?string $defaultNotificationRecipient = null,
         private ?ContactFormEntityManagerResolver $entityManagerResolver = null,
+        private ?LoggerInterface $logger = null,
     ) {
     }
 
@@ -58,7 +68,7 @@ final readonly class ContactSubmissionProcessor
 
         if ($client !== null) {
             if (method_exists($client, 'getId')) {
-                $submission->setClientId((int) $client->getId());
+                $submission->setClientId($this->normalizeClientId($client, $client->getId()));
             }
             $submission->setClientLabel($this->clientLabelResolver->resolveLabel($client));
         }
@@ -103,6 +113,36 @@ final readonly class ContactSubmissionProcessor
         }
 
         return $submission;
+    }
+
+    /**
+     * `client_id` is an INTEGER column: only integer ids (or strings holding one) are stored. Any other id (UUID,
+     * ULID, non-numeric string, object) used to be cast with `(int)` and truncated, so submissions of different
+     * clients shared one id; it is now stored as null (the client label is kept) and a warning is logged.
+     */
+    private function normalizeClientId(object $client, mixed $id): ?int
+    {
+        if ($id === null || is_int($id)) {
+            return $id;
+        }
+
+        if (is_string($id) && preg_match('/^-?(?:0|[1-9]\d{0,18})$/', $id) === 1) {
+            $int = filter_var($id, FILTER_VALIDATE_INT);
+
+            if (is_int($int)) {
+                return $int;
+            }
+        }
+
+        $this->logger?->warning(
+            'Contact form submission: the client id ({id_type}) of {client_class} is not an integer; client_id is stored as null and only client_label links the submission to the client.',
+            [
+                'id_type'      => get_debug_type($id),
+                'client_class' => $client::class,
+            ],
+        );
+
+        return null;
     }
 
     /**

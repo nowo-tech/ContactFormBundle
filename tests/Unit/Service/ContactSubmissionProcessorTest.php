@@ -21,16 +21,23 @@ use Nowo\ContactFormBundle\Service\ContactFormSubmissionValueNormalizer;
 use Nowo\ContactFormBundle\Service\ContactSubmissionProcessor;
 use Nowo\ContactFormBundle\Service\IpAnonymizer;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
+use stdClass;
+use Stringable;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\Request;
 
+use function get_debug_type;
 use function in_array;
 use function spl_object_id;
+
+use const PHP_INT_MAX;
 
 #[CoversClass(ContactSubmissionProcessor::class)]
 final class ContactSubmissionProcessorTest extends TestCase
@@ -295,5 +302,154 @@ final class ContactSubmissionProcessorTest extends TestCase
         $symfonyForm->method('get')->with('email')->willReturn($emailField);
 
         return $symfonyForm;
+    }
+
+    /**
+     * @return iterable<string, array{mixed, int}>
+     */
+    public static function integerClientIds(): iterable
+    {
+        yield 'int' => [42, 42];
+        yield 'numeric string' => ['42', 42];
+        yield 'zero string' => ['0', 0];
+        yield 'negative string' => ['-3', -3];
+        yield 'PHP_INT_MAX as string' => ['9223372036854775807', PHP_INT_MAX];
+    }
+
+    #[DataProvider('integerClientIds')]
+    public function testIntegerClientIdsAreStored(mixed $id, int $expected): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::never())->method('warning');
+
+        $submission = $this->processWithClient($this->clientWithId($id), $logger);
+
+        self::assertSame($expected, $submission->getClientId());
+        self::assertSame('client@example.com', $submission->getClientLabel());
+        self::assertFalse($submission->isAnonymous());
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function nonIntegerClientIds(): iterable
+    {
+        yield 'UUID string' => ['0195e8a4-6d2b-7c3e-9f00-1a2b3c4d5e6f'];
+        yield 'UUID starting digits' => ['12ab34cd-0000-4000-8000-000000000000'];
+        yield 'leading zero' => ['007'];
+        yield 'padded number' => [' 42'];
+        yield 'overflowing number' => ['9223372036854775808'];
+        yield 'empty string' => [''];
+        yield 'float' => [4.2];
+        yield 'Stringable UUID' => [new class implements Stringable {
+            public function __toString(): string
+            {
+                return '0195e8a4-6d2b-7c3e-9f00-1a2b3c4d5e6f';
+            }
+        }];
+        yield 'plain object' => [new stdClass()];
+    }
+
+    #[DataProvider('nonIntegerClientIds')]
+    public function testNonIntegerClientIdIsNotTruncated(mixed $id): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::once())
+            ->method('warning')
+            ->with(
+                self::stringContains('is not an integer'),
+                self::callback(static fn (array $context): bool => $context['id_type'] === get_debug_type($id)),
+            );
+
+        $submission = $this->processWithClient($this->clientWithId($id), $logger);
+
+        self::assertNull($submission->getClientId());
+        self::assertSame('client@example.com', $submission->getClientLabel());
+        self::assertFalse($submission->isAnonymous());
+    }
+
+    public function testNonIntegerClientIdWithoutLoggerStoresNull(): void
+    {
+        $submission = $this->processWithClient($this->clientWithId('0195e8a4-6d2b-7c3e-9f00-1a2b3c4d5e6f'));
+
+        self::assertNull($submission->getClientId());
+        self::assertSame('client@example.com', $submission->getClientLabel());
+    }
+
+    public function testNullClientIdIsKeptWithoutWarning(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::never())->method('warning');
+
+        $submission = $this->processWithClient($this->clientWithId(null), $logger);
+
+        self::assertNull($submission->getClientId());
+        self::assertSame('client@example.com', $submission->getClientLabel());
+    }
+
+    public function testClientWithPrivateLabelPropertyIsSaved(): void
+    {
+        $client = new class {
+            private string $email = 'private@example.com';
+
+            public function getId(): int
+            {
+                return 5;
+            }
+
+            public function getEmail(): string
+            {
+                return $this->email;
+            }
+        };
+
+        $submission = $this->processWithClient($client);
+
+        self::assertSame(5, $submission->getClientId());
+        self::assertSame('private@example.com', $submission->getClientLabel());
+    }
+
+    private function clientWithId(mixed $id): object
+    {
+        return new class($id) {
+            public function __construct(private readonly mixed $id)
+            {
+            }
+
+            public function getId(): mixed
+            {
+                return $this->id;
+            }
+
+            public function getEmail(): string
+            {
+                return 'client@example.com';
+            }
+        };
+    }
+
+    private function processWithClient(object $client, ?LoggerInterface $logger = null): ContactSubmission
+    {
+        $contactForm = (new ContactForm())->setRequireConsent(false);
+
+        $symfonyForm = $this->createMock(FormInterface::class);
+        $symfonyForm->method('has')->willReturn(false);
+
+        $fieldRepository = $this->createMock(ContactFormFieldRepository::class);
+        $fieldRepository->method('findByFormOrdered')->willReturn([]);
+
+        $processor = new ContactSubmissionProcessor(
+            $this->createMock(EntityManagerInterface::class),
+            $fieldRepository,
+            new IpAnonymizer('salt'),
+            new ClientLabelResolver(null, 'email'),
+            $this->createMock(EventDispatcherInterface::class),
+            $this->createMock(ContactSubmissionNotifierInterface::class),
+            new ContactFormSubmissionValueNormalizer($this->createMock(ContactFormFileUploadHandlerInterface::class)),
+            new MockClock(),
+            logger: $logger,
+        );
+
+        return $processor->process($contactForm, $symfonyForm, Request::create('/'), 'en', $client);
     }
 }

@@ -64,4 +64,20 @@ final class ContactSubmissionEntityTest extends TestCase
         self::assertSame('en', $submission->getLocale());
         self::assertSame(DateTimeImmutable::class, $createdAt::class);
     }
+
+    public function testSubmissionWithOnlyAClientLabelIsNotAnonymous(): void
+    {
+        $submission = (new ContactSubmission())->setClientLabel('client@example.com');
+
+        self::assertNull($submission->getClientId());
+        self::assertFalse($submission->isAnonymous());
+    }
+
+    public function testRemovedClientLinkMakesTheSubmissionAnonymousAgain(): void
+    {
+        $submission = (new ContactSubmission())->setClientId(7)->setClientLabel('x');
+        $submission->setClientId(null)->setClientLabel(null);
+
+        self::assertTrue($submission->isAnonymous());
+    }
 }
