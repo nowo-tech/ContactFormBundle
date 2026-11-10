@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.6.4] - 2026-11-10](#164---2026-11-10)
 - [[1.6.3] - 2026-10-30](#163---2026-10-30)
 - [[1.6.2] - 2026-10-30](#162---2026-10-30)
 - [[1.6.1] - 2026-10-28](#161---2026-10-28)
@@ -49,6 +50,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [[1.0.0] - 2026-07-13](#100---2026-07-13)
 
 ## [Unreleased]
+
+## [1.6.4] - 2026-11-10
 
 Target 1.6.4.
 
@@ -355,6 +358,7 @@ Allows nowo-tech/ui-kit-bundle 2.x (^1.4 || ^2.2) so hosts can move to UiKit 2.2
 
 - **Worker safety (Igor):** justified `// @igor-ignore` annotations and/or `ResetInterface` / request-scoped fixes so `make igor` passes on package `src/`.
 
+[1.6.4]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.6.4
 [1.6.3]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.6.3
 [1.6.2]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.6.2
 [1.6.1]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.6.1
