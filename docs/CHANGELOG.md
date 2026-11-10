@@ -60,13 +60,18 @@ Target 1.6.4.
   `getEmail()`, the default `client_label_property` is `email`), every submission by an authenticated client threw
   `Error: Cannot access private property` before the flush and was lost. The label is now read with Symfony
   PropertyAccess (getter / isser / hasser / method first, public property only); a failure falls back to the client
-  id, then to `client`. A non-scalar, non-`Stringable` id no longer breaks the fallback.
+  id, then to `client`. A non-scalar, non-`Stringable` id no longer breaks the fallback. The getter is called once
+  per submission. A getter now wins over a public property of the same name.
 - **Client ids that are not integers were truncated (affects 1.0.0–1.6.3).** The client id was stored as
   `(int) $client->getId()` in the INTEGER `client_id` column: UUID / ULID / string ids became their leading digits or
-  `0` (a `Uuid` object became `1`), so submissions of different clients shared one `client_id`. Only integer ids and
-  strings holding an integer are stored now; any other id stores `client_id` null, keeps the `client_label` and logs a
-  warning. A submission with a `client_label` and no `client_id` is no longer shown as anonymous
+  `0` (a `Uuid` object or any ULID became `1`), so submissions of different clients shared one `client_id`; integers
+  above 2147483647 failed the flush or were clamped. Only integer ids and strings holding an integer in the signed
+  32-bit range are stored now; any other id stores `client_id` null, keeps the `client_label` and logs a warning.
+  Existing rows are not repaired: see UPGRADING. A submission with a `client_label` and no `client_id` is no longer shown as anonymous
   (`ContactSubmission::isAnonymous()`).
+
+- Line breaks in the client label are replaced by spaces in the text notification e-mail (they could fake body
+  lines).
 
 ### Changed
 

@@ -61,13 +61,11 @@ final readonly class ClientLabelResolver
         }
 
         try {
-            if (!$this->propertyAccessor->isReadable($client, $this->clientLabelProperty)) {
-                return null;
-            }
-
+            // getValue() alone: isReadable() would already call the getter, so it would run twice.
             return $this->propertyAccessor->getValue($client, $this->clientLabelProperty);
         } catch (Throwable) {
-            // A label is informative only: never lose the submission because the host getter failed.
+            // Not readable (NoSuchPropertyException, private property, uninitialized) or the host getter failed:
+            // a label is informative only, never lose the submission for it.
             return null;
         }
     }

@@ -220,10 +220,13 @@ What is stored for a linked client:
 - `client_label`: the `client_label_property` value read with Symfony PropertyAccess — a getter (`getEmail()`),
   isser, hasser or a method with the same name first, then a **public** property. A private or protected property is
   never read directly. When nothing readable gives a non-empty string, the client id is used, then `client`.
-- `client_id`: the value of `getId()` when it is an integer or a string holding one (`42`, `"42"`). `client_id` is an
-  INTEGER column: any other id (UUID, ULID, other strings, objects) is **not** stored — `client_id` stays null, the
-  submission is linked by `client_label` only and a warning is logged (`logger` service). Native UUID / string client
-  ids are planned for the next minor version (see [UPGRADING](UPGRADING.md#unreleased)).
+  Name a non-sensitive field: the label is shown in the admin and mailed to the notification recipient (paths such as
+  `profile.email` and `__get()` are followed too).
+- `client_id`: the value of `getId()` when it is an integer or a string holding one (`42`, `"42"`) in the signed
+  32-bit range. `client_id` is an INTEGER column: any other id (UUID, ULID, other strings, objects, bigints) is
+  **not** stored — `client_id` stays null, the submission is linked by `client_label` only and a warning is logged
+  (`logger` service). Do not look submissions up by `client_id` for such clients. Native UUID / string client ids
+  are planned for the next minor version (see [UPGRADING](UPGRADING.md)).
 
 ## GDPR retention cleanup
 

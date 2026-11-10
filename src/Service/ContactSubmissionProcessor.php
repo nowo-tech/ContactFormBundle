@@ -32,6 +32,10 @@ use const FILTER_VALIDATE_INT;
  */
 final readonly class ContactSubmissionProcessor
 {
+    /** Signed 32-bit range of the INTEGER `client_id` column. */
+    private const CLIENT_ID_MIN = -2147483648;
+    private const CLIENT_ID_MAX = 2147483647;
+
     public function __construct(
         private EntityManagerInterface $entityManager,
         private ContactFormFieldRepository $fieldRepository,
@@ -116,18 +120,23 @@ final readonly class ContactSubmissionProcessor
     }
 
     /**
-     * `client_id` is an INTEGER column: only integer ids (or strings holding one) are stored. Any other id (UUID,
-     * ULID, non-numeric string, object) used to be cast with `(int)` and truncated, so submissions of different
-     * clients shared one id; it is now stored as null (the client label is kept) and a warning is logged.
+     * `client_id` is a 32-bit INTEGER column: only integer ids (or strings holding one) in the signed 32-bit range are
+     * stored. Any other id (UUID, ULID, non-numeric string, object, bigint above the range) used to be cast with
+     * `(int)` and truncated or clamped, so submissions of different clients shared one id; it is now stored as null
+     * (the client label is kept) and a warning is logged.
      */
     private function normalizeClientId(object $client, mixed $id): ?int
     {
-        if ($id === null || is_int($id)) {
+        if ($id === null) {
+            return null;
+        }
+
+        if (is_int($id) && $id >= self::CLIENT_ID_MIN && $id <= self::CLIENT_ID_MAX) {
             return $id;
         }
 
-        if (is_string($id) && preg_match('/^-?(?:0|[1-9]\d{0,18})$/', $id) === 1) {
-            $int = filter_var($id, FILTER_VALIDATE_INT);
+        if (is_string($id) && preg_match('/^-?(?:0|[1-9]\d{0,9})$/', $id) === 1) {
+            $int = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => self::CLIENT_ID_MIN, 'max_range' => self::CLIENT_ID_MAX]]);
 
             if (is_int($int)) {
                 return $int;
@@ -135,7 +144,7 @@ final readonly class ContactSubmissionProcessor
         }
 
         $this->logger?->warning(
-            'Contact form submission: the client id ({id_type}) of {client_class} is not an integer; client_id is stored as null and only client_label links the submission to the client.',
+            'Contact form submission: the client id ({id_type}) of {client_class} is not a 32-bit integer; client_id is stored as null and only client_label links the submission to the client.',
             [
                 'id_type'      => get_debug_type($id),
                 'client_class' => $client::class,

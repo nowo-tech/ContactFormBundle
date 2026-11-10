@@ -7,6 +7,8 @@ namespace Nowo\ContactFormBundle\Notification;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 
+use function str_replace;
+
 /**
  * Sends submission notifications via symfony/mailer when installed.
  */
@@ -36,7 +38,8 @@ final readonly class MailerContactSubmissionNotifier implements ContactSubmissio
         ];
 
         if (!$submission->isAnonymous()) {
-            $bodyLines[] = 'Client: ' . ($submission->getClientLabel() ?? (string) $submission->getClientId());
+            // The label comes from host data: no line breaks, so it cannot fake other lines of the body.
+            $bodyLines[] = 'Client: ' . str_replace(["\r\n", "\r", "\n"], ' ', $submission->getClientLabel() ?? (string) $submission->getClientId());
         }
 
         $bodyLines[] = '';

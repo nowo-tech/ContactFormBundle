@@ -313,7 +313,10 @@ final class ContactSubmissionProcessorTest extends TestCase
         yield 'numeric string' => ['42', 42];
         yield 'zero string' => ['0', 0];
         yield 'negative string' => ['-3', -3];
-        yield 'PHP_INT_MAX as string' => ['9223372036854775807', PHP_INT_MAX];
+        yield '32-bit max as string' => ['2147483647', 2147483647];
+        yield '32-bit min as string' => ['-2147483648', -2147483648];
+        yield '32-bit max int' => [2147483647, 2147483647];
+        yield '32-bit min int' => [-2147483648, -2147483648];
     }
 
     #[DataProvider('integerClientIds')]
@@ -339,6 +342,12 @@ final class ContactSubmissionProcessorTest extends TestCase
         yield 'leading zero' => ['007'];
         yield 'padded number' => [' 42'];
         yield 'overflowing number' => ['9223372036854775808'];
+        yield 'PHP_INT_MAX string' => ['9223372036854775807'];
+        yield 'above 32-bit string' => ['2147483648'];
+        yield 'below 32-bit string' => ['-2147483649'];
+        yield 'above 32-bit int' => [2147483648];
+        yield 'below 32-bit int' => [-2147483649];
+        yield 'PHP_INT_MAX int' => [PHP_INT_MAX];
         yield 'empty string' => [''];
         yield 'float' => [4.2];
         yield 'Stringable UUID' => [new class implements Stringable {
@@ -357,7 +366,7 @@ final class ContactSubmissionProcessorTest extends TestCase
         $logger->expects(self::once())
             ->method('warning')
             ->with(
-                self::stringContains('is not an integer'),
+                self::stringContains('is not a 32-bit integer'),
                 self::callback(static fn (array $context): bool => $context['id_type'] === get_debug_type($id)),
             );
 
