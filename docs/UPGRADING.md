@@ -58,6 +58,43 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 
 ## Unreleased
 
+Target **1.6.4**, from **1.6.3**:
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
+
+No schema change and no configuration change.
+
+- **`client_label_property`** is read through a getter / isser / hasser or a public property. If your client entity
+  exposed the label only through a private property, 1.6.3 failed every submission of an authenticated client; it now
+  stores the client id (or `client`) as label. Add a getter (`getEmail()`) to keep a meaningful label.
+- **Non-integer client ids** (UUID, ULID, strings) and integers outside the signed 32-bit range
+  (-2147483648..2147483647, the width of the INTEGER column): `client_id` stays null and only `client_label`
+  identifies the client, with a `warning` log entry per submission. Integer ids in that range are unaffected.
+- **Do not select, show, export or erase submissions by `client_id`** when your client ids are non-integer (or
+  bigint): new submissions have no `client_id`, so a "my submissions" page or a GDPR export / erasure by `client_id`
+  misses them. Use `client_label` until `client_id` becomes a string column (next minor, below).
+- `ContactSubmission::isAnonymous()` is now true only when both `client_id` and `client_label` are null:
+  `!isAnonymous()` **no longer implies** `getClientId() !== null`.
+- **Existing rows are not repaired by upgrading.** Rows written by 1.0.0–1.6.3 for non-integer client ids hold a
+  truncated id (the leading digits of the id, `0`, or `1` for a `Uuid` object or any ULID) that is shared by
+  unrelated clients: selecting by it returns, exports or erases other clients' submissions. Clear it:
+
+  ```sql
+  -- add your doctrine.table_prefix to the table name if you set one
+  UPDATE nowo_contact_submission SET client_id = NULL WHERE created_at < '<date>';
+  ```
+
+  `<date>` is the upgrade to 1.6.4 when all your client ids have always been non-integer. If your client ids switched
+  from integers to UUIDs / ULIDs at some point, also bound it to that switch (`AND created_at >= '<switch date>'`):
+  the rows written before it hold real integer ids.
+
+Planned for the next minor (not in 1.6.4): `client_id` becomes a `VARCHAR(64)` column storing `(string) getId()`
+(existing integer values are kept as their string form) and `ContactSubmission::getClientId()` returns `?string`. It
+needs a schema migration (`doctrine:schema:update` or a host migration) and is a BC break for code reading
+`getClientId()` as `int`.
+
 ## To 1.6.3
 
 From **1.6.2**:

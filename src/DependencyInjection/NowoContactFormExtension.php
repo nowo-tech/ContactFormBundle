@@ -215,7 +215,8 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
         $container->getDefinition(ContactSubmissionProcessor::class)
             ->setArgument('$clock', new Reference('clock'))
             ->setArgument('$defaultNotificationRecipient', $config['notifications']['default_recipient'])
-            ->setArgument('$entityManagerResolver', new Reference(ContactFormEntityManagerResolver::class));
+            ->setArgument('$entityManagerResolver', new Reference(ContactFormEntityManagerResolver::class))
+            ->setArgument('$logger', new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE));
 
         if ($container->hasDefinition(ContactFormAdminTwigExtension::class)) {
             $container->getDefinition(ContactFormAdminTwigExtension::class)

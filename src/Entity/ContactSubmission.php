@@ -100,9 +100,13 @@ class ContactSubmission
         return $this;
     }
 
+    /**
+     * A submission linked to a client whose id is not an integer keeps `client_id` null but has a `client_label`:
+     * it is not anonymous.
+     */
     public function isAnonymous(): bool
     {
-        return $this->clientId === null;
+        return $this->clientId === null && $this->clientLabel === null;
     }
 
     public function getLocale(): string

@@ -50,6 +50,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+Target 1.6.4.
+
+### Fixed
+
+- **Logged-in client submissions failed with HTTP 500 (affects 1.0.0–1.6.3).** `ClientLabelResolver::resolveLabel()`
+  read `$client->{client_label_property}` whenever `property_exists()` was true, which is also the case for a
+  **private** property: with `client_entity_class` set and the usual entity shape (`private string $email` +
+  `getEmail()`, the default `client_label_property` is `email`), every submission by an authenticated client threw
+  `Error: Cannot access private property` before the flush and was lost. The label is now read with Symfony
+  PropertyAccess (getter / isser / hasser / method first, public property only); a failure falls back to the client
+  id, then to `client`. A non-scalar, non-`Stringable` id no longer breaks the fallback. The getter is called once
+  per submission. A getter now wins over a public property of the same name.
+- **Client ids that are not integers were truncated (affects 1.0.0–1.6.3).** The client id was stored as
+  `(int) $client->getId()` in the INTEGER `client_id` column: UUID / ULID / string ids became their leading digits or
+  `0` (a `Uuid` object or any ULID became `1`), so submissions of different clients shared one `client_id`; integers
+  above 2147483647 failed the flush or were clamped. Only integer ids and strings holding an integer in the signed
+  32-bit range are stored now; any other id stores `client_id` null, keeps the `client_label` and logs a warning.
+  Existing rows are not repaired: see UPGRADING. A submission with a `client_label` and no `client_id` is no longer shown as anonymous
+  (`ContactSubmission::isAnonymous()`).
+
+- Line breaks in the client label are replaced by spaces in the text notification e-mail (they could fake body
+  lines).
+
+### Changed
+
+- `symfony/property-access` and `psr/log` are declared in `require` (both were already installed through
+  `symfony/form` / `symfony/http-kernel`). `ContactSubmissionProcessor` takes an optional `?LoggerInterface $logger`
+  as its last constructor argument; `ClientLabelResolver` an optional `?PropertyAccessorInterface`.
+
 ## [1.6.3] - 2026-10-30
 
 Security: bundle routes are opt-in again; controllers are no longer autoconfigured, so a host's routing.controllers import does not expose them (REQ-SF-004 rule 7). See [UPGRADING](UPGRADING.md#to-163).

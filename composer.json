@@ -30,12 +30,13 @@
         }
     ],
     "require": {
+        "php": ">=8.2 <8.6",
         "doctrine/doctrine-bundle": "^2.13 || ^3.0",
         "doctrine/orm": "^3.7",
         "nowo-tech/form-kit-bundle": "^2.13.3",
         "nowo-tech/ui-kit-bundle": "^2.15.3",
-        "php": ">=8.2 <8.6",
         "psr/clock": "^1.0",
+        "psr/log": "^1.1 || ^2.0 || ^3.0",
         "symfony/clock": "^7.4 || ^8.0",
         "symfony/config": "^7.4 || ^8.0",
         "symfony/console": "^7.4 || ^8.0",
@@ -45,6 +46,7 @@
         "symfony/framework-bundle": "^7.4 || ^8.0",
         "symfony/http-foundation": "^7.4 || ^8.0",
         "symfony/http-kernel": "^7.4 || ^8.0",
+        "symfony/property-access": "^7.4 || ^8.0",
         "symfony/routing": "^7.4 || ^8.0",
         "symfony/security-csrf": "^7.4 || ^8.0",
         "symfony/translation": "^7.4 || ^8.0",

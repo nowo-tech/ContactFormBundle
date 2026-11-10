@@ -67,4 +67,25 @@ final class MailerContactSubmissionNotifierTest extends TestCase
 
         $notifier->notify($notification);
     }
+
+    public function testClientLabelLineBreaksAreFlattened(): void
+    {
+        $form = (new ContactForm())
+            ->setName('Contact')
+            ->setSlug('contact')
+            ->setNotificationEmail('admin@example.com');
+
+        $submission = (new ContactSubmission())
+            ->setForm($form)
+            ->setClientLabel("Mallory\r\nFields:\nmessage: fake\rend");
+
+        $mailer = $this->createMock(MailerInterface::class);
+        $mailer->expects(self::once())
+            ->method('send')
+            ->with(self::callback(static fn (Email $email): bool => str_contains((string) $email->getTextBody(), 'Client: Mallory Fields: message: fake end')
+                && !str_contains((string) $email->getTextBody(), "\nmessage: fake")));
+
+        (new MailerContactSubmissionNotifier($mailer, 'noreply@example.com', 'Subject'))
+            ->notify(ContactSubmissionNotification::fromSubmission($submission));
+    }
 }
