@@ -10,6 +10,7 @@ use Nowo\ContactFormBundle\Entity\ContactSubmission;
 use Nowo\ContactFormBundle\Entity\ContactSubmissionValue;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
 
 #[CoversClass(ContactSubmission::class)]
 final class ContactSubmissionEntityTest extends TestCase
@@ -79,5 +80,25 @@ final class ContactSubmissionEntityTest extends TestCase
         $submission->setClientId(null)->setClientLabel(null);
 
         self::assertTrue($submission->isAnonymous());
+    }
+
+    public function testClientReferenceHoldsAnyIdTypeAndFallsBackToTheIntegerId(): void
+    {
+        $submission = (new ContactSubmission())->setClientId(42);
+        self::assertSame('42', $submission->getClientReference(), 'setClientId() also sets the reference');
+
+        $submission->setClientReference('01890a5d-ac96-774b-bcce-b302099a8057');
+        self::assertSame('01890a5d-ac96-774b-bcce-b302099a8057', $submission->getClientReference());
+        self::assertFalse($submission->isAnonymous());
+
+        // A row written before 1.7 (client_id set, client_reference not backfilled yet) reads through the INTEGER id.
+        $legacy = new ContactSubmission();
+        (new ReflectionProperty(ContactSubmission::class, 'clientId'))->setValue($legacy, 9);
+        self::assertSame('9', $legacy->getClientReference());
+        self::assertNull((new ContactSubmission())->getClientReference());
+
+        $referenceOnly = (new ContactSubmission())->setClientReference('ref-1');
+        self::assertNull($referenceOnly->getClientId());
+        self::assertFalse($referenceOnly->isAnonymous());
     }
 }

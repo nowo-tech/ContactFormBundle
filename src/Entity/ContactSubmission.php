@@ -28,8 +28,13 @@ class ContactSubmission
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
     private ?ContactForm $form = null;
 
+    /** @deprecated since 1.7, use {@see self::$clientReference}; the INTEGER column is removed in 2.0 */
     #[ORM\Column(name: 'client_id', type: Types::INTEGER, nullable: true)]
     private ?int $clientId = null;
+
+    /** Host client id as a string (1.7): integers, UUIDs, ULIDs… up to 64 characters. */
+    #[ORM\Column(name: 'client_reference', length: 64, nullable: true)]
+    private ?string $clientReference = null;
 
     #[ORM\Column(name: 'client_label', length: 255, nullable: true)]
     private ?string $clientLabel = null;
@@ -74,15 +79,42 @@ class ContactSubmission
         return $this;
     }
 
+    /**
+     * @deprecated since 1.7, use {@see self::getClientReference()} (any id type); removed in 2.0 with the INTEGER column
+     */
     public function getClientId(): ?int
     {
         return $this->clientId;
     }
 
+    /**
+     * Also sets {@see self::getClientReference()} to the same id (1.7).
+     *
+     * @deprecated since 1.7, use {@see self::setClientReference()}; removed in 2.0 with the INTEGER column
+     */
     public function setClientId(?int $clientId): self
     {
         // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->clientId = $clientId;
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
+        $this->clientReference = $clientId === null ? null : (string) $clientId;
+
+        return $this;
+    }
+
+    /**
+     * Id of the host client as a string (1.7): set for every id type. Rows written before 1.7 have it only after the
+     * backfill of the upgrade (UPGRADING "To 1.7.0"); {@see self::getClientId()} is the fallback for them.
+     */
+    public function getClientReference(): ?string
+    {
+        return $this->clientReference ?? ($this->clientId === null ? null : (string) $this->clientId);
+    }
+
+    public function setClientReference(?string $clientReference): self
+    {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
+        $this->clientReference = $clientReference;
 
         return $this;
     }
@@ -101,12 +133,12 @@ class ContactSubmission
     }
 
     /**
-     * A submission linked to a client whose id is not an integer keeps `client_id` null but has a `client_label`:
-     * it is not anonymous.
+     * A submission linked to a client whose id is not an integer keeps `client_id` null but has a `client_reference`
+     * (1.7) and a `client_label`: it is not anonymous.
      */
     public function isAnonymous(): bool
     {
-        return $this->clientId === null && $this->clientLabel === null;
+        return $this->clientId === null && $this->clientReference === null && $this->clientLabel === null;
     }
 
     public function getLocale(): string

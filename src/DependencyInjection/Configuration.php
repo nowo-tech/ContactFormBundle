@@ -15,6 +15,7 @@ use function array_keys;
 use function implode;
 use function is_scalar;
 use function is_string;
+use function preg_match;
 use function sprintf;
 use function trim;
 
@@ -54,6 +55,10 @@ class Configuration implements ConfigurationInterface
                 ->scalarNode('client_user_accessor')
                     ->defaultNull()
                     ->info('Optional method on the authenticated user that returns the client entity (e.g. getClient).')
+                ->end()
+                ->scalarNode('client_reference_resolver')
+                    ->defaultNull()
+                    ->info('Optional service id implementing ClientReferenceResolverInterface (1.7): the client of the public form as an id reference (DDD hosts, no entity). Null = the client entity from client_entity_class / client_user_accessor.')
                 ->end()
                 ->scalarNode('ip_anonymization_salt')
                     ->defaultValue('%kernel.secret%')
@@ -271,6 +276,14 @@ class Configuration implements ConfigurationInterface
                         ->scalarNode('table_prefix')
                             ->defaultValue('')
                             ->info('Prefix prepended to table names (nowo_contact_form, nowo_contact_submission, …). Empty = no prefix.')
+                        ->end()
+                        ->scalarNode('entity_manager')
+                            ->defaultNull()
+                            ->info('Doctrine entity manager the contact form entities are mapped on (1.7), e.g. a dedicated "contact_form" manager of a DDD host: the entities are mapped there only (also with auto_mapping on the default one) and every read, write and reset of the bundle uses it. Null (default) = the default entity manager.')
+                            ->validate()
+                                ->ifTrue(static fn (mixed $value): bool => $value !== null && (!is_string($value) || preg_match('/^[A-Za-z0-9_]+$/', $value) !== 1))
+                                ->thenInvalid('nowo_contact_form.doctrine.entity_manager must be the name of a Doctrine entity manager (letters, digits and underscores).')
+                            ->end()
                         ->end()
                     ->end()
                 ->end()

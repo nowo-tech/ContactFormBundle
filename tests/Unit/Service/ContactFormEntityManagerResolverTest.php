@@ -16,6 +16,28 @@ use PHPUnit\Framework\TestCase;
 #[CoversClass(ContactFormEntityManagerResolver::class)]
 final class ContactFormEntityManagerResolverTest extends TestCase
 {
+    public function testConfiguredManagerIsUsedAndResetByName(): void
+    {
+        $closed   = $this->createEntityManager(false);
+        $fresh    = $this->createEntityManager(true);
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManager')->with('contact_form')->willReturn($closed);
+        $registry->expects(self::never())->method('getManagerForClass');
+        $registry->expects(self::once())->method('resetManager')->with('contact_form')->willReturn($fresh);
+
+        self::assertSame($fresh, (new ContactFormEntityManagerResolver($registry, 'contact_form'))->get());
+    }
+
+    public function testConfiguredManagerResetToANonOrmManagerKeepsTheClosedOne(): void
+    {
+        $closed   = $this->createEntityManager(false);
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManager')->with('contact_form')->willReturn($closed);
+        $registry->method('resetManager')->willReturn($this->createMock(ObjectManager::class));
+
+        self::assertSame($closed, (new ContactFormEntityManagerResolver($registry, 'contact_form'))->get());
+    }
+
     public function testGetReturnsOpenManagerWithoutReset(): void
     {
         $entityManager = $this->createEntityManager(true);

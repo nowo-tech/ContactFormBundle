@@ -51,6 +51,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+Target 1.7.0 (architecture bar, wave W1: standard Symfony and DDD hosts).
+
+### Added
+
+- **`client_reference`** (VARCHAR(64), nullable) on submissions: the client id as a string for every id type (integer,
+  UUID, ULID, string, Stringable). `ContactSubmission::getClientReference()` / `setClientReference()`. Non-integer ids
+  are no longer lost (1.6.4 stored them as null). **Schema change** (UPGRADING). On MySQL / MariaDB the column gets a
+  binary, no-pad collation in the generated schema (`utf8mb4_0900_bin` / `utf8mb4_nopad_bin`; `utf8mb4_bin` on MySQL
+  5.7) so lookups by `client_reference` never match another client's id that differs in case, accents or trailing
+  spaces (`ClientReferenceCollationListener`).
+- **`ClientReference`** value object and **`ClientReferenceResolverInterface`** (`client_reference_resolver` option): the
+  client of the public form as an id reference, without a host entity. Default adapter: `ObjectClientReferenceResolver`.
+- **`ContactSubmissionRecorderInterface::record(formSlug, values, locale, ipHash, client, consentGivenAt): int`**:
+  request-free write port (no Symfony form, no request), implemented by `ContactSubmissionProcessor`.
+- **`doctrine.entity_manager`** option: map the entities on a dedicated entity manager only (also with `auto_mapping` on
+  the default one); every read, write and reset of the bundle uses it; the build fails clearly for an unknown manager.
+- `ContactSubmissionCreatedEvent` getters `getSubmissionId()`, `getFormSlug()`, `getLocale()`, `getClientReference()`,
+  `getFieldValues()`, `getCreatedAt()` (captured when the event is created; `getSubmission()` stays).
+- **`ContactSubmissionsDeletedEvent`** (ids + reason) after the admin delete and after each retention cleanup chunk.
+- USAGE "Using it from a DDD / hexagonal host"; kernel tests for a standard host, two managers with `auto_mapping`, a
+  host without `default_entity_manager`, an unknown manager and a kept-alive (worker) kernel.
+
+### Changed
+
+- The admin controllers and the retention cleanup get the manager of the bundle entities
+  (`nowo_contact_form.entity_manager`) instead of the autowired default `EntityManagerInterface` (same manager in a
+  standard host).
+- The retention cleanup no longer calls `clear()` on the manager after each chunk (it could be the host's default
+  manager, detaching the host's own entities in the same process); removed submissions leave the identity map with
+  the flush.
+- A client id that is not a 32-bit integer is now kept in `client_reference`; the `warning` log entry is written only for
+  ids that cannot be stored at all (blank, longer than 64 characters, not int / string / Stringable).
+
+### Deprecated
+
+- `ContactSubmission::getClientId()` / `setClientId()` and the INTEGER `client_id` column: use `client_reference`.
+  Removed in 2.0.
+
 ## [1.6.4] - 2026-11-10
 
 Target 1.6.4.

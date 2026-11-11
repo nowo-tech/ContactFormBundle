@@ -8,6 +8,8 @@
 - [Custom notification (Slack, API, etc.)](#custom-notification-slack-api-etc)
 - [Mailer notifications](#mailer-notifications)
 - [Overrides](#overrides)
+- [Events](#events)
+- [Using it from a DDD / hexagonal host](#using-it-from-a-ddd--hexagonal-host)
 
 ## Admin
 
@@ -101,3 +103,75 @@ nowo_contact_form:
   customisations; diff against `vendor/nowo-tech/contact-form-bundle/src/Resources/views/<subpath>` first.
 - Overridable `<subpath>` list, procedure and the per-page data blocks: [Templates](TEMPLATES.md#overriding-templates-req-twig-001).
 - Translations: `translations/NowoContactFormBundle.{locale}.yaml`
+
+## Events
+
+| Event | When | Carries |
+|-------|------|---------|
+| `ContactSubmissionCreatedEvent` | After a submission was flushed (public form or recorder), before the notifier | `getSubmission()` (entity, detached after the dispatch); since 1.7 `getSubmissionId()`, `getFormSlug()`, `getLocale()`, `getClientReference()`, `getFieldValues()`, `getCreatedAt()` |
+| `ContactSubmissionsDeletedEvent` (1.7) | After the admin deleted a submission, and after each flushed chunk of the retention cleanup | `getSubmissionIds()`, `getReason()` (`admin` / `retention`) |
+
+## Using it from a DDD / hexagonal host
+
+The bundle is its own bounded context: six bundle-owned entities, no foreign key to host tables. The host's client is
+referenced by id only (`client_reference`, any id type). Both kinds of host are supported.
+
+**Standard Symfony host (default).** The entities live on the default entity manager; the client of the public form
+is your security user (or the entity `client_user_accessor` returns, `client_entity_class`); listeners may use
+`getSubmission()`.
+
+**DDD / hexagonal host (opt-in).**
+
+```yaml
+doctrine:
+    orm:
+        default_entity_manager: default
+        entity_managers:
+            default: { connection: default, mappings: { App: { type: xml, dir: '%kernel.project_dir%/config/doctrine', prefix: 'App\\Domain' } } }
+            contact_form: { connection: contact_form }
+
+nowo_contact_form:
+    doctrine:
+        entity_manager: contact_form       # 1.7: entities, flushes and resets on this manager only
+    client_reference_resolver: App\Infrastructure\ContactForm\ClientReferenceResolver   # returns ClientReference(id, label)
+```
+
+```php
+use Nowo\ContactFormBundle\Client\ClientReference;
+use Nowo\ContactFormBundle\Service\ContactSubmissionRecorderInterface;
+
+final class SendContactMessageHandler
+{
+    public function __construct(private ContactSubmissionRecorderInterface $recorder) {}
+
+    public function __invoke(SendContactMessage $command): void
+    {
+        $submissionId = $this->recorder->record(
+            formSlug: 'support',
+            values: ['email' => $command->email, 'message' => $command->message],
+            locale: $command->locale,
+            client: new ClientReference((string) $command->customerId, $command->customerName),
+            consentGivenAt: $command->consentGivenAt,
+        );
+    }
+}
+```
+
+- The bundle never flushes, clears or resets your manager: submissions, admin edits and the retention cleanup write to
+  `contact_form` only, and a closed `contact_form` manager is recovered on the next request or write (FrankenPHP worker
+  mode, no services resetter needed). The entities are not mapped on your managers even with `auto_mapping: true`.
+- `record()` takes plain values (no Symfony form, no request) and returns the submission id; it flushes the bundle's
+  manager and dispatches `ContactSubmissionCreatedEvent` after that flush. Listen to the id getters and translate them
+  into your own events / outbox rows.
+- **Standard host and your own transaction (LI-CF-L1).** Without `doctrine.entity_manager`, the bundle's manager *is*
+  your default entity manager: `record()` flushes it (your pending changes too), and the created event and the
+  notification (e-mail) run right after that flush — **before** your transaction commits. If your transaction then
+  rolls back, the submission is gone but the event and the e-mail already went out. When you call `record()` inside
+  your own transaction, either use a dedicated manager (`doctrine.entity_manager`, its own connection) or call it
+  after your commit.
+- `client_reference` compares exactly: look submissions up with `client_reference = :id` (the id exactly as given; on
+  MySQL / MariaDB the column has a binary, no-pad collation, see UPGRADING).
+- A "host controls the transaction" mode (no flush) is not offered: submission ids are database identities, known only
+  after the bundle's flush. With a dedicated manager the bundle's transaction never includes your writes.
+- The retention cleanup (`nowo:contact-form:cleanup-submissions`) dispatches `ContactSubmissionsDeletedEvent` per chunk so you can
+  erase your own copies.

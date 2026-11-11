@@ -36,6 +36,7 @@ use Symfony\Component\HttpFoundation\Request;
 use function get_debug_type;
 use function in_array;
 use function spl_object_id;
+use function str_repeat;
 
 use const PHP_INT_MAX;
 
@@ -333,34 +334,58 @@ final class ContactSubmissionProcessorTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{mixed}>
+     * 1.7: ids that are not 32-bit integers are kept in client_reference (as given); client_id stays null.
+     *
+     * @return iterable<string, array{mixed, string}>
      */
     public static function nonIntegerClientIds(): iterable
     {
-        yield 'UUID string' => ['0195e8a4-6d2b-7c3e-9f00-1a2b3c4d5e6f'];
-        yield 'UUID starting digits' => ['12ab34cd-0000-4000-8000-000000000000'];
-        yield 'leading zero' => ['007'];
-        yield 'padded number' => [' 42'];
-        yield 'overflowing number' => ['9223372036854775808'];
-        yield 'PHP_INT_MAX string' => ['9223372036854775807'];
-        yield 'above 32-bit string' => ['2147483648'];
-        yield 'below 32-bit string' => ['-2147483649'];
-        yield 'above 32-bit int' => [2147483648];
-        yield 'below 32-bit int' => [-2147483649];
-        yield 'PHP_INT_MAX int' => [PHP_INT_MAX];
-        yield 'empty string' => [''];
-        yield 'float' => [4.2];
+        yield 'UUID string' => ['0195e8a4-6d2b-7c3e-9f00-1a2b3c4d5e6f', '0195e8a4-6d2b-7c3e-9f00-1a2b3c4d5e6f'];
+        yield 'UUID starting digits' => ['12ab34cd-0000-4000-8000-000000000000', '12ab34cd-0000-4000-8000-000000000000'];
+        yield 'leading zero' => ['007', '007'];
+        yield 'padded number' => [' 42', ' 42'];
+        yield 'overflowing number' => ['9223372036854775808', '9223372036854775808'];
+        yield 'PHP_INT_MAX string' => ['9223372036854775807', '9223372036854775807'];
+        yield 'above 32-bit string' => ['2147483648', '2147483648'];
+        yield 'below 32-bit string' => ['-2147483649', '-2147483649'];
+        yield 'above 32-bit int' => [2147483648, '2147483648'];
+        yield 'below 32-bit int' => [-2147483649, '-2147483649'];
+        yield 'PHP_INT_MAX int' => [PHP_INT_MAX, (string) PHP_INT_MAX];
         yield 'Stringable UUID' => [new class implements Stringable {
             public function __toString(): string
             {
                 return '0195e8a4-6d2b-7c3e-9f00-1a2b3c4d5e6f';
             }
-        }];
-        yield 'plain object' => [new stdClass()];
+        }, '0195e8a4-6d2b-7c3e-9f00-1a2b3c4d5e6f'];
     }
 
     #[DataProvider('nonIntegerClientIds')]
-    public function testNonIntegerClientIdIsNotTruncated(mixed $id): void
+    public function testNonIntegerClientIdIsKeptAsReference(mixed $id, string $reference): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects(self::never())->method('warning');
+
+        $submission = $this->processWithClient($this->clientWithId($id), $logger);
+
+        self::assertNull($submission->getClientId());
+        self::assertSame($reference, $submission->getClientReference());
+        self::assertSame('client@example.com', $submission->getClientLabel());
+        self::assertFalse($submission->isAnonymous());
+    }
+
+    /**
+     * @return iterable<string, array{mixed}>
+     */
+    public static function unstorableClientIds(): iterable
+    {
+        yield 'empty string' => [''];
+        yield 'float' => [4.2];
+        yield 'plain object' => [new stdClass()];
+        yield 'longer than 64' => [str_repeat('x', 65)];
+    }
+
+    #[DataProvider('unstorableClientIds')]
+    public function testUnstorableClientIdIsNotTruncated(mixed $id): void
     {
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects(self::once())
@@ -373,6 +398,7 @@ final class ContactSubmissionProcessorTest extends TestCase
         $submission = $this->processWithClient($this->clientWithId($id), $logger);
 
         self::assertNull($submission->getClientId());
+        self::assertNull($submission->getClientReference());
         self::assertSame('client@example.com', $submission->getClientLabel());
         self::assertFalse($submission->isAnonymous());
     }

@@ -70,12 +70,7 @@ class TestKernel extends Kernel
             'default_locale'  => 'en',
             'php_errors'      => ['log' => true],
         ]);
-        $container->loadFromExtension('doctrine', [
-            'dbal' => ['url' => 'sqlite:///' . $databasePath],
-            'orm'  => [
-                'naming_strategy' => 'doctrine.orm.naming_strategy.underscore_number_aware',
-            ],
-        ]);
+        $container->loadFromExtension('doctrine', $this->doctrineConfig($databasePath));
         $container->loadFromExtension('twig', [
             'strict_variables' => false,
         ]);
@@ -86,7 +81,7 @@ class TestKernel extends Kernel
                 ],
             ],
         ]);
-        $container->loadFromExtension('nowo_contact_form', [
+        $container->loadFromExtension('nowo_contact_form', $this->contactFormConfig() + [
             'notifications' => ['enabled' => false],
             'security'      => [
                 'allow_unauthenticated' => true,
@@ -120,6 +115,29 @@ class TestKernel extends Kernel
             $container->getDefinition('twig.form.renderer')
                 ->setArgument('$csrfTokenManager', new Reference('security.csrf.token_manager'));
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function doctrineConfig(string $databasePath): array
+    {
+        return [
+            'dbal' => ['url' => 'sqlite:///' . $databasePath],
+            'orm'  => [
+                'naming_strategy' => 'doctrine.orm.naming_strategy.underscore_number_aware',
+            ],
+        ];
+    }
+
+    /**
+     * Extra nowo_contact_form configuration merged over the defaults below.
+     *
+     * @return array<string, mixed>
+     */
+    protected function contactFormConfig(): array
+    {
+        return [];
     }
 
     protected function configureRoutes(RoutingConfigurator $routes): void

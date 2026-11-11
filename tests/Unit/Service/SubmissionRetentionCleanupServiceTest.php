@@ -60,7 +60,7 @@ final class SubmissionRetentionCleanupServiceTest extends TestCase
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->expects(self::once())->method('remove')->with($submission);
         $entityManager->expects(self::once())->method('flush');
-        $entityManager->expects(self::once())->method('clear');
+        $entityManager->expects(self::never())->method('clear');
 
         $service = new SubmissionRetentionCleanupService(
             $formRepository,
@@ -90,7 +90,7 @@ final class SubmissionRetentionCleanupServiceTest extends TestCase
         $entityManager = $this->createMock(EntityManagerInterface::class);
         $entityManager->expects(self::exactly(2))->method('remove');
         $entityManager->expects(self::exactly(2))->method('flush');
-        $entityManager->expects(self::exactly(2))->method('clear');
+        $entityManager->expects(self::never())->method('clear');
 
         $service = new SubmissionRetentionCleanupService($formRepository, $submissionRepository, $entityManager, new MockClock());
 

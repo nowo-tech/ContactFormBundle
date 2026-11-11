@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\DependencyInjection;
 
 use Doctrine\ORM\Events;
+use Nowo\ContactFormBundle\Client\ClientReferenceResolverInterface;
+use Nowo\ContactFormBundle\Client\ObjectClientReferenceResolver;
+use Nowo\ContactFormBundle\Controller\ContactFormPublicController;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier;
+use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Security\ConfigurableContactFormAccessChecker;
 use Nowo\ContactFormBundle\Security\ContactFormAccessCheckerInterface;
 use Nowo\ContactFormBundle\Service\ClientLabelResolver;
@@ -40,6 +44,9 @@ use function is_string;
  */
 final class NowoContactFormExtension extends Extension implements PrependExtensionInterface
 {
+    /** Container parameter holding `doctrine.entity_manager` (null: the default entity manager), 1.7. */
+    public const ENTITY_MANAGER_PARAMETER = 'nowo_contact_form.doctrine.entity_manager';
+
     public const DEFAULT_ACCESS_CHECKER_ID = 'nowo_contact_form.access_checker.default';
 
     public const ALLOW_ALL_ACCESS_CHECKER_ID = 'nowo_contact_form.access_checker.allow_all';
@@ -212,11 +219,25 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
 
         $container->setAlias(ClientResolverInterface::class, SecurityClientResolver::class);
 
+        // 1.7: id-reference client port; the public form uses a configured resolver, else the client entity (1.x path).
+        $referenceResolver = $config['client_reference_resolver'] ?? null;
+        $referenceResolver = is_string($referenceResolver) && $referenceResolver !== '' ? $referenceResolver : null;
+        $container->setAlias(ClientReferenceResolverInterface::class, $referenceResolver ?? ObjectClientReferenceResolver::class);
+        if ($container->hasDefinition(ContactFormPublicController::class)) {
+            $container->getDefinition(ContactFormPublicController::class)
+                ->setArgument('$clientReferenceResolver', $referenceResolver !== null ? new Reference($referenceResolver) : null);
+        }
+
+        $entityManagerName = $config['doctrine']['entity_manager'] ?? null;
+        $entityManagerName = is_string($entityManagerName) && $entityManagerName !== '' ? $entityManagerName : null;
+        $container->setParameter(self::ENTITY_MANAGER_PARAMETER, $entityManagerName);
+
         $container->getDefinition(ContactSubmissionProcessor::class)
             ->setArgument('$clock', new Reference('clock'))
             ->setArgument('$defaultNotificationRecipient', $config['notifications']['default_recipient'])
             ->setArgument('$entityManagerResolver', new Reference(ContactFormEntityManagerResolver::class))
-            ->setArgument('$logger', new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE));
+            ->setArgument('$logger', new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE))
+            ->setArgument('$formRepository', new Reference(ContactFormRepository::class));
 
         if ($container->hasDefinition(ContactFormAdminTwigExtension::class)) {
             $container->getDefinition(ContactFormAdminTwigExtension::class)

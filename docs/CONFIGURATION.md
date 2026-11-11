@@ -7,6 +7,7 @@ Extension alias: `nowo_contact_form`.
 | `client_entity_class` | `null` | Optional FQCN of host client entity for linking submissions |
 | `client_label_property` | `email` | Property or getter used as client label in admin |
 | `client_user_accessor` | `null` | Method on authenticated user returning the client (e.g. `getClient`) |
+| `client_reference_resolver` | `null` | **1.7.** Service id implementing `ClientReferenceResolverInterface`: the client of the public form as an id reference (`ClientReference(id, label)`), for hosts without a client entity. Null = the client entity from `client_entity_class` / `client_user_accessor` |
 | `ip_anonymization_salt` | `%kernel.secret%` | Salt for SHA-256 IP hashing (GDPR) |
 | `default_retention_days` | `365` | Default retention for new forms (1 to 3650; a form may set 0 = keep forever) |
 | `notifications.enabled` | `false` | Enable submission notifications |
@@ -42,6 +43,7 @@ Extension alias: `nowo_contact_form`.
 | `public_field_max_length.text` | `255` | Max characters of text / email / URL values |
 | `public_field_max_length.textarea` | `10000` | Max characters of textarea values |
 | `doctrine.table_prefix` | `""` | Prefix prepended to entity table names (`nowo_contact_form`, …). Empty = no prefix |
+| `doctrine.entity_manager` | `null` | **1.7.** Doctrine entity manager the bundle entities are mapped on, e.g. a dedicated `contact_form` manager. Mapped on that manager only (also when the default one has `auto_mapping: true`); every read, write, flush and recovery reset of the bundle uses it. Unknown manager = build error. Null = the default entity manager (unchanged) |
 
 ## Table of contents
 

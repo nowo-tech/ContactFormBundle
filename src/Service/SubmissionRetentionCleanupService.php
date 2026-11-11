@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Service;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Nowo\ContactFormBundle\Event\ContactSubmissionsDeletedEvent;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Repository\ContactSubmissionRepository;
 use Psr\Clock\ClockInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 use function array_chunk;
 use function count;
@@ -25,6 +27,8 @@ final readonly class SubmissionRetentionCleanupService
         private ContactSubmissionRepository $submissionRepository,
         private EntityManagerInterface $entityManager,
         private ClockInterface $clock,
+        private ?ContactFormEntityManagerResolver $entityManagerResolver = null,
+        private ?EventDispatcherInterface $eventDispatcher = null,
     ) {
     }
 
@@ -59,14 +63,19 @@ final readonly class SubmissionRetentionCleanupService
             return count($ids);
         }
 
-        // One SELECT per chunk instead of find() per id, and flush + clear per chunk so a large backlog does not
-        // accumulate every submission (and its cascaded values) in one unit of work.
+        // One SELECT per chunk instead of find() per id, and one flush per chunk so a large backlog does not
+        // accumulate every submission (and its cascaded values) in one unit of work: removed entities leave the
+        // identity map with the flush. 1.7: the manager is never clear()ed (it may be the host's default manager,
+        // holding the host's own entities); the bundle's manager is resolved by class / doctrine.entity_manager.
+        $entityManager = $this->entityManagerResolver?->get() ?? $this->entityManager;
         foreach (array_chunk($ids, self::CHUNK_SIZE) as $chunk) {
+            $removed = [];
             foreach ($this->submissionRepository->findBy(['id' => $chunk]) as $submission) {
-                $this->entityManager->remove($submission);
+                $removed[] = (int) $submission->getId();
+                $entityManager->remove($submission);
             }
-            $this->entityManager->flush();
-            $this->entityManager->clear();
+            $entityManager->flush();
+            $this->eventDispatcher?->dispatch(new ContactSubmissionsDeletedEvent($removed, ContactSubmissionsDeletedEvent::REASON_RETENTION));
         }
 
         return count($ids);

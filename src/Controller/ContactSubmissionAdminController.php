@@ -7,11 +7,13 @@ namespace Nowo\ContactFormBundle\Controller;
 use Doctrine\ORM\EntityManagerInterface;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactSubmission;
+use Nowo\ContactFormBundle\Event\ContactSubmissionsDeletedEvent;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Repository\ContactSubmissionRepository;
 use Nowo\ContactFormBundle\Ui\ContactFormPageFactory;
 use Nowo\FormKitBundle\Form\CsrfOnlyFormFactory;
 use Nowo\UiKitBundle\View\Pagination;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\Form\FormInterface;
@@ -42,6 +44,7 @@ class ContactSubmissionAdminController extends AbstractController
         private readonly ParameterBagInterface $parameterBag,
         private readonly ContactFormPageFactory $pages,
         private readonly CsrfOnlyFormFactory $csrfOnlyForms,
+        private readonly ?EventDispatcherInterface $eventDispatcher = null,
     ) {
     }
 
@@ -97,8 +100,10 @@ class ContactSubmissionAdminController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
+        $submissionId = (int) $submission->getId();
         $entityManager->remove($submission);
         $entityManager->flush();
+        $this->eventDispatcher?->dispatch(new ContactSubmissionsDeletedEvent([$submissionId], ContactSubmissionsDeletedEvent::REASON_ADMIN));
 
         $this->addFlash('success', $this->translator->trans('nowo_contact_form.admin.submission.deleted', [], 'NowoContactFormBundle'));
 
