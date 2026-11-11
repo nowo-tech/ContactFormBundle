@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\Controller;
 
+use Nowo\ContactFormBundle\Client\ClientReferenceResolverInterface;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Service\ClientResolverInterface;
@@ -36,6 +37,7 @@ class ContactFormPublicController extends AbstractController
         private readonly ClientResolverInterface $clientResolver,
         private readonly ContactFormSubmissionRateLimiter $submissionRateLimiter,
         private readonly ContactFormPageFactory $pages,
+        private readonly ?ClientReferenceResolverInterface $clientReferenceResolver = null,
     ) {
     }
 
@@ -65,7 +67,10 @@ class ContactFormPublicController extends AbstractController
                 $symfonyForm,
                 $request,
                 $locale,
-                $this->clientResolver->resolve(),
+                // 1.7: a configured client_reference_resolver (id reference, no entity) wins over the entity resolver.
+                $this->clientReferenceResolver instanceof ClientReferenceResolverInterface
+                    ? $this->clientReferenceResolver->resolve()
+                    : $this->clientResolver->resolve(),
             );
 
             $this->addFlash(

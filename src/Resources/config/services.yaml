@@ -2,6 +2,10 @@ services:
     _defaults:
         autowire: true
         autoconfigure: true
+        bind:
+            # 1.7 (rule 6): the manager of the bundle entities (doctrine.entity_manager, else the one that maps them),
+            # never the host's default manager by accident.
+            Doctrine\ORM\EntityManagerInterface $entityManager: '@nowo_contact_form.entity_manager'
 
     Nowo\ContactFormBundle\:
         resource: '../../'
@@ -10,6 +14,8 @@ services:
             - '../../Entity/'
             - '../../Form/'
             - '../../NowoContactFormBundle.php'
+            - '../../Client/ClientReference.php'
+            - '../../Exception/'
             - '../../Notification/MailerContactSubmissionNotifier.php'
             - '../../Service/ContactFormSubmissionRateLimiter.php'
             - '../../Security/'
@@ -47,6 +53,17 @@ services:
     Nowo\ContactFormBundle\Service\IpAnonymizer: ~
     Nowo\ContactFormBundle\Service\ClientLabelResolver: ~
     Nowo\ContactFormBundle\Service\SecurityClientResolver: ~
+
+    Nowo\ContactFormBundle\Service\ContactFormEntityManagerResolver:
+        arguments:
+            $managerName: '%nowo_contact_form.doctrine.entity_manager%'
+
+    nowo_contact_form.entity_manager:
+        class: Doctrine\ORM\EntityManagerInterface
+        factory: ['@Nowo\ContactFormBundle\Service\ContactFormEntityManagerResolver', 'get']
+
+    Nowo\ContactFormBundle\Service\ContactSubmissionRecorderInterface:
+        alias: Nowo\ContactFormBundle\Service\ContactSubmissionProcessor
 
     Nowo\ContactFormBundle\Service\ContactSubmissionProcessor:
         arguments:

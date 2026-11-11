@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+  - [To 1.7.0](#to-170)
 - [To 1.6.4](#to-164)
 - [To 1.6.3](#to-163)
 - [To 1.6.2](#to-162)
@@ -58,6 +59,39 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+### To 1.7.0
+
+From **1.6.4**:
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
+
+**Schema change**: a nullable `client_reference VARCHAR(64)` column on the submissions table. Generate the migration
+(`php bin/console doctrine:migrations:diff`, with `--em=<name>` when you use `doctrine.entity_manager`) and backfill the
+existing links once (table prefix included if you set one):
+
+```sql
+UPDATE nowo_contact_submission SET client_reference = CAST(client_id AS VARCHAR(64)) WHERE client_id IS NOT NULL AND client_reference IS NULL;
+-- MySQL / MariaDB: CAST(client_id AS CHAR(64))
+```
+
+Until the backfill runs, `getClientReference()` falls back to `client_id`, so reads are correct either way; SQL that
+selects by `client_reference` needs the backfill.
+
+- **Client ids of any type** (UUID, ULID, strings, integers beyond 32 bits) are stored in `client_reference`. Select,
+  show, export and erase submissions by `client_reference`. `client_id`, `getClientId()` and `setClientId()` are
+  deprecated (removed in 2.0); `setClientId()` also sets `client_reference`.
+- **Optional `doctrine.entity_manager`**: maps the entities on that manager only and makes the bundle use it everywhere.
+  Move the contact form tables to its connection (or point it at the same database).
+- **Optional `client_reference_resolver`**: a service implementing `ClientReferenceResolverInterface` for the public
+  form (DDD hosts without a client entity). Without it nothing changes.
+- **Events**: `ContactSubmissionCreatedEvent` gained id / value getters; new `ContactSubmissionsDeletedEvent`.
+- The retention cleanup no longer `clear()`s the entity manager. If your own code relied on that side effect when it
+  ran the cleanup service in the same process, clear your own manager yourself.
+- Code that replaced the admin controllers and relied on the autowired default `EntityManagerInterface` action argument
+  now receives `nowo_contact_form.entity_manager` (the same object in a standard host).
 
 ## To 1.6.4
 
