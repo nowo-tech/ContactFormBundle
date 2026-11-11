@@ -63,6 +63,18 @@ services:
         arguments:
             $platform: null
 
+    # REQ-RUNTIME-002 rule 4: clears the doctrine.entity_manager manager at the request / Messenger / console
+    # boundaries. Lazy iterators of IGNORE_ON_UNINITIALIZED references ('@!'): a boundary never builds a service. The
+    # extension fills $entityManagers when doctrine.entity_manager is set (empty: the bundle owns no manager).
+    Nowo\ContactFormBundle\EventSubscriber\ContactFormEntityManagerClearSubscriber:
+        autowire: false
+        arguments:
+            $entityManagers: !iterator []
+            $registries: !iterator ['@!doctrine']
+            $managerName: '%nowo_contact_form.doctrine.entity_manager%'
+        tags:
+            - { name: kernel.event_subscriber }
+
     nowo_contact_form.entity_manager:
         class: Doctrine\ORM\EntityManagerInterface
         factory: ['@Nowo\ContactFormBundle\Service\ContactFormEntityManagerResolver', 'get']

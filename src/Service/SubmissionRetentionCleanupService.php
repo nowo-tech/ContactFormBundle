@@ -65,8 +65,9 @@ final readonly class SubmissionRetentionCleanupService
 
         // One SELECT per chunk instead of find() per id, and one flush per chunk so a large backlog does not
         // accumulate every submission (and its cascaded values) in one unit of work: removed entities leave the
-        // identity map with the flush. 1.7: the manager is never clear()ed (it may be the host's default manager,
-        // holding the host's own entities); the bundle's manager is resolved by class / doctrine.entity_manager.
+        // identity map with the flush. 1.7: the manager is never clear()ed here (it may be the host's default manager,
+        // holding the host's own entities); the bundle's manager is resolved by class / doctrine.entity_manager. 1.7.1:
+        // a doctrine.entity_manager manager is cleared when the command ends (ContactFormEntityManagerClearSubscriber).
         $entityManager = $this->entityManagerResolver?->get() ?? $this->entityManager;
         foreach (array_chunk($ids, self::CHUNK_SIZE) as $chunk) {
             $removed = [];

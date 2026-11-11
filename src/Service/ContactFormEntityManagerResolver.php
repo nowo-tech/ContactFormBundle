@@ -8,6 +8,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use LogicException;
 use Nowo\ContactFormBundle\Entity\ContactForm;
+use Nowo\ContactFormBundle\EventSubscriber\ContactFormEntityManagerClearSubscriber;
 
 use function array_keys;
 
@@ -16,7 +17,9 @@ use function array_keys;
  * them — and replaces it when it has been closed. Never another manager.
  *
  * Without a kernel reset between requests (worker mode), a failed flush would otherwise leave the
- * manager closed for every later request served by the same worker. The identity map is never cleared.
+ * manager closed for every later request served by the same worker. This resolver never clears the identity map; a
+ * `doctrine.entity_manager` manager is cleared at the unit-of-work boundaries by
+ * {@see ContactFormEntityManagerClearSubscriber} (1.7.1).
  */
 final readonly class ContactFormEntityManagerResolver
 {

@@ -52,6 +52,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Worker state (REQ-RUNTIME-002 rule 4).** With `doctrine.entity_manager` set (1.7.0), the bundle never cleared its
+  own manager. Where the services resetter does not run between units of work (a host that removes, replaces or
+  bypasses `services_resetter`, or drives `http_kernel` directly; Messenger consumers started with `--no-reset` and
+  without DoctrineBundle's `DoctrineClearEntityManagerWorkerSubscriber`; long-running console commands), forms and
+  submissions (personal data) loaded by the admin, a command or a message handler stayed managed across requests:
+  memory grew with admin browsing, and a submission edited or deleted by another worker or process was shown with its
+  old values. With the stock Symfony kernel, `FRANKENPHP_RESET_KERNEL=false` alone is not affected: `Kernel::handle()`
+  still runs the resetter before every request. Affected: 1.7.0 with `doctrine.entity_manager` set. No cross-user
+  disclosure: the admin access check still runs on every request.
+  The new internal `ContactFormEntityManagerClearSubscriber` clears that manager at the start of every main request and
+  at `kernel.terminate`, when a Messenger message is received, handled or failed, and when the outermost console command
+  starts and terminates. It never clears a manager with changes waiting to be written, recreates a closed manager by
+  name, and never touches any other manager. A command run in-process from another command or from a message handler
+  (`Application::doRun()`) does not clear the outer unit's manager (console depth counter plus an in-flight message
+  flag, cleared on handled, failed and `WorkerStoppedEvent`). The manager and the registry arrive as
+  `IGNORE_ON_UNINITIALIZED_REFERENCE` references, so a boundary never builds them. Without `doctrine.entity_manager`
+  the bundle entities live on the application's manager, which the bundle still never clears (host rule, see
+  [FRANKENPHP-WORKER-AUDIT.md](FRANKENPHP-WORKER-AUDIT.md#usage-recommendations-in-worker-mode)).
+
+### Tests
+
+- `tests/Integration/EntityManager/WorkerBoundariesTest.php`: one kept-alive kernel with a dedicated bundle manager
+  and the services resetter never called; 500 admin submission pages through `http_kernel`, 500 messages through a
+  Messenger `Worker` without `ResetServicesListener` and without `DoctrineClearEntityManagerWorkerSubscriber` (every
+  7th handler fails) and 500 console runs, two tenants (forms) in alternation, another worker rewriting the submission
+  before every unit; empty bundle identity map after every unit, a pending host entity kept the whole time, 2 MiB
+  memory margin after a 50-unit warm-up. Nested `doRun()` tests from a command and from a message handler, a
+  pending-changes / closed-manager test and unit tests of the subscriber.
+- `symfony/messenger` added to `require-dev` (tests only).
+
 ## [1.7.0] - 2026-11-11
 
 `client_reference` for any id type with exact binary matching, a request-free recorder and a real `entity_manager` option. See [UPGRADING](https://github.com/nowo-tech/ContactFormBundle/blob/v1.7.0/docs/UPGRADING.md#to-170).
