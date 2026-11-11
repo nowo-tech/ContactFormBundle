@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.7.0] - 2026-11-11](#170---2026-11-11)
 - [[1.6.4] - 2026-11-10](#164---2026-11-10)
 - [[1.6.3] - 2026-10-30](#163---2026-10-30)
 - [[1.6.2] - 2026-10-30](#162---2026-10-30)
@@ -51,7 +52,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
-Target 1.7.0 (architecture bar, wave W1: standard Symfony and DDD hosts).
+## [1.7.0] - 2026-11-11
+
+`client_reference` for any id type with exact binary matching, a request-free recorder and a real `entity_manager` option. See [UPGRADING](https://github.com/nowo-tech/ContactFormBundle/blob/v1.7.0/docs/UPGRADING.md#to-170).
+
 
 ### Added
 
@@ -396,6 +400,7 @@ Allows nowo-tech/ui-kit-bundle 2.x (^1.4 || ^2.2) so hosts can move to UiKit 2.2
 
 - **Worker safety (Igor):** justified `// @igor-ignore` annotations and/or `ResetInterface` / request-scoped fixes so `make igor` passes on package `src/`.
 
+[1.7.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.7.0
 [1.6.4]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.6.4
 [1.6.3]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.6.3
 [1.6.2]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.6.2
