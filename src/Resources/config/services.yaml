@@ -58,6 +58,11 @@ services:
         arguments:
             $managerName: '%nowo_contact_form.doctrine.entity_manager%'
 
+    # 1.7 (LI-CF-L2): exact-match collation of client_reference on MySQL / MariaDB (#[AsDoctrineListener]).
+    Nowo\ContactFormBundle\Doctrine\ClientReferenceCollationListener:
+        arguments:
+            $platform: null
+
     nowo_contact_form.entity_manager:
         class: Doctrine\ORM\EntityManagerInterface
         factory: ['@Nowo\ContactFormBundle\Service\ContactFormEntityManagerResolver', 'get']

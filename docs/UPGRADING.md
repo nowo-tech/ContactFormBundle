@@ -70,18 +70,40 @@ composer update nowo-tech/contact-form-bundle
 
 **Schema change**: a nullable `client_reference VARCHAR(64)` column on the submissions table. Generate the migration
 (`php bin/console doctrine:migrations:diff`, with `--em=<name>` when you use `doctrine.entity_manager`) and backfill the
-existing links once (table prefix included if you set one):
+existing links once (table prefix included if you set one).
+
+On **MySQL / MariaDB** the column must compare exactly (binary, no-pad collation; audit LI-CF-L2): the default
+collations would let `tenanta` match `tenantA`, `TENANTA` and `tenanta `, and `tenant` match `téñant`. The bundle adds
+the collation to the generated schema, so `doctrine:migrations:diff` produces it; if you write the migration by hand:
 
 ```sql
+-- MySQL 8.0+
+ALTER TABLE nowo_contact_submission ADD client_reference VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_bin DEFAULT NULL;
+-- MariaDB
+ALTER TABLE nowo_contact_submission ADD client_reference VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_nopad_bin DEFAULT NULL;
+-- MySQL 5.7 (binary, but PAD SPACE: trailing spaces still compare equal)
+ALTER TABLE nowo_contact_submission ADD client_reference VARCHAR(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL;
+-- PostgreSQL / SQLite (already exact)
+ALTER TABLE nowo_contact_submission ADD client_reference VARCHAR(64) DEFAULT NULL;
+```
+
+Backfill:
+
+```sql
+-- PostgreSQL / SQLite
 UPDATE nowo_contact_submission SET client_reference = CAST(client_id AS VARCHAR(64)) WHERE client_id IS NOT NULL AND client_reference IS NULL;
--- MySQL / MariaDB: CAST(client_id AS CHAR(64))
+-- MySQL / MariaDB
+UPDATE nowo_contact_submission SET client_reference = CAST(client_id AS CHAR(64)) WHERE client_id IS NOT NULL AND client_reference IS NULL;
 ```
 
 Until the backfill runs, `getClientReference()` falls back to `client_id`, so reads are correct either way; SQL that
 selects by `client_reference` needs the backfill.
 
-- **Client ids of any type** (UUID, ULID, strings, integers beyond 32 bits) are stored in `client_reference`. Select,
-  show, export and erase submissions by `client_reference`. `client_id`, `getClientId()` and `setClientId()` are
+- **Client ids of any type** (UUID, ULID, strings, integers beyond 32 bits) are stored in `client_reference`, exactly
+  as the client id is given (no trimming, no case folding). Select, show, export and erase submissions by
+  `client_reference` with an **exact** comparison: `WHERE client_reference = :id` with the id exactly as your client
+  has it. Do not wrap the column in `LOWER()` / `TRIM()`, do not use `LIKE`, and on MySQL keep the binary collation
+  above (or compare `BINARY client_reference = :id` if your column was created without it). `client_id`, `getClientId()` and `setClientId()` are
   deprecated (removed in 2.0); `setClientId()` also sets `client_reference`.
 - **Optional `doctrine.entity_manager`**: maps the entities on that manager only and makes the bundle use it everywhere.
   Move the contact form tables to its connection (or point it at the same database).

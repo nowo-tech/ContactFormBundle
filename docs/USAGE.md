@@ -163,6 +163,14 @@ final class SendContactMessageHandler
 - `record()` takes plain values (no Symfony form, no request) and returns the submission id; it flushes the bundle's
   manager and dispatches `ContactSubmissionCreatedEvent` after that flush. Listen to the id getters and translate them
   into your own events / outbox rows.
+- **Standard host and your own transaction (LI-CF-L1).** Without `doctrine.entity_manager`, the bundle's manager *is*
+  your default entity manager: `record()` flushes it (your pending changes too), and the created event and the
+  notification (e-mail) run right after that flush — **before** your transaction commits. If your transaction then
+  rolls back, the submission is gone but the event and the e-mail already went out. When you call `record()` inside
+  your own transaction, either use a dedicated manager (`doctrine.entity_manager`, its own connection) or call it
+  after your commit.
+- `client_reference` compares exactly: look submissions up with `client_reference = :id` (the id exactly as given; on
+  MySQL / MariaDB the column has a binary, no-pad collation, see UPGRADING).
 - A "host controls the transaction" mode (no flush) is not offered: submission ids are database identities, known only
   after the bundle's flush. With a dedicated manager the bundle's transaction never includes your writes.
 - The retention cleanup (`nowo:contact-form:cleanup-submissions`) dispatches `ContactSubmissionsDeletedEvent` per chunk so you can

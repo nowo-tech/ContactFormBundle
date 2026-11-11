@@ -57,7 +57,10 @@ Target 1.7.0 (architecture bar, wave W1: standard Symfony and DDD hosts).
 
 - **`client_reference`** (VARCHAR(64), nullable) on submissions: the client id as a string for every id type (integer,
   UUID, ULID, string, Stringable). `ContactSubmission::getClientReference()` / `setClientReference()`. Non-integer ids
-  are no longer lost (1.6.4 stored them as null). **Schema change** (UPGRADING).
+  are no longer lost (1.6.4 stored them as null). **Schema change** (UPGRADING). On MySQL / MariaDB the column gets a
+  binary, no-pad collation in the generated schema (`utf8mb4_0900_bin` / `utf8mb4_nopad_bin`; `utf8mb4_bin` on MySQL
+  5.7) so lookups by `client_reference` never match another client's id that differs in case, accents or trailing
+  spaces (`ClientReferenceCollationListener`).
 - **`ClientReference`** value object and **`ClientReferenceResolverInterface`** (`client_reference_resolver` option): the
   client of the public form as an id reference, without a host entity. Default adapter: `ObjectClientReferenceResolver`.
 - **`ContactSubmissionRecorderInterface::record(formSlug, values, locale, ipHash, client, consentGivenAt): int`**:

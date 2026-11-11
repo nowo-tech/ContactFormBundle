@@ -6,9 +6,11 @@ namespace Nowo\ContactFormBundle\Tests\Integration\EntityManager;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Tools\SchemaTool;
+use Doctrine\ORM\Tools\ToolEvents;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\ContactFormBundle\Client\ClientReference;
 use Nowo\ContactFormBundle\Client\ClientReferenceResolverInterface;
+use Nowo\ContactFormBundle\Doctrine\ClientReferenceCollationListener;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Entity\ContactFormFieldTranslation;
@@ -71,6 +73,11 @@ final class DedicatedEntityManagerTest extends TestCase
         self::assertSame(['default'], array_keys((array) $this->container()->getParameter('doctrine.entity_managers')));
         self::assertSame($default, $this->registry()->getManagerForClass(ContactSubmission::class));
         self::assertSame($default, $this->container()->get('nowo_contact_form.entity_manager'));
+
+        // LI-CF-L2: the collation listener is wired on the schema tool events of the manager.
+        self::assertInstanceOf(EntityManagerInterface::class, $default);
+        $listeners = $default->getEventManager()->getListeners(ToolEvents::postGenerateSchemaTable);
+        self::assertContains(ClientReferenceCollationListener::class, array_map(static fn (object $l): string => $l::class, $listeners));
     }
 
     public function testDedicatedManagerStoresSubmissionsWithoutTouchingTheHostManager(): void
