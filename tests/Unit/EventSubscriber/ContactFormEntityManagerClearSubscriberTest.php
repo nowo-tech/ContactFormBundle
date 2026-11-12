@@ -452,6 +452,36 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
         self::assertSame($before + 2, $this->clears);
     }
 
+    /**
+     * Audit NL2-v2: a message handler runs a command that fails with a throwing error listener, the message fails and
+     * the worker stops: the next main request still clears (failing frames are dropped before the message state ends).
+     */
+    public function testAFailingCommandInsideAFailedMessageThenAStoppedWorkerStillLetsRequestsClear(): void
+    {
+        $this->subscribe();
+        $this->dispatcher->addListener(ConsoleEvents::ERROR, static function (): never {
+            throw new LogicException('error listener failed');
+        });
+        $this->command('app:failing', static function (): int {
+            throw new RuntimeException('command failed');
+        });
+
+        $this->dispatcher->dispatch(new WorkerMessageReceivedEvent($this->envelope(), 'async'));
+        $this->runAndCatch('app:failing', 'error listener failed');
+        $this->dispatcher->dispatch(new WorkerMessageFailedEvent($this->envelope(), 'async', new RuntimeException('handler failed')));
+        self::assertSame(2, $this->clears);
+        $this->dispatcher->dispatch(new WorkerStoppedEvent(new Worker([], $this->createStub(MessageBusInterface::class))));
+        $this->handle(static fn (): Response => new Response());
+        self::assertSame(4, $this->clears, 'The next main request clears at its start and at terminate.');
+
+        // Same without the failed event: the stopped worker drops the failing frame first, then ends the message.
+        $this->dispatcher->dispatch(new WorkerMessageReceivedEvent($this->envelope(), 'async'));
+        $this->runAndCatch('app:failing', 'error listener failed');
+        $this->dispatcher->dispatch(new WorkerStoppedEvent(new Worker([], $this->createStub(MessageBusInterface::class))));
+        $this->handle(static fn (): Response => new Response());
+        self::assertSame(7, $this->clears);
+    }
+
     public function testConsoleEventsWithoutACommandChangeNothing(): void
     {
         $this->subscribe();
