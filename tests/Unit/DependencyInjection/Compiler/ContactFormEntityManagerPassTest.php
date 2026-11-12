@@ -6,6 +6,7 @@ namespace Nowo\ContactFormBundle\Tests\Unit\DependencyInjection\Compiler;
 
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormEntityManagerPass;
 use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
+use Nowo\ContactFormBundle\Doctrine\ExcludedEntityNamespaceDriver;
 use Nowo\ContactFormBundle\EventSubscriber\ContactFormEntityManagerClearSubscriber;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -23,12 +24,12 @@ final class ContactFormEntityManagerPassTest extends TestCase
     {
         $container = $this->container(null);
         (new ContactFormEntityManagerPass())->process($container);
-        self::assertCount(2, $container->getDefinition('doctrine.orm.default_metadata_driver')->getMethodCalls());
+        self::assertCount(3, $container->getDefinition('doctrine.orm.default_metadata_driver')->getMethodCalls());
 
         $container = $this->container(null);
         $container->getParameterBag()->remove(NowoContactFormExtension::ENTITY_MANAGER_PARAMETER);
         (new ContactFormEntityManagerPass())->process($container);
-        self::assertCount(2, $container->getDefinition('doctrine.orm.default_metadata_driver')->getMethodCalls());
+        self::assertCount(3, $container->getDefinition('doctrine.orm.default_metadata_driver')->getMethodCalls());
     }
 
     public function testRemovesTheBundleMappingFromTheOtherManagers(): void
@@ -36,16 +37,29 @@ final class ContactFormEntityManagerPassTest extends TestCase
         $container = $this->container('contact_form');
         (new ContactFormEntityManagerPass())->process($container);
 
+        // Other managers: the auto-mapped bundle driver is gone; a driver that maps nothing comes first, before the
+        // host's drivers and before any default driver (DoctrineBundle 3.4 auto_discover_entities).
         $defaultCalls = $container->getDefinition('doctrine.orm.default_metadata_driver')->getMethodCalls();
-        self::assertSame(['App\\Entity'], array_map(static fn (array $call): mixed => $call[1][1], $defaultCalls));
-        self::assertCount(1, $container->getDefinition('doctrine.orm.contact_form_metadata_driver')->getMethodCalls());
+        self::assertSame(
+            [['addDriver', ContactFormEntityManagerPass::ENTITY_NAMESPACE], ['addDriver', 'App\\Entity'], ['setDefaultDriver', null]],
+            array_map(static fn (array $call): array => [$call[0], $call[1][1] ?? null], $defaultCalls),
+        );
+        self::assertInstanceOf(Definition::class, $defaultCalls[0][1][0]);
+        self::assertSame(ExcludedEntityNamespaceDriver::class, $defaultCalls[0][1][0]->getClass());
+        $bundleCalls = $container->getDefinition('doctrine.orm.contact_form_metadata_driver')->getMethodCalls();
+        self::assertCount(1, $bundleCalls);
+        self::assertSame('bundle', (string) $bundleCalls[0][1][0], 'the configured manager keeps its own driver');
+
+        (new ContactFormEntityManagerPass())->process($container);
+        self::assertCount(3, $container->getDefinition('doctrine.orm.default_metadata_driver')->getMethodCalls(), 'idempotent');
+        self::assertCount(1, $container->getDefinition('doctrine.orm.contact_form_metadata_driver')->getMethodCalls(), 'idempotent');
     }
 
     public function testValidateOnlyChecksTheManagerAndKeepsTheChains(): void
     {
         $container = $this->container('contact_form');
         (new ContactFormEntityManagerPass(true))->process($container);
-        self::assertCount(2, $container->getDefinition('doctrine.orm.default_metadata_driver')->getMethodCalls());
+        self::assertCount(3, $container->getDefinition('doctrine.orm.default_metadata_driver')->getMethodCalls());
 
         $this->expectException(InvalidConfigurationException::class);
         (new ContactFormEntityManagerPass(true))->process($this->container('missing'));
@@ -119,7 +133,8 @@ final class ContactFormEntityManagerPassTest extends TestCase
 
         $container->setDefinition('doctrine.orm.default_metadata_driver', (new Definition())
             ->addMethodCall('addDriver', [new Reference('attribute'), 'App\\Entity'])
-            ->addMethodCall('addDriver', [new Reference('attribute'), ContactFormEntityManagerPass::ENTITY_NAMESPACE]));
+            ->addMethodCall('addDriver', [new Reference('attribute'), ContactFormEntityManagerPass::ENTITY_NAMESPACE])
+            ->addMethodCall('setDefaultDriver', [new Reference('auto_discover')]));
         $container->setDefinition('doctrine.orm.contact_form_metadata_driver', (new Definition())
             ->addMethodCall('addDriver', [new Reference('bundle'), ContactFormEntityManagerPass::ENTITY_NAMESPACE]));
 
