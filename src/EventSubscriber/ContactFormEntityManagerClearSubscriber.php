@@ -11,6 +11,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Event\ConsoleCommandEvent;
 use Symfony\Component\Console\Event\ConsoleErrorEvent;
 use Symfony\Component\Console\Event\ConsoleTerminateEvent;
+use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
@@ -22,6 +23,10 @@ use Symfony\Component\Messenger\Event\WorkerMessageHandledEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageReceivedEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageSkipEvent;
 use Symfony\Component\Messenger\Event\WorkerStoppedEvent;
+use WeakMap;
+
+use function array_splice;
+use function count;
 
 use const PHP_INT_MAX;
 
@@ -41,16 +46,25 @@ use const PHP_INT_MAX;
  *   request. A command run in-process from another command, a message handler or a controller
  *   (`Application::doRun()`) does not clear the outer unit's manager.
  *
- * Console bookkeeping (1.8.1, audit NM): every started command is recorded with the depth before it and whether it is
- * the outermost unit, at `console.command` priority PHP_INT_MAX. Its record is popped (the depth goes back to the
- * recorded value, records of commands started after it are dropped) at `console.error` and `console.terminate`
- * priority PHP_INT_MAX, before any listener that could throw or stop the propagation. An event for a command that has
- * no record is ignored (never a blind decrement). The clear at the end of the outermost command still runs at
- * `console.terminate` priority -4096. The enclosing unit also heals the depth: it is snapshotted at the main
- * `kernel.request` and at `WorkerMessageReceivedEvent`, and restored at that request's `kernel.finish_request` /
- * `kernel.terminate` and at that message's handled / failed / skipped event or `WorkerStoppedEvent`. So a listener that
- * throws or stops the propagation can no longer leave the process "inside a command" forever (which stopped every
- * later HTTP clear), nor make a nested command clear the outer unit mid-run.
+ * Console bookkeeping (1.8.1, audits NM and NL2-v), at the extreme priorities so no other listener can skip it:
+ * - every console run is a FRAME on a stack, keyed by its Command object AND its input (a command that runs itself
+ *   in-process has a new input per run). `console.command` (priority PHP_INT_MAX) pushes it with the outer state it
+ *   started in (Messenger message in flight, main requests in flight) and whether it is the outermost unit (nothing
+ *   else running). `console.terminate` (priority PHP_INT_MAX) removes ITS frame and every frame above it (nested runs
+ *   that never terminated) and restores the state saved in it; a terminate without a frame removes nothing (never a
+ *   blind decrement). The clear at the end of the outermost command still runs at `console.terminate` -4096, for the
+ *   verdict computed by the early listener for that very event;
+ * - `console.error` (priority PHP_INT_MAX) marks the frame as failing and nothing unmarks it: when an error listener
+ *   throws, Symfony never dispatches the command's `console.terminate`, so a frame still marked when the next main
+ *   request, Messenger message, command or worker stop starts is dropped (with the frames above it) and its saved
+ *   state restored. `console.error` without a command (unknown command) changes nothing;
+ * - the end of a main request (`kernel.finish_request` / `kernel.terminate`) and of a Messenger message (handled,
+ *   failed, worker stopped) also restores the frames to what they were at its start;
+ * - main requests in flight are counted per `Request` object, so a nested main request (an in-process
+ *   `HttpKernel::handle()` from a controller) never ends the outer one early.
+ * So a listener that throws or stops the propagation can no longer leave the process "inside a command" for good
+ * (which stopped every later HTTP clear), nor make a nested command clear the outer unit mid-run. The bundle has no
+ * `kernel.exception` boundary: `kernel.terminate` is the HTTP end boundary.
  *
  * Rules:
  * - an open manager is always cleared at an outermost boundary: whatever the finished (or abandoned) unit left
@@ -74,7 +88,7 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
     public const MESSENGER_WORKER_MESSAGE_FAILED   = WorkerMessageFailedEvent::class;
     public const MESSENGER_WORKER_STOPPED          = WorkerStoppedEvent::class;
 
-    /** A listener skipped the received message (no handled / failed event follows); Messenger 7.4+, by name. */
+    /** A skipped message (only dispatched by `messenger:failed:retry`); Messenger 7.4+, by name. */
     public const MESSENGER_WORKER_MESSAGE_SKIPPED = WorkerMessageSkipEvent::class;
 
     /** Console event names (ConsoleEvents::COMMAND / ERROR / TERMINATE). */
@@ -83,35 +97,34 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
     public const CONSOLE_TERMINATE = 'console.terminate';
 
     /**
-     * Console commands currently running in this process (nested in-process runs count). Process-lifetime counter,
-     * bounded by the nesting depth and healed at every enclosing unit end; intentionally not reset by `kernel.reset`.
+     * Running console commands, outermost first. Each frame keeps the outer state it started in (`message`, `requests`),
+     * restored when the frame is removed, and whether it is the outermost unit.
+     *
+     * @var list<array{command: Command, input: InputInterface, outermost: bool, failing: bool, message: list<mixed>|null, requests: SplObjectStorage<Request, list<mixed>>}>
      */
-    private int $consoleDepth = 0;
+    private array $frames = [];
 
     /**
-     * Running commands in start order: depth before the command and whether it is the outermost unit.
+     * Main requests in flight (between their `kernel.request` and their `kernel.finish_request` / `kernel.terminate`),
+     * in start order, with the frames at their start.
      *
-     * @var SplObjectStorage<Command, array{0: int, 1: bool}>
-     */
-    private SplObjectStorage $commands;
-
-    /**
-     * Main requests being handled (between their `kernel.request` and their `kernel.finish_request` / `kernel.terminate`),
-     * in start order, with the console state at their start.
-     *
-     * @var SplObjectStorage<Request, array{0: int, 1: SplObjectStorage<Command, array{0: int, 1: bool}>}>
+     * @var SplObjectStorage<Request, list<mixed>>
      */
     private SplObjectStorage $requests;
 
     /**
-     * Console state when the in-flight Messenger message was received; null outside a message.
+     * Frames when the in-flight Messenger message was received; null outside a message.
      *
-     * @var array{0: int, 1: SplObjectStorage<Command, array{0: int, 1: bool}>}|null
+     * @var list<mixed>|null
      */
-    private ?array $messageState = null;
+    private ?array $messageFrames = null;
 
-    /** The outermost command whose end was recorded and whose clear (at `console.terminate` -4096) is due. */
-    private ?Command $endedOutermostCommand = null;
+    /**
+     * Outermost verdict of each `console.terminate` event, computed by the early listener for the late clear.
+     *
+     * @var WeakMap<ConsoleTerminateEvent, bool>
+     */
+    private WeakMap $verdicts;
 
     /**
      * @param iterable<EntityManagerInterface> $entityManagers the bundle-owned manager (empty without one)
@@ -123,8 +136,8 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
         private readonly iterable $registries = [],
         private readonly ?string $managerName = null,
     ) {
-        $this->commands = new SplObjectStorage();
         $this->requests = new SplObjectStorage();
+        $this->verdicts = new WeakMap();
     }
 
     /**
@@ -142,7 +155,7 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
             self::MESSENGER_WORKER_MESSAGE_SKIPPED  => ['onWorkerStopped', -4096],
             self::MESSENGER_WORKER_STOPPED          => ['onWorkerStopped', -4096],
             self::CONSOLE_COMMAND                   => ['onConsoleCommand', PHP_INT_MAX],
-            self::CONSOLE_ERROR                     => ['onConsoleEnd', PHP_INT_MAX],
+            self::CONSOLE_ERROR                     => ['onConsoleError', PHP_INT_MAX],
             self::CONSOLE_TERMINATE                 => [['onConsoleEnd', PHP_INT_MAX], ['onConsoleTerminate', -4096]],
         ];
     }
@@ -156,9 +169,10 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
             return;
         }
 
-        $outermost = $this->consoleDepth === 0 && $this->messageState === null;
+        $this->dropFailingFrames();
+        $outermost = $this->isOutsideMessageAndCommand();
         // @igor-ignore - Unit-of-work stack, pushed and popped at the main request boundaries (no request data kept).
-        $this->requests[$event->getRequest()] = $this->consoleState();
+        $this->requests[$event->getRequest()] = $this->frames;
         if ($outermost) {
             $this->clearState();
         }
@@ -177,7 +191,7 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
     public function onTerminate(TerminateEvent $event): void
     {
         $this->endRequest($event->getRequest());
-        if ($this->consoleDepth === 0 && $this->messageState === null) {
+        if ($this->isOutsideMessageAndCommand()) {
             $this->clearState();
         }
     }
@@ -187,10 +201,11 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
      */
     public function onMessageReceived(): void
     {
-        // A previous message that never finished (skipped without a skip event) ends here.
+        $this->dropFailingFrames();
+        // A previous message that never finished ends here.
         $this->endMessage();
         // @igor-ignore - Unit-of-work state, set and unset at the Messenger boundaries (no message data kept).
-        $this->messageState = $this->consoleState();
+        $this->messageFrames = $this->frames;
         $this->clearState();
     }
 
@@ -204,16 +219,18 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
     }
 
     /**
-     * A message was skipped or the worker stopped: no message is in flight any more.
+     * The worker stopped, or a message was skipped (`WorkerMessageSkipEvent`, only dispatched by
+     * `messenger:failed:retry`): no message is in flight any more.
      */
     public function onWorkerStopped(): void
     {
         $this->endMessage();
+        $this->dropFailingFrames();
     }
 
     /**
-     * Start of a command (priority PHP_INT_MAX): records it, and clears for the outermost command outside a message and
-     * a main request.
+     * Start of a command (priority PHP_INT_MAX): pushes its frame, and clears for the outermost command (outside a
+     * message, a main request and another command).
      */
     public function onConsoleCommand(ConsoleCommandEvent $event): void
     {
@@ -221,35 +238,50 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
         if (!$command instanceof Command) {
             return;
         }
-        if (isset($this->commands[$command])) {
-            // The same command object started again while recorded as running: its earlier end was never seen.
-            $this->endCommand($command);
-        }
-        if ($this->endedOutermostCommand === $command) {
-            // @igor-ignore - Pending end of the outermost command (bookkeeping, no request data).
-            $this->endedOutermostCommand = null;
-        }
 
-        $outermost = $this->consoleDepth === 0 && $this->messageState === null && $this->requests->count() === 0;
-        // @igor-ignore - Running-command stack, pushed and popped at the console boundaries (no request data).
-        $this->commands[$command] = [$this->consoleDepth, $outermost];
-        // @igor-ignore - Nesting counter of the running commands (no request data).
-        ++$this->consoleDepth;
+        $this->dropFailingFrames();
+        $outermost = $this->isOutsideMessageAndCommand() && $this->requests->count() === 0;
+        // @igor-ignore - Stack of the running commands (no request data), popped by their own terminate.
+        $this->frames[] = [
+            'command'   => $command,
+            'input'     => $event->getInput(),
+            'outermost' => $outermost,
+            'failing'   => false,
+            'message'   => $this->messageFrames,
+            'requests'  => clone $this->requests,
+        ];
         if ($outermost) {
             $this->clearState();
         }
     }
 
     /**
-     * Error or end of a command (priority PHP_INT_MAX): pops its record; a command without a record (unknown, or a
-     * `console.error` without a command) changes nothing.
+     * A command failed (priority PHP_INT_MAX): marks its frame; a frame still marked when the next unit starts was never
+     * terminated (an error listener threw) and is dropped then. Without a command (unknown command) nothing changes.
      */
-    public function onConsoleEnd(ConsoleErrorEvent|ConsoleTerminateEvent $event): void
+    public function onConsoleError(ConsoleErrorEvent $event): void
     {
-        $command = $event->getCommand();
-        if ($command instanceof Command) {
-            $this->endCommand($command);
+        $index = $this->indexOf($event->getCommand(), $event->getInput());
+        if ($index !== null) {
+            // @igor-ignore - Failure marker of a running command, removed with its frame.
+            $this->frames[$index]['failing'] = true;
         }
+    }
+
+    /**
+     * End of a command (priority PHP_INT_MAX): removes its frame (and the nested frames above it) and records whether
+     * it was the outermost unit; a command without a frame changes nothing.
+     */
+    public function onConsoleEnd(ConsoleTerminateEvent $event): void
+    {
+        $index = $this->indexOf($event->getCommand(), $event->getInput());
+        if ($index === null) {
+            return;
+        }
+
+        // @igor-ignore - Per-event verdict; the WeakMap entry dies with the event.
+        $this->verdicts[$event] = $this->frames[$index]['outermost'];
+        $this->removeFrames($index);
     }
 
     /**
@@ -257,13 +289,9 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
      */
     public function onConsoleTerminate(ConsoleTerminateEvent $event): void
     {
-        if (!$this->endedOutermostCommand instanceof Command || $this->endedOutermostCommand !== $event->getCommand()) {
-            return;
+        if ($this->verdicts[$event] ?? false) {
+            $this->clearState();
         }
-
-        // @igor-ignore - Pending end of the outermost command (bookkeeping, no request data).
-        $this->endedOutermostCommand = null;
-        $this->clearState();
     }
 
     /**
@@ -287,21 +315,48 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
         }
     }
 
-    /**
-     * @return array{0: int, 1: SplObjectStorage<Command, array{0: int, 1: bool}>}
-     */
-    private function consoleState(): array
+    private function isOutsideMessageAndCommand(): bool
     {
-        return [$this->consoleDepth, clone $this->commands];
+        return $this->frames === [] && $this->messageFrames === null;
+    }
+
+    private function indexOf(?Command $command, InputInterface $input): ?int
+    {
+        for ($i = count($this->frames) - 1; $i >= 0; --$i) {
+            if ($this->frames[$i]['command'] === $command && $this->frames[$i]['input'] === $input) {
+                return $i;
+            }
+        }
+
+        return null;
     }
 
     /**
-     * @param array{0: int, 1: SplObjectStorage<Command, array{0: int, 1: bool}>} $state
+     * Removes the frame at $index and the frames above it, and restores the state saved when it started.
      */
-    private function restoreConsoleState(array $state): void
+    private function removeFrames(int $index): void
     {
-        // @igor-ignore - Console bookkeeping restored at the end of the enclosing unit (no request data).
-        [$this->consoleDepth, $this->commands] = $state;
+        $frame = $this->frames[$index];
+        // @igor-ignore - Stack of the running commands (no request data), popped by their own terminate or self-heal.
+        array_splice($this->frames, $index);
+        // @igor-ignore - Outer state saved by the frame (no request data kept).
+        $this->messageFrames = $frame['message'];
+        // @igor-ignore - Outer state saved by the frame (no request data kept).
+        $this->requests = $frame['requests'];
+    }
+
+    /**
+     * Drops the lowest frame whose error listeners threw (Symfony never dispatched its terminate), with the frames above.
+     */
+    private function dropFailingFrames(): void
+    {
+        foreach ($this->frames as $index => $frame) {
+            if ($frame['failing']) {
+                $this->removeFrames($index);
+
+                return;
+            }
+        }
     }
 
     private function endRequest(Request $request): void
@@ -310,59 +365,31 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
             return;
         }
 
-        $state = $this->requests[$request];
-        $this->pop($this->requests, $request);
-        $this->restoreConsoleState($state);
+        $frames = $this->requests[$request];
+        $popped = [];
+        $found  = false;
+        foreach ($this->requests as $started) {
+            $found = $found || $started === $request;
+            if ($found) {
+                $popped[] = $started;
+            }
+        }
+        foreach ($popped as $started) {
+            unset($this->requests[$started]);
+        }
+        // @igor-ignore - Frames restored at the end of the enclosing request (no request data).
+        $this->frames = $frames;
     }
 
     private function endMessage(): void
     {
-        if ($this->messageState === null) {
+        if ($this->messageFrames === null) {
             return;
         }
 
-        $this->restoreConsoleState($this->messageState);
+        // @igor-ignore - Frames restored at the end of the enclosing message (no message data).
+        $this->frames = $this->messageFrames;
         // @igor-ignore - Unit-of-work state, set and unset at the Messenger boundaries (no message data kept).
-        $this->messageState = null;
-    }
-
-    private function endCommand(Command $command): void
-    {
-        if (!isset($this->commands[$command])) {
-            return;
-        }
-
-        [$depth, $outermost] = $this->commands[$command];
-        $this->pop($this->commands, $command);
-        // @igor-ignore - Nesting counter of the running commands (no request data).
-        $this->consoleDepth = $depth;
-        if ($outermost) {
-            // @igor-ignore - Pending end of the outermost command (bookkeeping, no request data).
-            $this->endedOutermostCommand = $command;
-        }
-    }
-
-    /**
-     * Removes $entry and every entry attached after it (a stack pop down to $entry).
-     *
-     * @template T of object
-     * @template D
-     *
-     * @param SplObjectStorage<T, D> $stack
-     * @param T $entry
-     */
-    private function pop(SplObjectStorage $stack, object $entry): void
-    {
-        $popped = [];
-        $found  = false;
-        foreach ($stack as $object) {
-            $found = $found || $object === $entry;
-            if ($found) {
-                $popped[] = $object;
-            }
-        }
-        foreach ($popped as $object) {
-            unset($stack[$object]);
-        }
+        $this->messageFrames = null;
     }
 }

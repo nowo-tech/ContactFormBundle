@@ -40,6 +40,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Worker;
 
 use const PHP_INT_MAX;
+use const PHP_INT_MIN;
 
 /**
  * Boundaries of {@see ContactFormEntityManagerClearSubscriber} driven by a real HttpKernel and a real console
@@ -79,7 +80,7 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
         self::assertSame(['onWorkerStopped', -4096], $events[WorkerMessageSkipEvent::class]);
         self::assertSame(['onWorkerStopped', -4096], $events[WorkerStoppedEvent::class]);
         self::assertSame(['onConsoleCommand', PHP_INT_MAX], $events[ConsoleEvents::COMMAND]);
-        self::assertSame(['onConsoleEnd', PHP_INT_MAX], $events[ConsoleEvents::ERROR]);
+        self::assertSame(['onConsoleError', PHP_INT_MAX], $events[ConsoleEvents::ERROR]);
         self::assertSame([['onConsoleEnd', PHP_INT_MAX], ['onConsoleTerminate', -4096]], $events[ConsoleEvents::TERMINATE]);
     }
 
@@ -330,21 +331,125 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
     }
 
     /**
-     * A command object started again while still recorded (its end was never seen) is a new outermost unit.
+     * Audit NL2-v: a command that runs itself in-process (same Command object, new input) whose inner run fails with a
+     * throwing error listener keeps the outer run's unit of work, and the outer end still clears.
      */
-    public function testACommandStartedAgainWithoutAnEndIsANewUnit(): void
+    public function testASelfRecursiveCommandWithAThrowingErrorListenerKeepsTheOuterRun(): void
     {
         $this->subscribe();
-        $command = new Command('app:probe');
-        $start   = new ConsoleCommandEvent($command, new ArrayInput([]), new NullOutput());
+        $throw = static function (): never {
+            throw new LogicException('error listener failed');
+        };
+        $depth = 0;
+        $this->command('app:rec', function () use (&$depth, $throw): int {
+            ++$depth;
+            if ($depth > 1) {
+                throw new RuntimeException('inner failed');
+            }
+            $this->dispatcher->addListener(ConsoleEvents::ERROR, $throw);
+            $this->runAndCatch('app:rec', 'error listener failed');
+            $this->dispatcher->removeListener(ConsoleEvents::ERROR, $throw);
+            self::assertSame(1, $this->clears, 'The inner run must not clear the outer run.');
 
-        $this->dispatcher->dispatch($start, ConsoleEvents::COMMAND);
-        $this->dispatcher->dispatch($start, ConsoleEvents::COMMAND);
-        self::assertSame(2, $this->clears);
-        $this->dispatcher->dispatch(new ConsoleTerminateEvent($command, new ArrayInput([]), new NullOutput(), 0), ConsoleEvents::TERMINATE);
-        self::assertSame(3, $this->clears);
+            return Command::SUCCESS;
+        });
+
+        $this->runCommand('app:rec');
+        self::assertSame(2, $this->clears, 'The outer end clears.');
+        $this->handle(static fn (): Response => new Response());
+        self::assertSame(4, $this->clears);
+    }
+
+    /**
+     * Audit NL2-v: an error listener at PHP_INT_MIN that throws leaves the frame marked; the next unit drops it.
+     */
+    public function testAnErrorListenerAtTheLowestPriorityThatThrowsHealsAtTheNextUnit(): void
+    {
+        $this->subscribe();
+        $this->dispatcher->addListener(ConsoleEvents::ERROR, static function (): never {
+            throw new LogicException('error listener failed');
+        }, PHP_INT_MIN);
+        $this->command('app:failing', static function (): int {
+            throw new RuntimeException('command failed');
+        });
+        $this->command('app:probe', static fn (): int => Command::SUCCESS);
+
+        $this->runAndCatch('app:failing', 'error listener failed');
+        self::assertSame(1, $this->clears);
+        $this->runCommand('app:probe');
+        self::assertSame(3, $this->clears, 'The next command is the outermost unit again.');
+
+        $this->runAndCatch('app:failing', 'error listener failed');
+        $this->dispatcher->dispatch(new WorkerMessageReceivedEvent($this->envelope(), 'async'));
+        $this->dispatcher->dispatch(new WorkerMessageHandledEvent($this->envelope(), 'async'));
+        $this->handle(static fn (): Response => new Response());
+        self::assertSame(8, $this->clears, 'The next message and request clear.');
+    }
+
+    /**
+     * Audit NL2-v: a `WorkerMessageReceivedEvent` listener that throws inside an in-process consume command (no
+     * handled / failed / stopped event): the consume frame restores "no message in flight" when it ends.
+     */
+    public function testAThrowingReceivedListenerInsideAConsumeCommandHeals(): void
+    {
+        $this->subscribe();
+        $this->dispatcher->addListener(WorkerMessageReceivedEvent::class, static function (): never {
+            throw new RuntimeException('received listener failed');
+        });
+        $this->command('app:consume', function (): int {
+            $this->dispatcher->dispatch(new WorkerMessageReceivedEvent($this->envelope(), 'async'));
+
+            return Command::SUCCESS;
+        });
+
+        $this->runAndCatch('app:consume', 'received listener failed');
+        self::assertSame(3, $this->clears, 'Command start, message received, command end.');
         $this->handle(static fn (): Response => new Response());
         self::assertSame(5, $this->clears);
+    }
+
+    /**
+     * Audit NL2-v: a nested main request (in-process HttpKernel::handle() from a controller) does not end the outer
+     * request early, so a later command in the outer controller is still not the outermost unit.
+     */
+    public function testANestedMainRequestDoesNotEndTheOuterRequest(): void
+    {
+        $this->subscribe();
+        $this->command('app:probe', static fn (): int => Command::SUCCESS);
+
+        $this->handle(function (): Response {
+            $inner = $this->request(static fn (): Response => new Response());
+            $this->kernel->handle($inner);
+            self::assertSame(2, $this->clears, 'Outer start, inner start (no command, no message).');
+            $this->runCommand('app:probe');
+            self::assertSame(2, $this->clears, 'The command still runs inside the outer request.');
+
+            return new Response();
+        });
+        self::assertSame(3, $this->clears);
+    }
+
+    /**
+     * Audit NL2-v: an error listener that runs another command leaves a sane state.
+     */
+    public function testAnErrorListenerThatRunsACommandLeavesASaneState(): void
+    {
+        $this->subscribe();
+        $runs = 0;
+        $this->dispatcher->addListener(ConsoleEvents::ERROR, function () use (&$runs): void {
+            if ($runs++ === 0) {
+                $this->runCommand('app:notify');
+            }
+        });
+        $this->command('app:notify', static fn (): int => Command::SUCCESS);
+        $this->command('app:failing', static function (): int {
+            throw new RuntimeException('command failed');
+        });
+
+        $this->runAndCatch('app:failing', 'command failed');
+        $before = $this->clears;
+        $this->handle(static fn (): Response => new Response());
+        self::assertSame($before + 2, $this->clears);
     }
 
     public function testConsoleEventsWithoutACommandChangeNothing(): void

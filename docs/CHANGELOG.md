@@ -62,13 +62,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   or a `console.error` listener that threw (Symfony then skips `console.terminate`), left the process "inside a
   command" for good, and the bundle's own entity manager (forms and submissions, personal data) was then never cleared
   again between HTTP requests. A `console.command` listener above 4096 that stopped the propagation in a nested command
-  made the nested end clear the outer unit mid-run. Each command is now recorded at `console.command` priority
-  `PHP_INT_MAX` (depth before it, outermost or not) and popped at `console.error` / `console.terminate` priority
-  `PHP_INT_MAX`; an event for a command without a record (unknown command, `console.error` without a command) changes
-  nothing. The outermost clear still runs at `console.terminate` -4096. The end of the enclosing main request
-  (`kernel.finish_request` / `kernel.terminate`) and of the enclosing Messenger message (handled, failed, the new
-  `WorkerMessageSkipEvent`, `WorkerStoppedEvent`) restores the console state taken at its start. Tests run a real
-  console `Application` and `HttpKernel` on one dispatcher without the services resetter.
+  made the nested end clear the outer unit mid-run. Each console run is now a frame on a stack keyed by
+  its `Command` object and its input (a command that runs itself in-process is a new frame), pushed at `console.command`
+  priority `PHP_INT_MAX` with the outer state it started in (message in flight, main requests in flight) and removed,
+  restoring that state, by its own `console.terminate` at priority `PHP_INT_MAX`; a terminate without a frame changes
+  nothing. `console.error` (priority `PHP_INT_MAX`) marks the frame as failing: when an error listener throws, the
+  frame is dropped at the next main request, message, command or worker stop. The outermost clear still runs at
+  `console.terminate` -4096. Main requests are tracked per `Request`, so a nested main request no longer ends the outer
+  one early, and the end of a main request or message restores the frames it started with (audits NM and NL2-v). Tests
+  run a real console `Application` and `HttpKernel` on one dispatcher without the services resetter.
 
 ## [1.8.0] - 2026-11-12
 
