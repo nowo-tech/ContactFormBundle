@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.8.1](#to-181)
 - [To 1.8.0](#to-180)
 - [To 1.7.1](#to-171)
 - [To 1.7.0](#to-170)
@@ -61,6 +62,20 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## To 1.8.1
+
+From **1.8.0**: patch release, no migration, no configuration change.
+
+```bash
+composer require nowo-tech/contact-form-bundle:^1.8.1
+```
+
+`ContactFormEntityManagerClearSubscriber` (internal) now tracks each console run as a frame (Command + input) at
+`console.command` / `console.error` / `console.terminate` priority `PHP_INT_MAX` and also listens to `console.error`
+and Messenger `WorkerMessageSkipEvent`, so a host listener that throws or stops the propagation can no longer stop the
+clears of the bundle's entity manager in a long-lived process (audits NM and NL2-v). Its public `on*()` methods now take
+the event object; they are not a public API.
 
 ## To 1.8.0
 
