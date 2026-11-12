@@ -18,6 +18,7 @@ use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\DddHost\Infrastruct
 use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\UploadRecorder;
 use Nowo\ContactFormBundle\Upload\UploadedContactFile;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -103,6 +104,30 @@ final class FileUploadEquivalenceTest extends TestCase
         self::assertSame('passwd.txt', $new['traversal name']['movedName']);
         self::assertSame('win.ini.txt', $new['backslash name']['movedName']);
         self::assertSame('application/pdf', $new['pdf']['seen']['mimeType'] ?? null);
+    }
+
+    /**
+     * MZ-C-1: a decorator of the deprecated port (antivirus, quarantine…) still runs when the configured service also
+     * implements the 1.8 port, and with a legacy-only host; rejected files never reach it.
+     *
+     * @return iterable<string, array{string}>
+     */
+    public static function legacyDecoratorVariants(): iterable
+    {
+        yield 'legacy-only host' => ['legacy-decorator'];
+        yield 'dual file_upload.service' => ['legacy-decorator-config-both'];
+    }
+
+    #[IgnoreDeprecations]
+    #[DataProvider('legacyDecoratorVariants')]
+    public function testDeprecatedPortDecoratorKeepsRunning(string $variant): void
+    {
+        $result = $this->runCases($variant, ['pdf', 'traversal name', 'html as pdf']);
+
+        self::assertSame(302, $result['pdf']['status']);
+        self::assertSame('legacy', $result['pdf']['seen']['storage'] ?? null, 'the deprecated upload() path is used');
+        self::assertSame(422, $result['html as pdf']['status']);
+        self::assertSame(['report.pdf', 'passwd.txt'], $result['decorated']);
     }
 
     public function testDddHostAdapterStoresThroughItsOwnDomainPort(): void
@@ -192,6 +217,8 @@ final class FileUploadEquivalenceTest extends TestCase
                     'movedContent' => $moved !== null && is_file($moved) ? file_get_contents($moved) : null,
                 ];
             }
+
+            $results['decorated'] = $recorder->decorated;
 
             if ($variant === 'ddd') {
                 $vault = $container->get(InMemoryAttachmentVault::class);

@@ -110,7 +110,13 @@ public function store(UploadedContactFile $file, ContactFormFileTarget $target):
 - If you aliased `ContactFormFileUploadHandlerInterface` in your own services, alias (or decorate)
   `ContactFormFileUploaderInterface` instead. The deprecated alias now points at the bundle's null handler unless your
   service implements the old interface, so `lint:container` stays green.
-- Validation is identical: the same size and MIME limits run before your service, which never sees a rejected file.
+- Validation is identical: on the public form the same size and MIME limits run before your service, which never
+  sees a file the form rejected. (`ContactSubmissionRecorderInterface::record()` does not validate values as files,
+  as before.)
+- **Decorators: move them to the new port when you migrate.** A decorator of `ContactFormFileUploadHandlerInterface`
+  (antivirus, quarantine…) keeps the deprecated port selected, also when your service implements both interfaces, so
+  it keeps running; the bundle then calls `upload()`. Once you decorate `ContactFormFileUploaderInterface` instead,
+  the new port is used. A decorator of the deprecated port is ignored only when the new port is decorated as well.
 - The null handler's exception message now names `ContactFormFileUploaderInterface`.
 
 **Notifiers.** `ContactSubmissionNotification::getSubmission()` (the entity) is deprecated (removed in 2.0). Use

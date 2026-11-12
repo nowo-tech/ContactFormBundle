@@ -85,9 +85,10 @@ nowo_contact_form:
   checked. It keeps its values outside its properties, so dumps, `var_export()` and `(array)` casts show no temporary
   path or client name; it cannot be cloned or serialized.
 - `ContactFormFileTarget` carries `formId`, `formSlug`, `fieldId`, `fieldName`, `locale` and the field's `fieldOptions`.
-- Validation is unchanged and runs before your service: `file_upload.max_size` / `mime_types` and the per-field
-  `max_size` / `mime_types` options ([CONFIGURATION](CONFIGURATION.md#file-upload-limits)). A rejected file never
-  reaches it.
+- Validation is unchanged and, on the public form, runs before your service: `file_upload.max_size` / `mime_types` and the per-field
+  `max_size` / `mime_types` options ([CONFIGURATION](CONFIGURATION.md#file-upload-limits)). A file the form rejects
+  never reaches it. `ContactSubmissionRecorderInterface::record()` does not validate values as files: validate them
+  yourself before recording.
 - You may also alias or decorate `ContactFormFileUploaderInterface` in your services: the bundle uses your service.
 - `ContactFormFileUploadHandlerInterface::upload(UploadedFile, ContactForm, ContactFormField)` is **deprecated** since
   1.8 (removed in 2.0); a service that implements only it keeps working (see [UPGRADING](UPGRADING.md#to-180)).

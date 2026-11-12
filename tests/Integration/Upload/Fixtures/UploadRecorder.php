@@ -17,6 +17,9 @@ final class UploadRecorder
     /** @var list<array{storage: string, clientName: string, size: int|null, mimeType: string|null, sha256: string, formSlug: string, fieldName: string, storedPath: string}> */
     public array $seen = [];
 
+    /** @var list<string> client names that went through a legacy-port decorator */
+    public array $decorated = [];
+
     public function __construct(public readonly string $directory)
     {
         if (!is_dir($directory)) {

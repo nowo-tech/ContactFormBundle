@@ -14,6 +14,7 @@ use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\DecoratingFileUploa
 use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\DualHostFileStore;
 use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\HostFileUploader;
 use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\LegacyHostFileHandler;
+use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\QuarantineLegacyHandler;
 use Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -52,6 +53,9 @@ final class FileUploadPortsKernelTest extends TestCase
         yield 'file_upload.service: new port' => ['config-new', HostFileUploader::class, [HostFileUploader::class, false], [$null, true]];
         yield 'file_upload.service: deprecated port' => ['config-legacy', LegacyHostFileHandler::class, [$null, false], [LegacyHostFileHandler::class, true]];
         yield 'file_upload.service: both ports' => ['config-both', DualHostFileStore::class, [DualHostFileStore::class, false], [DualHostFileStore::class, true]];
+        // MZ-C-1: a decorator of the deprecated port keeps that port selected, also for a service that implements both.
+        yield 'decorator of the deprecated port' => ['legacy-decorator', QuarantineLegacyHandler::class, [$null, false], [QuarantineLegacyHandler::class, false]];
+        yield 'file_upload.service: both ports + deprecated-port decorator' => ['legacy-decorator-config-both', QuarantineLegacyHandler::class, [DualHostFileStore::class, false], [QuarantineLegacyHandler::class, false]]; // DecoratorServicePass re-creates the alias
         yield 'file_upload.service: DDD adapter' => ['ddd', ContactFormAttachmentAdapter::class, [ContactFormAttachmentAdapter::class, false], [$null, true]];
     }
 

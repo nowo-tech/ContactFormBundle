@@ -15,6 +15,7 @@ use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\DecoratingFileUploa
 use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\DualHostFileStore;
 use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\HostFileUploader;
 use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\LegacyHostFileHandler;
+use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\QuarantineLegacyHandler;
 use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\UploadRecorder;
 use Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
@@ -92,6 +93,13 @@ final class UploadPortsKernel extends TestKernel
                     ->setDecoratedService(ContactFormFileUploaderInterface::class)
                     ->setArguments([new Reference('.inner')]),
             ],
+            // MZ-C-1: decorators of the deprecated port, with a legacy-only alias or a dual file_upload.service.
+            'legacy-decorator', 'legacy-decorator-config-both' => [
+                $this->variant === 'legacy-decorator' ? $container->setAlias(ContactFormFileUploadHandlerInterface::class, LegacyHostFileHandler::class) : null,
+                $container->register(QuarantineLegacyHandler::class)
+                    ->setDecoratedService(ContactFormFileUploadHandlerInterface::class)
+                    ->setArguments([new Reference('.inner'), new Reference(UploadRecorder::class)]),
+            ],
             default => null,
         };
 
@@ -128,11 +136,11 @@ final class UploadPortsKernel extends TestKernel
     protected function contactFormConfig(): array
     {
         $service = match ($this->variant) {
-            'config-new'    => HostFileUploader::class,
-            'config-legacy' => LegacyHostFileHandler::class,
-            'config-both'   => DualHostFileStore::class,
-            'ddd'           => ContactFormAttachmentAdapter::class,
-            default         => null,
+            'config-new'                                  => HostFileUploader::class,
+            'config-legacy'                               => LegacyHostFileHandler::class,
+            'config-both', 'legacy-decorator-config-both' => DualHostFileStore::class,
+            'ddd'                                         => ContactFormAttachmentAdapter::class,
+            default                                       => null,
         };
 
         // Many submissions from one client IP in a row: no rate limit.

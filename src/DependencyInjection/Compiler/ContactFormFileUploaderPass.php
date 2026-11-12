@@ -26,7 +26,8 @@ use function is_string;
  *    when it implements that one. A service whose class cannot be resolved keeps the pre-1.8 wiring (deprecated port).
  * 2. The bundle's consumers (the value normalizer and the admin field step) get the port the host provides: the 1.8
  *    port when the host aliased, configured or decorated it (or provides neither: the null handler), else the
- *    deprecated port, so a host that implements only the old interface keeps working unchanged.
+ *    deprecated port, so a host that implements only the old interface keeps working unchanged. A decorator of the
+ *    deprecated port keeps that port selected (unless the 1.8 port is decorated too), so it is never skipped.
  *
  * Runs before optimization: host definitions are loaded, decorators are not applied yet (they follow the alias).
  */
@@ -42,7 +43,11 @@ final class ContactFormFileUploaderPass implements CompilerPassInterface
 
         $hostNew    = $this->isHostProvided($container, ContactFormFileUploaderInterface::class);
         $hostLegacy = $this->isHostProvided($container, ContactFormFileUploadHandlerInterface::class);
-        $port       = !$hostNew && $hostLegacy
+        // MZ-C-1: a decorator of the deprecated port (antivirus, quarantine…) must keep running, also when the
+        // configured service implements the 1.8 port too. Only a decorator of the 1.8 port takes precedence.
+        $legacyDecorated = $this->isDecorated($container, ContactFormFileUploadHandlerInterface::class)
+            && !$this->isDecorated($container, ContactFormFileUploaderInterface::class);
+        $port = $legacyDecorated || (!$hostNew && $hostLegacy)
             ? ContactFormFileUploadHandlerInterface::class
             : ContactFormFileUploaderInterface::class;
 
@@ -93,10 +98,8 @@ final class ContactFormFileUploaderPass implements CompilerPassInterface
      */
     private function isHostProvided(ContainerBuilder $container, string $port): bool
     {
-        foreach ($container->getDefinitions() as $definition) {
-            if (($definition->getDecoratedService()[0] ?? null) === $port) {
-                return true;
-            }
+        if ($this->isDecorated($container, $port)) {
+            return true;
         }
 
         if (!$container->hasAlias($port)) {
@@ -104,6 +107,17 @@ final class ContactFormFileUploaderPass implements CompilerPassInterface
         }
 
         return $this->resolveAlias($container, $port) !== NullContactFormFileUploadHandler::class;
+    }
+
+    private function isDecorated(ContainerBuilder $container, string $port): bool
+    {
+        foreach ($container->getDefinitions() as $definition) {
+            if (($definition->getDecoratedService()[0] ?? null) === $port) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function resolveAlias(ContainerBuilder $container, string $id): string

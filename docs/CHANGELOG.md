@@ -78,7 +78,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - `file_upload.service` is wired by the new `ContactFormFileUploaderPass`: the new port's alias points at the service
   when it implements that port; the deprecated alias (marked deprecated) only when it implements the deprecated one.
-  The bundle never injects the deprecated alias unless the host is on that port only.
+  The bundle never injects the deprecated alias unless the host is on that port only, or decorates it (a decorator
+  of the deprecated port keeps that port selected, so it is never skipped, unless the new port is decorated too).
 - The mailer notifier reads the notification's scalars; for a client without a label the "Client:" line shows the
   client reference (was the integer `client_id`, empty for non-integer ids).
 - The null handler's exception message names `ContactFormFileUploaderInterface`.
