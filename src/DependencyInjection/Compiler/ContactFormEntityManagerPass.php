@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\DependencyInjection\Compiler;
 
 use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
+use Nowo\ContactFormBundle\EventSubscriber\ContactFormEntityManagerClearSubscriber;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
+use Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\Reference;
 
 use function array_keys;
 use function implode;
@@ -22,7 +26,8 @@ use function str_starts_with;
  * DoctrineBundle's `auto_mapping` (the Flex default on the default manager) maps every bundle's `Entity` directory,
  * so with a dedicated manager configured the entities would be mapped twice and `getManagerForClass()` would return
  * the default manager. This pass removes the bundle namespace from the mapping driver chain of every other manager
- * and fails the build when the configured manager does not exist or does not map the entities.
+ * and fails the build when the configured manager does not exist or does not map the entities. Since 1.7.1 it also
+ * hands that manager to {@see ContactFormEntityManagerClearSubscriber} unless it is the host's default manager.
  */
 final readonly class ContactFormEntityManagerPass implements CompilerPassInterface
 {
@@ -59,6 +64,15 @@ final readonly class ContactFormEntityManagerPass implements CompilerPassInterfa
 
         if ($this->validateOnly) {
             return;
+        }
+
+        // 1.7.1 (REQ-RUNTIME-002 rule 4): the boundary subscriber clears the bundle-owned manager, never the host's
+        // default one (doctrine.entity_manager may name it explicitly).
+        $default = $container->hasParameter('doctrine.default_entity_manager') ? $container->getParameter('doctrine.default_entity_manager') : null;
+        if ($name !== $default && $container->hasDefinition(ContactFormEntityManagerClearSubscriber::class)) {
+            $container->getDefinition(ContactFormEntityManagerClearSubscriber::class)->setArgument('$entityManagers', new IteratorArgument([
+                new Reference(sprintf('doctrine.orm.%s_entity_manager', $name), ContainerInterface::IGNORE_ON_UNINITIALIZED_REFERENCE),
+            ]));
         }
 
         foreach (array_keys($managers) as $manager) {

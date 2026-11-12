@@ -9,7 +9,6 @@ use Nowo\ContactFormBundle\Client\ClientReferenceResolverInterface;
 use Nowo\ContactFormBundle\Client\ObjectClientReferenceResolver;
 use Nowo\ContactFormBundle\Controller\ContactFormPublicController;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
-use Nowo\ContactFormBundle\EventSubscriber\ContactFormEntityManagerClearSubscriber;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier;
@@ -27,7 +26,6 @@ use Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
 use Nowo\ContactFormBundle\Twig\ContactFormAdminTwigExtension;
 use Symfony\Component\Config\FileLocator;
-use Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
@@ -40,7 +38,6 @@ use Symfony\Component\Mailer\MailerInterface;
 use function array_key_exists;
 use function is_array;
 use function is_string;
-use function sprintf;
 
 /**
  * Loads bundle configuration and service definitions.
@@ -234,12 +231,6 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
         $entityManagerName = $config['doctrine']['entity_manager'] ?? null;
         $entityManagerName = is_string($entityManagerName) && $entityManagerName !== '' ? $entityManagerName : null;
         $container->setParameter(self::ENTITY_MANAGER_PARAMETER, $entityManagerName);
-        if ($entityManagerName !== null && $container->hasDefinition(ContactFormEntityManagerClearSubscriber::class)) {
-            // REQ-RUNTIME-002 rule 4: the bundle's own manager, cleared at every boundary; never built by a boundary.
-            $container->getDefinition(ContactFormEntityManagerClearSubscriber::class)->setArgument('$entityManagers', new IteratorArgument([
-                new Reference(sprintf('doctrine.orm.%s_entity_manager', $entityManagerName), ContainerInterface::IGNORE_ON_UNINITIALIZED_REFERENCE),
-            ]));
-        }
 
         $container->getDefinition(ContactSubmissionProcessor::class)
             ->setArgument('$clock', new Reference('clock'))

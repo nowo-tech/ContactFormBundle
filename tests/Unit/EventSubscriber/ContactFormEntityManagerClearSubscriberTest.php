@@ -5,15 +5,13 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Tests\Unit\EventSubscriber;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\UnitOfWork;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\ContactFormBundle\EventSubscriber\ContactFormEntityManagerClearSubscriber;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use stdClass;
 use Symfony\Component\Console\ConsoleEvents;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
@@ -32,7 +30,8 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
         $events = ContactFormEntityManagerClearSubscriber::getSubscribedEvents();
 
         self::assertSame(['onRequest', 4096], $events[KernelEvents::REQUEST]);
-        self::assertSame(['clearState', -4096], $events[KernelEvents::TERMINATE]);
+        self::assertSame(['onFinishRequest', -4096], $events[KernelEvents::FINISH_REQUEST]);
+        self::assertSame(['onTerminate', -4096], $events[KernelEvents::TERMINATE]);
         self::assertSame(['onMessageReceived', 4096], $events[WorkerMessageReceivedEvent::class]);
         self::assertSame(['onMessageFinished', -4096], $events[WorkerMessageHandledEvent::class]);
         self::assertSame(['onMessageFinished', -4096], $events[WorkerMessageFailedEvent::class]);
@@ -51,19 +50,66 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
         $this->addToAssertionCount(1);
     }
 
-    public function testClearsOnMainRequestOnly(): void
+    public function testClearsAtTheMainRequestStartAndAtTerminateOnly(): void
     {
         $subscriber = $this->subscriber();
-        $kernel     = $this->createStub(HttpKernelInterface::class);
 
-        $subscriber->onRequest(new RequestEvent($kernel, new Request(), HttpKernelInterface::SUB_REQUEST));
+        $subscriber->onRequest($this->request(HttpKernelInterface::SUB_REQUEST));
         self::assertSame(0, $this->clears);
-
-        $subscriber->onRequest(new RequestEvent($kernel, new Request(), HttpKernelInterface::MAIN_REQUEST));
+        $subscriber->onRequest($this->request(HttpKernelInterface::MAIN_REQUEST));
         self::assertSame(1, $this->clears);
-
-        $subscriber->clearState();
+        $subscriber->onFinishRequest($this->finish(HttpKernelInterface::SUB_REQUEST));
+        $subscriber->onFinishRequest($this->finish(HttpKernelInterface::MAIN_REQUEST));
+        $subscriber->onTerminate();
         self::assertSame(2, $this->clears);
+    }
+
+    /**
+     * MT-C-L1: a command run in-process from a controller does not clear the request's unit of work.
+     */
+    public function testCommandsInsideAMainRequestDoNotClear(): void
+    {
+        $subscriber = $this->subscriber();
+
+        $subscriber->onRequest($this->request(HttpKernelInterface::MAIN_REQUEST));
+        self::assertSame(1, $this->clears);
+        $subscriber->onConsoleCommand();
+        $subscriber->onConsoleTerminate();
+        self::assertSame(1, $this->clears, 'A command run from a controller must not clear the request.');
+        // A sub-request's finish does not end the main request.
+        $subscriber->onFinishRequest($this->finish(HttpKernelInterface::SUB_REQUEST));
+        $subscriber->onConsoleCommand();
+        $subscriber->onConsoleTerminate();
+        self::assertSame(1, $this->clears);
+        $subscriber->onFinishRequest($this->finish(HttpKernelInterface::MAIN_REQUEST));
+        $subscriber->onConsoleCommand();
+        self::assertSame(2, $this->clears);
+    }
+
+    /**
+     * MT-T-I1: an in-process HttpKernel::handle() from a command or a message handler does not clear the unit that runs it.
+     */
+    public function testRequestsInsideACommandOrAMessageDoNotClear(): void
+    {
+        $subscriber = $this->subscriber();
+
+        $subscriber->onConsoleCommand();
+        self::assertSame(1, $this->clears);
+        $subscriber->onRequest($this->request(HttpKernelInterface::MAIN_REQUEST));
+        $subscriber->onFinishRequest($this->finish(HttpKernelInterface::MAIN_REQUEST));
+        $subscriber->onTerminate();
+        self::assertSame(1, $this->clears, 'A request handled inside a command must not clear it.');
+        $subscriber->onConsoleTerminate();
+        self::assertSame(2, $this->clears);
+
+        $subscriber->onMessageReceived();
+        self::assertSame(3, $this->clears);
+        $subscriber->onRequest($this->request(HttpKernelInterface::MAIN_REQUEST));
+        $subscriber->onFinishRequest($this->finish(HttpKernelInterface::MAIN_REQUEST));
+        $subscriber->onTerminate();
+        self::assertSame(3, $this->clears, 'A request handled inside a message must not clear it.');
+        $subscriber->onMessageFinished();
+        self::assertSame(4, $this->clears);
     }
 
     public function testNestedCommandsClearOnlyAtTheOutermostBoundaries(): void
@@ -106,34 +152,18 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
     }
 
     /**
-     * @param array<string, list<object>> $scheduled
+     * MT-C-M1: an open manager is always cleared, whatever is pending (it is never inspected).
      */
-    #[DataProvider('pendingWork')]
-    public function testAManagerWithPendingChangesIsNotCleared(array $scheduled): void
+    public function testAnOpenManagerIsAlwaysCleared(): void
     {
-        $unitOfWork = $this->createMock(UnitOfWork::class);
-        $unitOfWork->expects(self::once())->method('computeChangeSets');
-        foreach (['getScheduledEntityInsertions', 'getScheduledEntityUpdates', 'getScheduledEntityDeletions', 'getScheduledCollectionUpdates', 'getScheduledCollectionDeletions'] as $method) {
-            $unitOfWork->method($method)->willReturn($scheduled[$method] ?? []);
-        }
         $manager = $this->createMock(EntityManagerInterface::class);
         $manager->method('isOpen')->willReturn(true);
-        $manager->method('getUnitOfWork')->willReturn($unitOfWork);
-        $manager->expects(self::never())->method('clear');
+        $manager->expects(self::never())->method('getUnitOfWork');
+        $manager->expects(self::once())->method('clear');
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->expects(self::never())->method('resetManager');
 
-        (new ContactFormEntityManagerClearSubscriber([$manager], [], 'contact_form'))->clearState();
-    }
-
-    /**
-     * @return iterable<string, array{array<string, list<object>>}>
-     */
-    public static function pendingWork(): iterable
-    {
-        yield 'insert' => [['getScheduledEntityInsertions' => [new stdClass()]]];
-        yield 'update' => [['getScheduledEntityUpdates' => [new stdClass()]]];
-        yield 'delete' => [['getScheduledEntityDeletions' => [new stdClass()]]];
-        yield 'collection update' => [['getScheduledCollectionUpdates' => [new stdClass()]]];
-        yield 'collection delete' => [['getScheduledCollectionDeletions' => [new stdClass()]]];
+        (new ContactFormEntityManagerClearSubscriber([$manager], [$registry], 'contact_form'))->clearState();
     }
 
     public function testAClosedManagerIsRecreatedByName(): void
@@ -149,18 +179,21 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
         (new ContactFormEntityManagerClearSubscriber([$manager], [$registry]))->clearState();
     }
 
+    private function request(int $type): RequestEvent
+    {
+        return new RequestEvent($this->createStub(HttpKernelInterface::class), new Request(), $type);
+    }
+
+    private function finish(int $type): FinishRequestEvent
+    {
+        return new FinishRequestEvent($this->createStub(HttpKernelInterface::class), new Request(), $type);
+    }
+
     private function subscriber(): ContactFormEntityManagerClearSubscriber
     {
         $this->clears = 0;
-        $unitOfWork   = $this->createStub(UnitOfWork::class);
-        $unitOfWork->method('getScheduledEntityInsertions')->willReturn([]);
-        $unitOfWork->method('getScheduledEntityUpdates')->willReturn([]);
-        $unitOfWork->method('getScheduledEntityDeletions')->willReturn([]);
-        $unitOfWork->method('getScheduledCollectionUpdates')->willReturn([]);
-        $unitOfWork->method('getScheduledCollectionDeletions')->willReturn([]);
-        $manager = $this->createStub(EntityManagerInterface::class);
+        $manager      = $this->createStub(EntityManagerInterface::class);
         $manager->method('isOpen')->willReturn(true);
-        $manager->method('getUnitOfWork')->willReturn($unitOfWork);
         $manager->method('clear')->willReturnCallback(function (): void {
             ++$this->clears;
         });

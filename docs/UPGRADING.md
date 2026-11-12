@@ -61,9 +61,10 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Unreleased
 
 No configuration change is needed. With `doctrine.entity_manager` set, the bundle now clears that manager at the
-request, Messenger and console boundaries; it keeps a manager with changes waiting to be written. Code that keeps a
-bundle entity (`ContactForm`, `ContactSubmission`, ...) from one request, message or command to the next must load it
-again by id. Hosts that bypass the services resetter must still clear their own entity managers at those boundaries
+outermost request, Messenger and console boundaries, and unflushed changes on it are discarded there: flush bundle
+entity changes inside the unit of work that makes them. Code that keeps a bundle entity (`ContactForm`,
+`ContactSubmission`, ...) from one request, message or command to the next must load it again by id. Nothing is
+cleared when `doctrine.entity_manager` names the host's default manager. Hosts that bypass the services resetter must still clear their own entity managers at those boundaries
 (see [FRANKENPHP-WORKER-AUDIT.md](FRANKENPHP-WORKER-AUDIT.md#usage-recommendations-in-worker-mode)).
 
 ## To 1.7.0

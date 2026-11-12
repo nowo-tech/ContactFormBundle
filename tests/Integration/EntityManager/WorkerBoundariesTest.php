@@ -31,7 +31,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Event\ControllerEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\HttpKernel\TerminableInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
@@ -273,25 +276,39 @@ final class WorkerBoundariesTest extends TestCase
     }
 
     /**
-     * Lesson of LegalKit 1.12: a manager with changes waiting to be written is never cleared (the changes would be
-     * lost); a closed manager is recreated at the boundary.
+     * MT-C-M1: an unflushed change of a finished (or abandoned) unit, such as an invalid admin edit, is discarded at
+     * the boundary and never written by a later, unrelated flush (a visitor's submission); a closed manager is
+     * recreated at the boundary.
      */
-    public function testPendingChangesAreKeptAndAClosedManagerIsRecreated(): void
+    public function testUnflushedChangesAreDiscardedAndAClosedManagerIsRecreated(): void
     {
         $this->boot();
+        $recorder = $this->container()->get(ContactSubmissionRecorderInterface::class);
+        self::assertInstanceOf(ContactSubmissionRecorderInterface::class, $recorder);
         $application = $this->application();
-        $noop        = (new Command('app:noop'))->setCode(static fn (): int => Command::SUCCESS);
-        $application->setCommandLoader(new FactoryCommandLoader(['app:noop' => static fn (): Command => $noop]));
+        $edit        = (new Command('app:abandoned-edit'))->setCode(function (): int {
+            $form = $this->bundle->find(ContactForm::class, $this->forms['A']);
+            self::assertInstanceOf(ContactForm::class, $form);
+            $form->setName('Abandoned admin edit');
 
-        $form = $this->bundle->find(ContactForm::class, $this->forms['A']);
-        self::assertInstanceOf(ContactForm::class, $form);
-        $form->setName('Renamed, not flushed yet');
-        $application->run(new ArrayInput(['command' => 'app:noop']), new NullOutput());
-        self::assertTrue($this->bundle->contains($form), 'A pending update must survive the boundary.');
-        $this->bundle->flush();
-        $application->run(new ArrayInput(['command' => 'app:noop']), new NullOutput());
-        self::assertSame([], $this->bundle->getUnitOfWork()->getIdentityMap());
-        self::assertSame('Renamed, not flushed yet', $this->bundle->getConnection()->fetchOne('SELECT name FROM nowo_contact_form WHERE id = ?', [$this->forms['A']]));
+            return Command::SUCCESS;
+        });
+        $submit = (new Command('app:submit'))->setCode(static function () use ($recorder): int {
+            $recorder->record('alpha', ['email' => 'visitor@A.example'], 'en');
+
+            return Command::SUCCESS;
+        });
+        $noop = (new Command('app:noop'))->setCode(static fn (): int => Command::SUCCESS);
+        $application->setCommandLoader(new FactoryCommandLoader([
+            'app:abandoned-edit' => static fn (): Command => $edit,
+            'app:submit'         => static fn (): Command => $submit,
+            'app:noop'           => static fn (): Command => $noop,
+        ]));
+
+        self::assertSame(Command::SUCCESS, $application->run(new ArrayInput(['command' => 'app:abandoned-edit']), new NullOutput()));
+        self::assertSame([], $this->bundle->getUnitOfWork()->getIdentityMap(), 'The boundary discards the unflushed edit.');
+        self::assertSame(Command::SUCCESS, $application->run(new ArrayInput(['command' => 'app:submit']), new NullOutput()));
+        self::assertSame('Form alpha', $this->bundle->getConnection()->fetchOne('SELECT name FROM nowo_contact_form WHERE id = ?', [$this->forms['A']]), 'A later flush must never write the abandoned edit.');
 
         $this->bundle->close();
         $application->run(new ArrayInput(['command' => 'app:noop']), new NullOutput());
@@ -299,6 +316,77 @@ final class WorkerBoundariesTest extends TestCase
         self::assertInstanceOf(EntityManagerInterface::class, $reopened);
         self::assertTrue($reopened->isOpen(), 'The boundary recreates a closed bundle manager.');
         self::assertTrue($this->host->contains($this->note), 'The host manager is never cleared or reset.');
+    }
+
+    /**
+     * MT-C-L1: a command run in-process from a controller does not clear the request's manager; the request's own
+     * terminate does.
+     */
+    public function testCommandRunFromAControllerKeepsTheRequestsEntities(): void
+    {
+        $this->boot();
+        $application = $this->application();
+        $inner       = (new Command('app:inner'))->setCode(static fn (): int => Command::SUCCESS);
+        $application->setCommandLoader(new FactoryCommandLoader(['app:inner' => static fn (): Command => $inner]));
+        $http = $this->container()->get('http_kernel');
+        self::assertInstanceOf(HttpKernelInterface::class, $http);
+        self::assertInstanceOf(TerminableInterface::class, $http);
+
+        $kept       = [];
+        $controller = function () use ($application, &$kept): Response {
+            $submission = $this->repository()->find($this->submissions['A'][0]);
+            self::assertInstanceOf(ContactSubmission::class, $submission);
+            $application->doRun(new ArrayInput(['command' => 'app:inner']), new NullOutput());
+            $kept[] = $this->bundle->contains($submission);
+
+            return new Response('ok');
+        };
+        $replace = static function (ControllerEvent $event) use ($controller): void {
+            $event->setController($controller);
+        };
+        $dispatcher = $this->dispatcher();
+        $dispatcher->addListener(KernelEvents::CONTROLLER, $replace, -1024);
+
+        try {
+            $request  = Request::create('/en/contact/alpha');
+            $response = $http->handle($request);
+            self::assertSame('ok', $response->getContent());
+            self::assertSame([true], $kept, 'A command run from a controller cleared the request\'s manager.');
+            self::assertNotSame([], $this->bundle->getUnitOfWork()->getIdentityMap());
+            $http->terminate($request, $response);
+        } finally {
+            $dispatcher->removeListener(KernelEvents::CONTROLLER, $replace);
+        }
+
+        self::assertSame([], $this->bundle->getUnitOfWork()->getIdentityMap(), 'kernel.terminate clears the manager.');
+    }
+
+    /**
+     * MT-T-I1: an in-process HttpKernel::handle() from a command does not clear the command's manager.
+     */
+    public function testRequestHandledInsideACommandKeepsTheCommandsEntities(): void
+    {
+        $this->boot();
+        $http = $this->container()->get('http_kernel');
+        self::assertInstanceOf(HttpKernelInterface::class, $http);
+        self::assertInstanceOf(TerminableInterface::class, $http);
+        $application = $this->application();
+        $kept        = [];
+        $outer       = (new Command('app:render'))->setCode(function () use ($http, &$kept): int {
+            $submission = $this->repository()->find($this->submissions['B'][0]);
+            self::assertInstanceOf(ContactSubmission::class, $submission);
+            $request  = Request::create('/en/contact/beta');
+            $response = $http->handle($request);
+            $http->terminate($request, $response);
+            $kept[] = [$response->getStatusCode(), $this->bundle->contains($submission)];
+
+            return Command::SUCCESS;
+        });
+        $application->setCommandLoader(new FactoryCommandLoader(['app:render' => static fn (): Command => $outer]));
+
+        self::assertSame(Command::SUCCESS, $application->run(new ArrayInput(['command' => 'app:render']), new NullOutput()));
+        self::assertSame([[200, true]], $kept, 'A request handled inside a command cleared the command\'s manager.');
+        self::assertSame([], $this->bundle->getUnitOfWork()->getIdentityMap(), 'The outermost console.terminate clears the manager.');
     }
 
     private function boot(): void

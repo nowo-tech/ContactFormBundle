@@ -7,6 +7,7 @@ namespace Nowo\ContactFormBundle\EventSubscriber;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
@@ -17,26 +18,31 @@ use Symfony\Component\Messenger\Event\WorkerStoppedEvent;
 use function max;
 
 /**
- * Clears the bundle's own entity manager (`doctrine.entity_manager`) at every unit-of-work boundary, so forms and
- * submissions (personal data) loaded by the admin, a command or a message handler never stay managed across requests
- * (REQ-RUNTIME-002 rule 4). A closed manager is recreated at the boundary.
+ * Clears the bundle's own entity manager (`doctrine.entity_manager`, when it is not the host's default manager) at
+ * every OUTERMOST unit-of-work boundary, so forms and submissions (personal data) loaded by the admin, a command or a
+ * message handler never stay managed across requests, and an unflushed change of an abandoned unit (an invalid admin
+ * POST, translations added on a GET) is never written by a later, unrelated flush such as a visitor's submission
+ * (REQ-RUNTIME-002 rule 4; same policy as ApiStudioBundle 1.12.1 `EntityManagerBoundarySubscriber`).
  *
  * Boundaries:
- * - HTTP: the start of every main request (priority 4096) and `kernel.terminate` (priority -4096, after the
- *   application's terminate listeners). Sub-requests (fragments, ESI) share their main request's unit of work;
+ * - HTTP: the main `kernel.request` (priority 4096) and `kernel.terminate` (priority -4096), only outside a console
+ *   command and a Messenger message (an in-process `HttpKernel::handle()` from a command or a handler must not clear
+ *   the unit that runs it). Sub-requests (fragments, ESI) share their main request's unit of work;
  * - Messenger: when a message is received (priority 4096) and after it is handled or failed (priority -4096);
- * - console: when the OUTERMOST command starts and terminates, and only while no Messenger message is in flight. A
- *   command run in-process from another command or from a message handler (`Application::doRun()`) does not clear the
- *   outer unit's manager: the nesting depth is counted on `console.command` / `console.terminate`, and the in-flight
- *   flag is set when a message is received and unset when it is handled, failed or the worker stops (same pattern as
- *   BeaconBundle 1.24.0).
+ * - console: when the OUTERMOST command starts and terminates, only outside a Messenger message and outside a main
+ *   request. A command run in-process from another command, a message handler or a controller
+ *   (`Application::doRun()`) does not clear the outer unit's manager.
+ *
+ * State: a console depth counter; a message flag set on received and unset on handled / failed / worker stopped; a
+ * request flag set on the main `kernel.request` and unset on its `kernel.finish_request`.
  *
  * Rules:
- * - only the manager named by `doctrine.entity_manager` is cleared. Without that option the bundle entities live on
- *   the application's manager, which the bundle never clears (the host clears its own managers at the same
- *   boundaries when it bypasses the services resetter, REQ-RUNTIME-002 rule 7);
- * - a manager with changes waiting to be written (scheduled inserts, updates or deletes) is not cleared: those changes
- *   are kept until they are flushed or until a later boundary finds nothing pending;
+ * - an open manager is always cleared at an outermost boundary: whatever the finished (or abandoned) unit left
+ *   unflushed is discarded, never written later;
+ * - a closed manager (a failed write) is recreated by name through the registry;
+ * - only the manager named by `doctrine.entity_manager` is touched, and only when it is not the host's default manager
+ *   (the compiler pass wires nothing otherwise). Without that option the bundle entities live on the application's
+ *   manager, which the bundle never clears (REQ-RUNTIME-002 rule 7: the host clears its own managers);
  * - the manager and the registry arrive as iterators of IGNORE_ON_UNINITIALIZED_REFERENCE references, so a boundary
  *   only touches a manager the unit of work already built and never builds one itself.
  *
@@ -65,8 +71,11 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
     /** A Messenger message is being handled (between received and handled / failed / worker stopped). */
     private bool $messageInFlight = false;
 
+    /** A main request is being handled (between its `kernel.request` and its `kernel.finish_request`). */
+    private bool $requestInFlight = false;
+
     /**
-     * @param iterable<EntityManagerInterface> $entityManagers the `doctrine.entity_manager` manager (empty without the option)
+     * @param iterable<EntityManagerInterface> $entityManagers the bundle-owned manager (empty without one)
      * @param iterable<ManagerRegistry> $registries the Doctrine registry, to recreate a closed manager
      * @param string|null $managerName `doctrine.entity_manager`
      */
@@ -84,7 +93,8 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
     {
         return [
             KernelEvents::REQUEST                   => ['onRequest', 4096],
-            KernelEvents::TERMINATE                 => ['clearState', -4096],
+            KernelEvents::FINISH_REQUEST            => ['onFinishRequest', -4096],
+            KernelEvents::TERMINATE                 => ['onTerminate', -4096],
             self::MESSENGER_WORKER_MESSAGE_RECEIVED => ['onMessageReceived', 4096],
             self::MESSENGER_WORKER_MESSAGE_HANDLED  => ['onMessageFinished', -4096],
             self::MESSENGER_WORKER_MESSAGE_FAILED   => ['onMessageFinished', -4096],
@@ -94,13 +104,39 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
         ];
     }
 
+    /**
+     * Start of a main request: clears only outside a command and a message (an in-process HttpKernel::handle()).
+     */
     public function onRequest(RequestEvent $event): void
     {
         if (!$event->isMainRequest()) {
             return;
         }
 
-        $this->clearState();
+        $outermost = $this->consoleDepth === 0 && !$this->messageInFlight;
+        // @igor-ignore - Unit-of-work flag, set and unset at the main request boundaries.
+        $this->requestInFlight = true;
+        if ($outermost) {
+            $this->clearState();
+        }
+    }
+
+    public function onFinishRequest(FinishRequestEvent $event): void
+    {
+        if ($event->isMainRequest()) {
+            // @igor-ignore - Unit-of-work flag, set and unset at the main request boundaries.
+            $this->requestInFlight = false;
+        }
+    }
+
+    /**
+     * End of a request: clears only outside a command and a message (an in-process HttpKernel::handle()).
+     */
+    public function onTerminate(): void
+    {
+        if ($this->consoleDepth === 0 && !$this->messageInFlight) {
+            $this->clearState();
+        }
     }
 
     /**
@@ -133,70 +169,52 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
     }
 
     /**
-     * Start of a command: clears only when the outermost command starts outside a Messenger message.
+     * Start of a command: clears only for the outermost command outside a message and a main request.
      */
     public function onConsoleCommand(): void
     {
-        // @igor-ignore - Nesting counter of the running commands (no request data).
-        if (++$this->consoleDepth === 1 && !$this->messageInFlight) {
+        if ($this->isOutermostUnit()) {
             $this->clearState();
         }
+        // @igor-ignore - Nesting counter of the running commands (no request data).
+        ++$this->consoleDepth;
     }
 
     /**
-     * End of a command: clears only when the outermost command ends outside a Messenger message.
+     * End of a command: clears only for the outermost command outside a message and a main request.
      */
     public function onConsoleTerminate(): void
     {
         // @igor-ignore - Nesting counter of the running commands (no request data).
         $this->consoleDepth = max(0, $this->consoleDepth - 1);
-        if ($this->consoleDepth === 0 && !$this->messageInFlight) {
+        if ($this->isOutermostUnit()) {
             $this->clearState();
         }
     }
 
     /**
-     * Clears the bundle's own manager (recreated when closed; kept when changes wait to be written). Called at every
-     * unit-of-work boundary.
+     * Recreates the bundle's manager when a failed write closed it, clears it when it is open (unflushed changes of
+     * the finished unit are discarded); nothing when it was never built.
      */
     public function clearState(): void
     {
         foreach ($this->entityManagers as $entityManager) {
-            if (!$entityManager->isOpen()) {
-                $this->recreate();
+            if ($entityManager->isOpen()) {
+                $entityManager->clear();
 
                 continue;
             }
 
-            if (!$this->hasScheduledWork($entityManager)) {
-                $entityManager->clear();
+            if ($this->managerName !== null) {
+                foreach ($this->registries as $registry) {
+                    $registry->resetManager($this->managerName);
+                }
             }
         }
     }
 
-    private function recreate(): void
+    private function isOutermostUnit(): bool
     {
-        if ($this->managerName === null) {
-            return;
-        }
-
-        foreach ($this->registries as $registry) {
-            $registry->resetManager($this->managerName);
-        }
-    }
-
-    /**
-     * Whether the unit of work has inserts, updates or deletes waiting to be written (change sets computed).
-     */
-    private function hasScheduledWork(EntityManagerInterface $entityManager): bool
-    {
-        $unitOfWork = $entityManager->getUnitOfWork();
-        $unitOfWork->computeChangeSets();
-
-        return $unitOfWork->getScheduledEntityInsertions() !== []
-            || $unitOfWork->getScheduledEntityUpdates() !== []
-            || $unitOfWork->getScheduledEntityDeletions() !== []
-            || $unitOfWork->getScheduledCollectionUpdates() !== []
-            || $unitOfWork->getScheduledCollectionDeletions() !== [];
+        return $this->consoleDepth === 0 && !$this->messageInFlight && !$this->requestInFlight;
     }
 }
