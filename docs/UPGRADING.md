@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.7.1](#to-171)
 - [To 1.7.0](#to-170)
 - [To 1.6.4](#to-164)
 - [To 1.6.3](#to-163)
@@ -59,6 +60,14 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## To 1.7.1
+
+From **1.7.0**:
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
 
 No configuration change is needed. With `doctrine.entity_manager` set, the bundle now clears that manager at the
 outermost request, Messenger and console boundaries, and unflushed changes on it are discarded there: flush bundle
