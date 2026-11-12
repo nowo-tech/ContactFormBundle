@@ -3,10 +3,11 @@
 | Field | Value |
 |-------|-------|
 | Package | `nowo-tech/contact-form-bundle` (`symfony-bundle`) |
-| Audited revision | `v1.0.22` (post–worker remediation) |
-| Audit date | 2026-09-24 |
+| Audited revision | `v1.7.0` → `v1.7.1` (REQ-RUNTIME-002 re-audit; first audit `v1.0.22`) |
+| Audit date | 2026-11-12 (first audit 2026-09-24) |
 | Method | Manual review of every file under `src/` (services, controllers, subscribers, Twig extension, form types, repositories, command, DI extension, compiler passes, `Resources/config`) |
-| **Verdict** | ✅ **Viable under scenario B** — bundle services are stateless; a closed EntityManager is reset on bundle routes; public submissions are detached after processing; public reads refresh forms/fields/translations; repositories always resolve the current manager after `resetManager()` |
+| **Verdict** | ✅ **Viable under scenario B** — bundle services are stateless; the bundle's own manager (`doctrine.entity_manager`) is cleared at every request / Messenger / console boundary and recreated when closed; a closed EntityManager is also reset on bundle routes; public submissions are detached after processing; public reads refresh forms/fields/translations; repositories always resolve the current manager after `resetManager()` |
+| Remediation (2026-11-12, 1.7.1) | W-03 resolved: `ContactFormEntityManagerClearSubscriber` clears the `doctrine.entity_manager` manager at the boundaries (REQ-RUNTIME-002 rule 4). Worker test: `tests/Integration/EntityManager/WorkerBoundariesTest.php` |
 | Remediation (2026-09-23 / 2026-09-24) | W-01 resolved (`ContactFormEntityManagerResolver`, `ContactFormEntityManagerSubscriber`, `ContactSubmissionProcessor`, `HINT_REFRESH` on public reads, `WorkerSafeServiceEntityRepository`); W-02 accepted. Regression tests: `ContactFormWorkerModeTest` (consecutive requests with `services_resetter` skipped) plus unit tests for resolver, subscriber, processor, and worker-safe repositories |
 
 ## Table of contents
@@ -17,6 +18,8 @@
 - [Findings](#findings)
   - [W-01 — Doctrine EntityManager state is only cleaned by DoctrineBundle's reset (Medium)](#w-01--doctrine-entitymanager-state-is-only-cleaned-by-doctrinebundles-reset-medium)
   - [W-02 — Submission e-mail is sent synchronously (Low)](#w-02--submission-e-mail-is-sent-synchronously-low)
+  - [W-03 — The bundle's own entity manager is never cleared (Low)](#w-03--the-bundles-own-entity-manager-is-never-cleared-low)
+- [Worker tests](#worker-tests)
 - [Usage recommendations in worker mode](#usage-recommendations-in-worker-mode)
 - [Re-audit triggers](#re-audit-triggers)
 
@@ -29,19 +32,21 @@ FrankenPHP worker mode boots the Symfony kernel once per worker and serves many 
 
 A bundle that is safe under **B** is safe under **A** and under classic mode / PHP-FPM.
 
+Precisely: with the stock Symfony kernel, `FRANKENPHP_RESET_KERNEL=false` only stops the kernel from being cloned; `Kernel::handle()` still calls `services_resetter->reset()` before every request after the first (scenario A). Scenario B happens where the resetter does not run: a host that removes, replaces or bypasses `services_resetter` (or drives `http_kernel` directly), Messenger consumers started with `--no-reset`, and long-running console commands. The bundle is correct under B (REQ-RUNTIME-002).
+
 ## Summary
 
 | Area | Status | Notes |
 |------|--------|-------|
-| Mutable state in shared services | ✅ | All bundle services are `readonly` or have no properties; config comes from container parameters |
+| Mutable state in shared services | ✅ | All bundle services are `readonly` or have no properties; config comes from container parameters. Only `ContactFormEntityManagerClearSubscriber` keeps a console nesting counter and an in-flight message flag (no request data) |
 | Static properties / `static` locals | ✅ | Only pure static helpers (`ContactPhoneValue`, `ContactFormFieldPhoneOptions::fromField()`, enum `values()`); no static properties |
 | `ResetInterface` / `kernel.reset` coverage | ✅ N/A | No bundle service needs a reset |
 | Request / user / locale captured in services | ✅ | `Request`, token and locale are read per call (`SecurityClientResolver::resolve()`, controllers) |
 | Superglobals, `$_ENV`, `putenv`, `ini_set`, `setlocale`, timezone | ✅ | None used. `LocaleSwitcher::setLocale()` (which calls `\Locale::setDefault()`) is used, but Symfony restores it on every request (see Info notes) |
-| Doctrine / EntityManager | ✅ | Closed manager reset on bundle routes and after a failed submission flush; submissions detached; public reads use `HINT_REFRESH`; repositories re-resolve the manager after reset (W-01). Clearing unrelated application entities between requests stays the application's responsibility |
+| Doctrine / EntityManager | ✅ | The `doctrine.entity_manager` manager is cleared at every boundary and recreated when closed (W-03); closed manager also reset on bundle routes and after a failed submission flush; submissions detached; public reads use `HINT_REFRESH`; repositories re-resolve the manager after reset (W-01). Without `doctrine.entity_manager` the bundle entities live on the application's manager, which the host clears (host rule below) |
 | Output, headers, `exit`, shutdown functions | ✅ | None; responses and flashes go through Symfony |
 | Resources (files, sockets, cURL) held open | ✅ | None opened by the bundle; file uploads are delegated to a host service |
-| Memory growth across requests | ✅ | Public submissions are detached; forms/fields stay managed but are bounded by the number of rows and refreshed on read (W-01) |
+| Memory growth across requests | ✅ | Public submissions are detached; the bundle's own manager is cleared at every boundary (W-03); 500-unit worker tests stay within 2 MiB |
 | Blocking I/O and timeouts | ⚠️ Low (accepted) | Notification e-mail is sent synchronously through Symfony Mailer unless routed to Messenger (W-02) |
 | Third-party static state | ✅ | `libxml_use_internal_errors()` is restored after use; FormKit trait state is scoped with `try/finally` |
 | PHPStan FrankenPHP rulesets | ✅ | `ruleset-classic.neon` + `ruleset-worker.neon` included in `phpstan.neon.dist` |
@@ -52,6 +57,7 @@ A bundle that is safe under **B** is safe under **A** and under classic mode / P
 |---------|--------|---------------|------------|------------|
 | `Service\ContactSubmissionProcessor` | yes | none (`final readonly`); persists + flushes via the manager from `ContactFormEntityManagerResolver`, detaches the submission | ✅ | ✅ |
 | `Service\ContactFormEntityManagerResolver` (new) | yes | none (`final readonly`, `ManagerRegistry` only) | ✅ | ✅ |
+| `EventSubscriber\ContactFormEntityManagerClearSubscriber` (1.7.1; main `kernel.request` 4096, `kernel.finish_request` -4096, `kernel.terminate` -4096, Messenger received 4096 / handled / failed / stopped -4096, `console.command` 4096 / `console.terminate` -4096) | yes | `$consoleDepth`, `$messageInFlight`, `$requestInFlight` (no request data); manager and registry as `IGNORE_ON_UNINITIALIZED_REFERENCE` iterators | ✅ | ✅ |
 | `EventSubscriber\ContactFormEntityManagerSubscriber` (new; `kernel.request` 31 main request only, `kernel.exception` 0; bundle routes only) | yes | none | ✅ | ✅ |
 | `Service\DynamicContactFormBuilder` | yes | none (`final readonly`) | ✅ | ✅ |
 | `Service\ContactFormSubmissionRateLimiter` | yes | none (`final readonly`); state lives in `cache.app` keyed by form slug + client IP | ✅ | ✅ |
@@ -86,7 +92,7 @@ Entities, `ContactSubmissionNotification`, `ContactSubmissionCreatedEvent` and `
   - identity map growth: `ContactSubmissionProcessor` detaches the submission and its values in a `finally` block after the event and notifier;
   - stale reads: `ContactFormRepository::findOneEnabledBySlug()` and `ContactFormFieldRepository::findByFormOrdered()` fetch-join translations and use `Query::HINT_REFRESH`, so the public page and the submission processor read current titles, labels and options.
   - stale repository manager after reset: all bundle repositories extend `WorkerSafeServiceEntityRepository`, which builds a fresh `EntityRepository` from the current registry manager on every call so ORM 3's `ServiceEntityRepositoryProxy` cache cannot keep a closed EntityManager;
-  - Residual (accepted): the bundle never calls `clear()` on the application's manager. Admin pages keep the forms/fields they load managed (bounded by table size); under scenario B clearing application entities between requests remains the application's responsibility. The retention cleanup runs from the CLI.
+  - Residual (accepted): the bundle never calls `clear()` on the application's manager. Without `doctrine.entity_manager`, admin pages keep the forms/fields/submissions they load managed on that manager; under scenario B clearing it between requests is the application's responsibility (host rule, REQ-RUNTIME-002 rule 7). With `doctrine.entity_manager`, see W-03.
 
 ### W-02 — Submission e-mail is sent synchronously (Low)
 
@@ -94,6 +100,12 @@ Entities, `ContactSubmissionNotification`, `ContactSubmissionCreatedEvent` and `
 - **Worker impact:** with a synchronous transport, a slow or unreachable SMTP server blocks the worker thread for the transport timeout (Symfony Mailer uses `default_socket_timeout`, 60 s by default). No state leaks, but a limited worker pool can be exhausted. An exception from the mailer also turns a successful (already flushed) submission into an error response.
 - **Recommendation:** route `Symfony\Component\Mailer\Messenger\SendEmailMessage` to an async Messenger transport, or set an explicit timeout on the mailer DSN. Cap waiting requests with FrankenPHP `max_wait_time`.
 - **Status:** Accepted — blocking I/O, not a state leak; the timeout belongs to the mailer DSN and async delivery to Messenger routing, both application configuration. The submission is still detached when the notifier throws.
+
+### W-03 — The bundle's own entity manager is never cleared (Low)
+
+- **Where:** 1.7.0 added `doctrine.entity_manager` (a manager that holds only the bundle entities), but nothing cleared it: `src/Service/ContactFormEntityManagerResolver.php` only replaced a closed manager, and the admin (`ContactSubmissionAdminController::index()` / `show()`, the form and field admin), the retention command and host code using the repositories left forms and submissions managed.
+- **Worker impact (1.7.0, scenario B only):** submissions (personal data) and forms loaded by one request stayed in the identity map for the life of the worker: memory grew with admin browsing, and `find()` served a submission edited or deleted by another worker or process with its old values. No cross-user disclosure: the admin access check runs on every request. Messenger consumers with DoctrineBundle's `DoctrineClearEntityManagerWorkerSubscriber` (on by default with the Messenger integration) were already cleared after each message.
+- **Status:** Resolved in 1.7.1 — `src/EventSubscriber/ContactFormEntityManagerClearSubscriber.php` clears the `doctrine.entity_manager` manager at the start of every main request and at `kernel.terminate`, on `WorkerMessageReceivedEvent` / `WorkerMessageHandledEvent` / `WorkerMessageFailedEvent`, and on `console.command` / `console.terminate` for the outermost command outside a Messenger message and outside a main request. Only OUTERMOST boundaries clear (same policy as ApiStudioBundle 1.12.1 `EntityManagerBoundarySubscriber`, audit MT): a command run in-process with `Application::doRun()` from another command, a message handler or a controller keeps the outer unit's entities, and so does an in-process `HttpKernel::handle()` from a command or a handler (the main `kernel.request` / `kernel.terminate` clear only outside a command and a message). State: console depth counter; message flag unset on handled, failed and `WorkerStoppedEvent`; request flag set on the main `kernel.request` and unset on its `kernel.finish_request`. At an outermost boundary an open manager is **always** cleared: an unflushed change of a finished or abandoned unit (an invalid admin POST, translations added by `ensureTranslationsForEnabledLocales` on a GET) is discarded, never written by a later unrelated flush such as a visitor's submission (audit MT-C-M1). A closed manager is recreated by name; no other manager is touched. The manager and the registry arrive as `IGNORE_ON_UNINITIALIZED_REFERENCE` references; `ContactFormEntityManagerPass` wires `doctrine.orm.<name>_entity_manager` only when the option names a manager other than `doctrine.default_entity_manager` (audit MT-C-L2), so a boundary never builds either and never clears the host's default manager.
 
 No other findings.
 
@@ -105,9 +117,16 @@ Info notes:
 - `src/Entity/ContactSubmission.php:55` sets `createdAt` with `new DateTimeImmutable()` in the entity constructor. This runs per entity, not per service, so it is correct in worker mode (hygiene only: it bypasses the injected clock).
 - The demo (`demo/symfony8/docker/frankenphp/Caddyfile`) runs FrankenPHP with a `worker` block.
 
+## Worker tests
+
+- `tests/Integration/EntityManager/WorkerBoundariesTest.php` boots **one** kernel with `doctrine.entity_manager: contact_form` and never calls the services resetter: 500 admin submission pages through the `http_kernel` service (not `Kernel::handle()`), 500 messages through a real Messenger `Worker` without `ResetServicesListener` and without `DoctrineClearEntityManagerWorkerSubscriber` (every 7th handler fails), and 500 console runs. Two tenants (forms "alpha" and "beta", 10 submissions each) alternate; before every unit another worker rewrites the submission it is about to read. Each unit must read the latest value and nothing of the other tenant; after every unit the bundle identity map is empty and the host manager still holds a pending entity. Memory margin: 2 MiB after a 50-unit warm-up. Also: nested `doRun()` from a command, from a message handler and from a controller; an `HttpKernel::handle()` inside a command; an abandoned unflushed edit that a later submission flush must not write; a closed manager recreated at a boundary. Without the subscriber, the 500-unit and nesting tests fail (stale values from request 20 on, entities kept); the controller, in-command request and abandoned-edit tests fail with the earlier skip-when-pending / no-request-flag version.
+- `tests/Integration/EntityManager/DedicatedEntityManagerTest.php::testWorkerRecoversOnlyTheBundleManager` (500 `record()` calls, closed-manager recovery, 2 MiB) and `tests/Integration/Controller/ContactFormWorkerModeTest.php` (stale admin edit, detach, failed flush).
+- Static checks: `composer igor` (CI) and the PHPStan FrankenPHP worker ruleset (`phpstan.neon.dist`) pass.
+
 ## Usage recommendations in worker mode
 
-- Scenario B is supported by the bundle since the 2026-09-23 remediation (W-01). Keeping `services_resetter` enabled is still recommended because the application's own Doctrine state is framework-owned.
+- Scenario B is supported by the bundle since the 2026-09-23 remediation (W-01) and, for `doctrine.entity_manager`, since 1.7.1 (W-03). Keeping `services_resetter` enabled is still recommended because the application's own Doctrine state is framework-owned.
+- **Host rule (REQ-RUNTIME-002 rule 7):** a host that disables or bypasses the services resetter must also clear its own entity managers at every boundary (main request start or end, Messenger message, console command); otherwise the identity map serves stale rows across requests. Without `doctrine.entity_manager` this includes the bundle entities, which then live on the application's manager. For a manager that only holds the bundle entities, set `doctrine.entity_manager`: the bundle clears that one itself.
 - Send notification e-mails through an async Messenger transport (W-02).
 - Services the host plugs in (`file_upload.service`, `notifications.service`, `security.access_checker`, custom `ClientResolverInterface`) run inside the worker: keep them stateless or implement `ResetInterface`. Do not cache the current user, request or uploaded file in their properties.
 - Do not extend the controllers or `DynamicContactFormBuilder` with properties that store the current form, locale or client.

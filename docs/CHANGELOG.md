@@ -52,6 +52,50 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Worker state (REQ-RUNTIME-002 rule 4).** With `doctrine.entity_manager` set (1.7.0), the bundle never cleared its
+  own manager. Where the services resetter does not run between units of work (a host that removes, replaces or
+  bypasses `services_resetter`, or drives `http_kernel` directly; Messenger consumers started with `--no-reset` and
+  without DoctrineBundle's `DoctrineClearEntityManagerWorkerSubscriber`; long-running console commands), forms and
+  submissions (personal data) loaded by the admin, a command or a message handler stayed managed across requests:
+  memory grew with admin browsing, and a submission edited or deleted by another worker or process was shown with its
+  old values. With the stock Symfony kernel, `FRANKENPHP_RESET_KERNEL=false` alone is not affected: `Kernel::handle()`
+  still runs the resetter before every request. Affected: 1.7.0 with `doctrine.entity_manager` set. No cross-user
+  disclosure: the admin access check still runs on every request.
+  The new internal `ContactFormEntityManagerClearSubscriber` (same policy as ApiStudioBundle 1.12.1
+  `EntityManagerBoundarySubscriber`) works at every OUTERMOST unit-of-work boundary:
+  - the main `kernel.request` and `kernel.terminate`, only outside a console command and a Messenger message (an
+    in-process `HttpKernel::handle()` from a command or a handler does not clear the unit that runs it);
+  - a Messenger message received, handled or failed;
+  - the outermost console command's start and end, only outside a message and outside a main request. A command run
+    in-process from another command, a message handler or a controller (`Application::doRun()`) does not clear the
+    outer unit's manager.
+
+  State is a console depth counter, a message flag (unset on handled, failed and `WorkerStoppedEvent`) and a request
+  flag (set on the main `kernel.request`, unset on its `kernel.finish_request`). At each of these boundaries an open
+  manager is always cleared, so an unflushed change of a finished or abandoned unit, such as an invalid admin POST or
+  translations added on a GET, is discarded and never written by a later, unrelated flush such as a visitor's
+  submission. A closed manager is recreated by name. No other manager is touched, and nothing is wired when
+  `doctrine.entity_manager` names the host's default manager (compiler-pass guard). The manager and the registry
+  arrive as `IGNORE_ON_UNINITIALIZED_REFERENCE` references, so a boundary never builds them. Without
+  `doctrine.entity_manager` the bundle entities live on the application's manager, which the bundle still never
+  clears (host rule, see [FRANKENPHP-WORKER-AUDIT.md](FRANKENPHP-WORKER-AUDIT.md#usage-recommendations-in-worker-mode)).
+
+### Tests
+
+- `tests/Integration/EntityManager/WorkerBoundariesTest.php`: one kept-alive kernel with a dedicated bundle manager
+  and the services resetter never called; 500 admin submission pages through `http_kernel`, 500 messages through a
+  Messenger `Worker` without `ResetServicesListener` and without `DoctrineClearEntityManagerWorkerSubscriber` (every
+  7th handler fails) and 500 console runs, two tenants (forms) in alternation, another worker rewriting the submission
+  before every unit; empty bundle identity map after every unit, a pending host entity kept the whole time, 2 MiB
+  memory margin after a 50-unit warm-up. The suite also covers:
+  - nested `doRun()` from a command, from a message handler and from a controller;
+  - an `HttpKernel::handle()` inside a command;
+  - an abandoned unflushed edit that a later submission flush must not write, and a closed manager;
+  - unit tests of the subscriber and of the compiler-pass wiring (default-manager guard).
+- `symfony/messenger` added to `require-dev` (tests only).
+
 ## [1.7.0] - 2026-11-11
 
 `client_reference` for any id type with exact binary matching, a request-free recorder and a real `entity_manager` option. See [UPGRADING](https://github.com/nowo-tech/ContactFormBundle/blob/v1.7.0/docs/UPGRADING.md#to-170).
