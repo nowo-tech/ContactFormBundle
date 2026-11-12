@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|-------|
 | Package | `nowo-tech/contact-form-bundle` (`symfony-bundle`) |
-| Audited revision | `v1.7.0` → `v1.7.1` (REQ-RUNTIME-002 re-audit; first audit `v1.0.22`) |
+| Audited revision | `v1.8.0` (REQ-RUNTIME-002 re-audit of `v1.7.0` → `v1.7.1`; first audit `v1.0.22`; 1.8.0 upload port keeps its file values in a `WeakMap` keyed by the per-request VO) |
 | Audit date | 2026-11-12 (first audit 2026-09-24) |
 | Method | Manual review of every file under `src/` (services, controllers, subscribers, Twig extension, form types, repositories, command, DI extension, compiler passes, `Resources/config`) |
 | **Verdict** | ✅ **Viable under scenario B** — bundle services are stateless; the bundle's own manager (`doctrine.entity_manager`) is cleared at every request / Messenger / console boundary and recreated when closed; a closed EntityManager is also reset on bundle routes; public submissions are detached after processing; public reads refresh forms/fields/translations; repositories always resolve the current manager after `resetManager()` |
