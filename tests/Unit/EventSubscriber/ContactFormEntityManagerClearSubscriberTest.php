@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Tests\Unit\EventSubscriber;
 
 use Closure;
+use Countable;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use LogicException;
 use Nowo\ContactFormBundle\EventSubscriber\ContactFormEntityManagerClearSubscriber;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
 use RuntimeException;
 use stdClass;
 use Symfony\Component\Console\Application;
@@ -39,6 +41,8 @@ use Symfony\Component\Messenger\Event\WorkerStoppedEvent;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Worker;
 
+use function count;
+
 use const PHP_INT_MAX;
 use const PHP_INT_MIN;
 
@@ -57,6 +61,8 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
 
     private Application $application;
 
+    private ContactFormEntityManagerClearSubscriber $subscriber;
+
     protected function setUp(): void
     {
         $this->dispatcher  = new EventDispatcher();
@@ -73,12 +79,12 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
 
         self::assertSame(['onRequest', 4096], $events[KernelEvents::REQUEST]);
         self::assertSame(['onFinishRequest', -4096], $events[KernelEvents::FINISH_REQUEST]);
-        self::assertSame(['onTerminate', -4096], $events[KernelEvents::TERMINATE]);
-        self::assertSame(['onMessageReceived', 4096], $events[WorkerMessageReceivedEvent::class]);
-        self::assertSame(['onMessageFinished', -4096], $events[WorkerMessageHandledEvent::class]);
-        self::assertSame(['onMessageFinished', -4096], $events[WorkerMessageFailedEvent::class]);
-        self::assertSame(['onWorkerStopped', -4096], $events[WorkerMessageSkipEvent::class]);
-        self::assertSame(['onWorkerStopped', -4096], $events[WorkerStoppedEvent::class]);
+        self::assertSame([['onTerminateStart', PHP_INT_MAX], ['onTerminate', -4096]], $events[KernelEvents::TERMINATE]);
+        self::assertSame([['onMessageStart', PHP_INT_MAX], ['onMessageReceived', 4096]], $events[WorkerMessageReceivedEvent::class]);
+        self::assertSame([['onMessageEnd', PHP_INT_MAX], ['onMessageFinished', -4096]], $events[WorkerMessageHandledEvent::class]);
+        self::assertSame([['onMessageEnd', PHP_INT_MAX], ['onMessageFinished', -4096]], $events[WorkerMessageFailedEvent::class]);
+        self::assertSame(['onWorkerStopped', PHP_INT_MAX], $events[WorkerMessageSkipEvent::class]);
+        self::assertSame(['onWorkerStopped', PHP_INT_MAX], $events[WorkerStoppedEvent::class]);
         self::assertSame(['onConsoleCommand', PHP_INT_MAX], $events[ConsoleEvents::COMMAND]);
         self::assertSame(['onConsoleError', PHP_INT_MAX], $events[ConsoleEvents::ERROR]);
         self::assertSame([['onConsoleEnd', PHP_INT_MAX], ['onConsoleTerminate', -4096]], $events[ConsoleEvents::TERMINATE]);
@@ -482,6 +488,123 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
         self::assertSame(7, $this->clears);
     }
 
+    /**
+     * Audit NR-a (P13): a throwing `kernel.exception` listener skips the request's finish and terminate; later requests
+     * still clear, the next top-level terminate forgets the stale request, and a later top-level command is outermost.
+     */
+    public function testAThrowingExceptionListenerLeavesNoStaleRequest(): void
+    {
+        $this->subscribe();
+        $throw = static function (): never {
+            throw new LogicException('exception listener failed');
+        };
+        $this->dispatcher->addListener(KernelEvents::EXCEPTION, $throw);
+        $failing = new Request();
+        $failing->attributes->set('_controller', static function (): Response {
+            throw new RuntimeException('controller failed');
+        });
+        try {
+            $this->kernel->handle($failing);
+            self::fail('The request must throw.');
+        } catch (LogicException $e) {
+            self::assertSame('exception listener failed', $e->getMessage());
+        }
+        $this->dispatcher->removeListener(KernelEvents::EXCEPTION, $throw);
+        self::assertSame(1, $this->clears);
+
+        $this->handle(static fn (): Response => new Response());
+        self::assertSame(3, $this->clears);
+        self::assertSame(0, $this->requestsInFlight(), 'The top-level terminate forgot the stale request.');
+        $this->command('app:probe', static fn (): int => Command::SUCCESS);
+        $this->runCommand('app:probe');
+        self::assertSame(5, $this->clears, 'A later top-level command is the outermost unit.');
+    }
+
+    /**
+     * Audit NR-a (P8): `kernel.finish_request` and `kernel.terminate` listeners that throw never leave requests in
+     * flight for good (no unbounded storage, later top-level commands still clear).
+     */
+    public function testThrowingFinishAndTerminateListenersLeaveNoStaleRequest(): void
+    {
+        $this->subscribe();
+        $throw = static function (): never {
+            throw new LogicException('listener failed');
+        };
+        $this->dispatcher->addListener(KernelEvents::FINISH_REQUEST, $throw, 0);
+        $this->dispatcher->addListener(KernelEvents::TERMINATE, $throw, 0);
+        for ($i = 0; $i < 3; ++$i) {
+            try {
+                $this->handle(static fn (): Response => new Response());
+                self::fail('The request must throw.');
+            } catch (LogicException $e) {
+                self::assertSame('listener failed', $e->getMessage());
+            }
+        }
+        $this->dispatcher->removeListener(KernelEvents::FINISH_REQUEST, $throw);
+        $this->dispatcher->removeListener(KernelEvents::TERMINATE, $throw);
+
+        $before = $this->clears;
+        $this->handle(static fn (): Response => new Response());
+        self::assertSame($before + 2, $this->clears);
+        self::assertSame(0, $this->requestsInFlight());
+        $this->command('app:probe', static fn (): int => Command::SUCCESS);
+        $this->runCommand('app:probe');
+        self::assertSame($before + 4, $this->clears, 'A later top-level command is the outermost unit.');
+    }
+
+    /**
+     * Audit NR-a (P6): in-process Worker events inside a request whose `WorkerMessageFailedEvent` listener throws
+     * before the late clear: the message state already ended, so later requests still clear.
+     */
+    public function testAThrowingFailedListenerInsideARequestDoesNotStopLaterClears(): void
+    {
+        $this->subscribe();
+        $this->dispatcher->addListener(WorkerMessageFailedEvent::class, static function (): never {
+            throw new RuntimeException('retry transport down');
+        }, 0);
+
+        $this->handle(function (): Response {
+            $this->dispatcher->dispatch(new WorkerMessageReceivedEvent($this->envelope(), 'async'));
+            try {
+                $this->dispatcher->dispatch(new WorkerMessageFailedEvent($this->envelope(), 'async', new RuntimeException('handler failed')));
+                self::fail('The failed listener must throw.');
+            } catch (RuntimeException $e) {
+                self::assertSame('retry transport down', $e->getMessage());
+            }
+
+            return new Response();
+        });
+        $before = $this->clears;
+        $this->handle(static fn (): Response => new Response());
+        self::assertSame($before + 2, $this->clears);
+    }
+
+    /**
+     * Audit NR-a (P7): a `WorkerMessageReceivedEvent` listener that throws for an in-process Worker inside a request (no
+     * command): the request end restores the message state it started with, so later requests still clear.
+     */
+    public function testAThrowingReceivedListenerInsideARequestDoesNotStopLaterClears(): void
+    {
+        $this->subscribe();
+        $this->dispatcher->addListener(WorkerMessageReceivedEvent::class, static function (): never {
+            throw new RuntimeException('received listener failed');
+        }, 0);
+
+        $this->handle(function (): Response {
+            try {
+                $this->dispatcher->dispatch(new WorkerMessageReceivedEvent($this->envelope(), 'async'));
+                self::fail('The received listener must throw.');
+            } catch (RuntimeException $e) {
+                self::assertSame('received listener failed', $e->getMessage());
+            }
+
+            return new Response();
+        });
+        $before = $this->clears;
+        $this->handle(static fn (): Response => new Response());
+        self::assertSame($before + 2, $this->clears);
+    }
+
     public function testConsoleEventsWithoutACommandChangeNothing(): void
     {
         $this->subscribe();
@@ -530,7 +653,8 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
             ++$this->clears;
         });
 
-        $this->dispatcher->addSubscriber(new ContactFormEntityManagerClearSubscriber([$manager], [], 'contact_form'));
+        $this->subscriber = new ContactFormEntityManagerClearSubscriber([$manager], [], 'contact_form');
+        $this->dispatcher->addSubscriber($this->subscriber);
     }
 
     /**
@@ -582,5 +706,13 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
     private function envelope(): Envelope
     {
         return new Envelope(new stdClass());
+    }
+
+    private function requestsInFlight(): int
+    {
+        $requests = (new ReflectionProperty($this->subscriber, 'requests'))->getValue($this->subscriber);
+        self::assertInstanceOf(Countable::class, $requests);
+
+        return count($requests);
     }
 }
