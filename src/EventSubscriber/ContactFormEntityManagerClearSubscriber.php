@@ -14,6 +14,7 @@ use Symfony\Component\Console\Event\ConsoleTerminateEvent;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\Event\TerminateEvent;
@@ -22,13 +23,17 @@ use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageHandledEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageReceivedEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageSkipEvent;
+use Symfony\Component\Messenger\Event\WorkerRunningEvent;
+use Symfony\Component\Messenger\Event\WorkerStartedEvent;
 use Symfony\Component\Messenger\Event\WorkerStoppedEvent;
 use WeakMap;
 
+use function array_key_last;
 use function array_splice;
 use function count;
 
 use const PHP_INT_MAX;
+use const PHP_INT_MIN;
 
 /**
  * Clears the bundle's own entity manager (`doctrine.entity_manager`, when it is not the host's default manager) at
@@ -66,7 +71,15 @@ use const PHP_INT_MAX;
  *   whose end never ran (a `kernel.exception`, `kernel.finish_request` or `kernel.terminate` listener threw), so no
  *   `Request` is kept and a later top-level command is the outermost unit again (audit NR-a);
  * - main requests in flight are counted per `Request` object, so a nested main request (an in-process
- *   `HttpKernel::handle()` from a controller) never ends the outer one early.
+ *   `HttpKernel::handle()` from a controller) never ends the outer one early, nor is it the outermost unit (its start
+ *   does not clear the outer request, audit NX CR2). A main request that is the HTTP kernel's own main request (its
+ *   `RequestStack`, popped in a `finally`) drops the requests left in flight by a request whose end never came;
+ * - Messenger state is kept per worker (`WorkerStartedEvent` → `WorkerStoppedEvent`, audit NX CR1): a worker run
+ *   in-process inside a message handler has its own entry, so its events never end the outer message, and a message
+ *   is the outermost unit (cleared when received and when handled / failed) only when no other message is in flight.
+ *   A message ends at handled / failed / `WorkerMessageSkipEvent`, at its worker's next `WorkerRunningEvent` (also
+ *   dispatched after a message skipped with `shouldHandle(false)`, audit NX CR3), at the end of a received event
+ *   whose final `shouldHandle()` is false (read at PHP_INT_MIN) or at its worker's stop.
  * So a listener that throws or stops the propagation can no longer leave the process "inside a command" for good
  * (which stopped every later HTTP clear), nor make a nested command clear the outer unit mid-run. The bundle has no
  * `kernel.exception` boundary: `kernel.terminate` is the HTTP end boundary.
@@ -92,6 +105,8 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
     public const MESSENGER_WORKER_MESSAGE_HANDLED  = WorkerMessageHandledEvent::class;
     public const MESSENGER_WORKER_MESSAGE_FAILED   = WorkerMessageFailedEvent::class;
     public const MESSENGER_WORKER_STOPPED          = WorkerStoppedEvent::class;
+    public const MESSENGER_WORKER_STARTED          = WorkerStartedEvent::class;
+    public const MESSENGER_WORKER_RUNNING          = WorkerRunningEvent::class;
 
     /** A skipped message (only dispatched by `messenger:failed:retry`); Messenger 7.4+, by name. */
     public const MESSENGER_WORKER_MESSAGE_SKIPPED = WorkerMessageSkipEvent::class;
@@ -105,7 +120,7 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
      * Running console commands, outermost first. Each frame keeps the outer state it started in (`message`, `requests`),
      * restored when the frame is removed, and whether it is the outermost unit.
      *
-     * @var list<array{command: Command, input: InputInterface, outermost: bool, failing: bool, message: list<mixed>|null, requests: SplObjectStorage<Request, array{0: list<mixed>, 1: list<mixed>|null}>}>
+     * @var list<array{command: Command, input: InputInterface, outermost: bool, failing: bool, workers: list<array{worker: object|null, frames: list<mixed>|null}>, requests: SplObjectStorage<Request, array{0: list<mixed>, 1: list<array{worker: object|null, frames: list<mixed>|null}>}>}>
      */
     private array $frames = [];
 
@@ -113,21 +128,24 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
      * Main requests in flight (between their `kernel.request` and their `kernel.finish_request` / `kernel.terminate`),
      * in start order, with the frames and the message state at their start.
      *
-     * @var SplObjectStorage<Request, array{0: list<mixed>, 1: list<mixed>|null}>
+     * @var SplObjectStorage<Request, array{0: list<mixed>, 1: list<array{worker: object|null, frames: list<mixed>|null}>}>
      */
     private SplObjectStorage $requests;
 
     /**
-     * Frames when the in-flight Messenger message was received; null outside a message.
+     * Running Messenger workers, outermost first (audit NX CR1), each with the frames of the moment its in-flight
+     * message was received (null: no message in flight). A message received outside any worker the subscriber saw start
+     * gets an entry without a worker.
      *
-     * @var list<mixed>|null
+     * @var list<array{worker: object|null, frames: list<mixed>|null}>
      */
-    private ?array $messageFrames = null;
+    private array $workers = [];
 
     /**
-     * Outermost verdict of each `console.terminate` event, computed by the early listener for the late clear.
+     * Outermost verdict of each boundary event (`console.terminate`, `kernel.terminate`, Messenger received / handled /
+     * failed), computed by the early listener for the late clear.
      *
-     * @var WeakMap<ConsoleTerminateEvent, bool>
+     * @var WeakMap<object, bool>
      */
     private WeakMap $verdicts;
 
@@ -135,11 +153,14 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
      * @param iterable<EntityManagerInterface> $entityManagers the bundle-owned manager (empty without one)
      * @param iterable<ManagerRegistry> $registries the Doctrine registry, to recreate a closed manager
      * @param string|null $managerName `doctrine.entity_manager`
+     * @param RequestStack|null $requestStack the HTTP kernel's request stack (read only): tells a nested main request
+     *                                        from one left in flight by a request whose end never came
      */
     public function __construct(
         private readonly iterable $entityManagers = [],
         private readonly iterable $registries = [],
         private readonly ?string $managerName = null,
+        private readonly ?RequestStack $requestStack = null,
     ) {
         $this->requests = new SplObjectStorage();
         $this->verdicts = new WeakMap();
@@ -154,10 +175,12 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
             KernelEvents::REQUEST                   => ['onRequest', 4096],
             KernelEvents::FINISH_REQUEST            => ['onFinishRequest', -4096],
             KernelEvents::TERMINATE                 => [['onTerminateStart', PHP_INT_MAX], ['onTerminate', -4096]],
-            self::MESSENGER_WORKER_MESSAGE_RECEIVED => [['onMessageStart', PHP_INT_MAX], ['onMessageReceived', 4096]],
+            self::MESSENGER_WORKER_STARTED          => ['onWorkerStarted', PHP_INT_MAX],
+            self::MESSENGER_WORKER_MESSAGE_RECEIVED => [['onMessageStart', PHP_INT_MAX], ['onMessageReceived', 4096], ['onMessageReceivedDecided', PHP_INT_MIN]],
             self::MESSENGER_WORKER_MESSAGE_HANDLED  => [['onMessageEnd', PHP_INT_MAX], ['onMessageFinished', -4096]],
             self::MESSENGER_WORKER_MESSAGE_FAILED   => [['onMessageEnd', PHP_INT_MAX], ['onMessageFinished', -4096]],
-            self::MESSENGER_WORKER_MESSAGE_SKIPPED  => ['onWorkerStopped', PHP_INT_MAX],
+            self::MESSENGER_WORKER_MESSAGE_SKIPPED  => ['onMessageEnd', PHP_INT_MAX],
+            self::MESSENGER_WORKER_RUNNING          => ['onWorkerRunning', PHP_INT_MAX],
             self::MESSENGER_WORKER_STOPPED          => ['onWorkerStopped', PHP_INT_MAX],
             self::CONSOLE_COMMAND                   => ['onConsoleCommand', PHP_INT_MAX],
             self::CONSOLE_ERROR                     => ['onConsoleError', PHP_INT_MAX],
@@ -175,9 +198,18 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
         }
 
         $this->dropFailingFrames();
-        $outermost = $this->isOutsideMessageAndCommand();
+        $request = $event->getRequest();
+        if ($this->requests->count() > 0 && $this->requestStack?->getMainRequest() === $request) {
+            // The HTTP kernel runs no other request (it pops its own stack in a `finally`): the requests left here never
+            // reached their finish_request / terminate (a throwing `kernel.exception` listener).
+            // @igor-ignore - Unit-of-work stack, healed at a top-level request start (no request data kept).
+            $this->requests = new SplObjectStorage();
+        }
+
+        // Audit NX CR2: a main request handled in-process inside another main request is not the outermost unit.
+        $outermost = $this->isOutsideMessageAndCommand() && $this->requests->count() === 0;
         // @igor-ignore - Unit-of-work stack, pushed and popped at the main request boundaries (no request data kept).
-        $this->requests[$event->getRequest()] = [$this->frames, $this->messageFrames];
+        $this->requests[$request] = [$this->frames, $this->workers];
         if ($outermost) {
             $this->clearState();
         }
@@ -198,10 +230,15 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
     {
         $this->dropFailingFrames();
         $this->endRequest($event->getRequest());
-        if ($this->frames === [] && $this->messageFrames === null) {
-            // Top-level end: requests whose finish / terminate never ran (a listener threw) are gone too.
+        // @igor-ignore - Per-event verdict; the WeakMap entry dies with the event.
+        $this->verdicts[$event] = $this->isOutsideMessageAndCommand();
+        if ($this->frames === []) {
+            // Top-level end: requests whose finish / terminate never ran (a listener threw) are gone too, and so is a
+            // message whose received listener threw out of an in-process worker.
             // @igor-ignore - Unit-of-work stack, reset at the top-level request end (no request data kept).
             $this->requests = new SplObjectStorage();
+            // @igor-ignore - Unit-of-work stack, reset at the top-level request end (no message data kept).
+            $this->workers = [];
         }
     }
 
@@ -212,7 +249,7 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
     {
         $this->dropFailingFrames();
         $this->endRequest($event->getRequest());
-        if ($this->isOutsideMessageAndCommand()) {
+        if ($this->verdicts[$event] ?? $this->isOutsideMessageAndCommand()) {
             $this->clearState();
         }
     }
@@ -220,50 +257,135 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
     /**
      * Start of a Messenger message (priority PHP_INT_MAX): records it before any other listener can throw.
      */
-    public function onMessageStart(): void
+    public function onMessageStart(object $event): void
     {
         $this->dropFailingFrames();
-        // A previous message that never finished ends here.
-        $this->endMessage();
+        $top = array_key_last($this->workers);
+        if ($top !== null && $this->workers[$top]['worker'] === null && $this->workers[$top]['frames'] !== null) {
+            // A previous message received outside any worker that never finished ends here.
+            $this->endMessage();
+            $top = array_key_last($this->workers);
+        }
+
+        // Audit NX CR1: a message received while another one is in flight (a worker run by a handler) is nested.
+        // @igor-ignore - Per-event verdict; the WeakMap entry dies with the event.
+        $this->verdicts[$event] = !$this->isMessageInFlight();
+        if ($top === null || $this->workers[$top]['frames'] !== null) {
+            // @igor-ignore - Unit-of-work state, set and unset at the Messenger boundaries (no message data kept).
+            $this->workers[] = ['worker' => null, 'frames' => $this->frames];
+
+            return;
+        }
+
         // @igor-ignore - Unit-of-work state, set and unset at the Messenger boundaries (no message data kept).
-        $this->messageFrames = $this->frames;
+        $this->workers[$top]['frames'] = $this->frames;
     }
 
     /**
      * Start of a Messenger message (priority 4096): nothing of the previous message or the worker's idle time is kept.
      */
-    public function onMessageReceived(): void
+    public function onMessageReceived(object $event): void
     {
-        $this->clearState();
+        if ($this->verdicts[$event] ?? true) {
+            $this->clearState();
+        }
     }
 
     /**
      * End of a Messenger message (handled or failed, priority PHP_INT_MAX): ends its state before any other listener can
      * throw.
      */
-    public function onMessageEnd(): void
+    public function onMessageEnd(object $event): void
     {
         $this->dropFailingFrames();
         $this->endMessage();
+        // @igor-ignore - Per-event verdict; the WeakMap entry dies with the event.
+        $this->verdicts[$event] = !$this->isMessageInFlight();
     }
 
     /**
-     * Message handled or failed (priority -4096): clears.
+     * Message handled or failed (priority -4096): clears for the outermost message only (audit NX CR1).
      */
-    public function onMessageFinished(): void
+    public function onMessageFinished(object $event): void
     {
-        $this->clearState();
+        if ($this->verdicts[$event] ?? true) {
+            $this->clearState();
+        }
     }
 
     /**
-     * The worker stopped, or a message was skipped (`WorkerMessageSkipEvent`, only dispatched by
-     * `messenger:failed:retry`): no message is in flight any more.
+     * A Messenger worker starts (priority PHP_INT_MAX): its own message state, so a worker run inside a message handler
+     * never ends the outer message (audit NX CR1).
      */
-    public function onWorkerStopped(): void
+    public function onWorkerStarted(object $event): void
+    {
+        $this->dropFailingFrames();
+        if (!$event instanceof WorkerStartedEvent) {
+            return;
+        }
+
+        $worker = $event->getWorker();
+        $index  = $this->indexOfWorker($worker);
+        if ($index !== null) {
+            // A previous run of the same worker whose stop never came.
+            $this->removeWorkers($index);
+        }
+
+        // @igor-ignore - Stack of the running workers (no message data), popped by their own stop.
+        $this->workers[] = ['worker' => $worker, 'frames' => null];
+    }
+
+    /**
+     * End of the received event (priority PHP_INT_MIN): a listener that called `shouldHandle(false)` skipped the
+     * message, which the Worker then never reports as handled or failed (audit NX CR3). Reads the final decision.
+     */
+    public function onMessageReceivedDecided(object $event): void
+    {
+        if ($event instanceof WorkerMessageReceivedEvent && !$event->shouldHandle()) {
+            $this->dropFailingFrames();
+            $this->endMessage();
+        }
+    }
+
+    /**
+     * The worker finished a message (handled, failed or skipped) or is idle (priority PHP_INT_MAX): its message is not
+     * in flight any more, and the workers started above it are gone.
+     */
+    public function onWorkerRunning(object $event): void
+    {
+        $this->dropFailingFrames();
+        $index = $this->indexOfWorker($event instanceof WorkerRunningEvent ? $event->getWorker() : null);
+        if ($index === null) {
+            $this->popWorkerlessMessages();
+
+            return;
+        }
+
+        $this->removeWorkers($index + 1);
+        if ($this->workers[$index]['frames'] !== null) {
+            // @igor-ignore - Frames restored at the end of the enclosing message (no message data).
+            $this->frames = $this->workers[$index]['frames'];
+            // @igor-ignore - Unit-of-work state, set and unset at the Messenger boundaries (no message data kept).
+            $this->workers[$index]['frames'] = null;
+        }
+    }
+
+    /**
+     * The worker stopped (priority PHP_INT_MAX): its entry and the workers started above it end. A stop of a worker the
+     * subscriber never saw start ends only the messages received outside any worker.
+     */
+    public function onWorkerStopped(object $event): void
     {
         // Failing frames first (they restore the state they saved), then this handler's own state.
         $this->dropFailingFrames();
-        $this->endMessage();
+        $index = $this->indexOfWorker($event instanceof WorkerStoppedEvent ? $event->getWorker() : null);
+        if ($index === null) {
+            $this->popWorkerlessMessages();
+
+            return;
+        }
+
+        $this->removeWorkers($index);
     }
 
     /**
@@ -285,7 +407,7 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
             'input'     => $event->getInput(),
             'outermost' => $outermost,
             'failing'   => false,
-            'message'   => $this->messageFrames,
+            'workers'   => $this->workers,
             'requests'  => clone $this->requests,
         ];
         if ($outermost) {
@@ -355,7 +477,7 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
 
     private function isOutsideMessageAndCommand(): bool
     {
-        return $this->frames === [] && $this->messageFrames === null;
+        return $this->frames === [] && !$this->isMessageInFlight();
     }
 
     private function indexOf(?Command $command, InputInterface $input): ?int
@@ -377,8 +499,8 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
         $frame = $this->frames[$index];
         // @igor-ignore - Stack of the running commands (no request data), popped by their own terminate or self-heal.
         array_splice($this->frames, $index);
-        // @igor-ignore - Outer state saved by the frame (no request data kept).
-        $this->messageFrames = $frame['message'];
+        // @igor-ignore - Outer state saved by the frame (no message data kept).
+        $this->workers = $frame['workers'];
         // @igor-ignore - Outer state saved by the frame (no request data kept).
         $this->requests = $frame['requests'];
     }
@@ -403,9 +525,9 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
             return;
         }
 
-        [$frames, $messageFrames] = $this->requests[$request];
-        $popped                   = [];
-        $found                    = false;
+        [$frames, $workers] = $this->requests[$request];
+        $popped             = [];
+        $found              = false;
         foreach ($this->requests as $started) {
             $found = $found || $started === $request;
             if ($found) {
@@ -418,18 +540,92 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
         // @igor-ignore - Frames restored at the end of the enclosing request (no request data).
         $this->frames = $frames;
         // @igor-ignore - Message state restored at the end of the enclosing request (no message data).
-        $this->messageFrames = $messageFrames;
+        $this->workers = $workers;
     }
 
-    private function endMessage(): void
+    private function isMessageInFlight(): bool
     {
-        if ($this->messageFrames === null) {
-            return;
+        foreach ($this->workers as $worker) {
+            if ($worker['frames'] !== null) {
+                return true;
+            }
         }
 
-        // @igor-ignore - Frames restored at the end of the enclosing message (no message data).
-        $this->frames = $this->messageFrames;
-        // @igor-ignore - Unit-of-work state, set and unset at the Messenger boundaries (no message data kept).
-        $this->messageFrames = null;
+        return false;
+    }
+
+    private function indexOfWorker(?object $worker): ?int
+    {
+        if ($worker === null) {
+            return null;
+        }
+
+        for ($i = count($this->workers) - 1; $i >= 0; --$i) {
+            if ($this->workers[$i]['worker'] === $worker) {
+                return $i;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Ends the innermost message in flight and restores the frames of its start: the workers started above it (never
+     * stopped) are gone, an entry without a worker is removed, a worker keeps running without a message.
+     */
+    private function endMessage(): void
+    {
+        for ($i = count($this->workers) - 1; $i >= 0; --$i) {
+            $frames = $this->workers[$i]['frames'];
+            if ($frames === null) {
+                continue;
+            }
+
+            if ($this->workers[$i]['worker'] === null) {
+                $this->removeWorkers($i);
+
+                return;
+            }
+
+            $this->removeWorkers($i + 1);
+            // @igor-ignore - Frames restored at the end of the enclosing message (no message data).
+            $this->frames = $frames;
+            // @igor-ignore - Unit-of-work state, set and unset at the Messenger boundaries (no message data kept).
+            $this->workers[$i]['frames'] = null;
+
+            return;
+        }
+    }
+
+    /**
+     * Removes the worker entries from $index up, restoring the frames saved by the outermost message among them.
+     */
+    private function removeWorkers(int $index): void
+    {
+        foreach ($this->workers as $i => $worker) {
+            if ($i >= $index && $worker['frames'] !== null) {
+                // @igor-ignore - Frames restored at the end of the enclosing message (no message data).
+                $this->frames = $worker['frames'];
+
+                break;
+            }
+        }
+
+        // @igor-ignore - Stack of the running workers (no message data).
+        array_splice($this->workers, $index);
+    }
+
+    /**
+     * A running / stopped event of a worker the subscriber never saw start: the messages received outside any known
+     * worker are over; another worker's entry is never touched.
+     */
+    private function popWorkerlessMessages(): void
+    {
+        $index = count($this->workers);
+        while ($index > 0 && $this->workers[$index - 1]['worker'] === null) {
+            --$index;
+        }
+
+        $this->removeWorkers($index);
     }
 }
