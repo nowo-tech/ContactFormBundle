@@ -54,6 +54,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Console boundary counter could leak in a long-lived process (FrankenPHP worker, kernel reset false; audit NM).**
+  `ContactFormEntityManagerClearSubscriber` counted running commands with `++` on `console.command` (priority 4096) and
+  `--` on `console.terminate` (priority -4096). A terminate listener in between that threw or stopped the propagation,
+  or a `console.error` listener that threw (Symfony then skips `console.terminate`), left the process "inside a
+  command" for good, and the bundle's own entity manager (forms and submissions, personal data) was then never cleared
+  again between HTTP requests. A `console.command` listener above 4096 that stopped the propagation in a nested command
+  made the nested end clear the outer unit mid-run. Each command is now recorded at `console.command` priority
+  `PHP_INT_MAX` (depth before it, outermost or not) and popped at `console.error` / `console.terminate` priority
+  `PHP_INT_MAX`; an event for a command without a record (unknown command, `console.error` without a command) changes
+  nothing. The outermost clear still runs at `console.terminate` -4096. The end of the enclosing main request
+  (`kernel.finish_request` / `kernel.terminate`) and of the enclosing Messenger message (handled, failed, the new
+  `WorkerMessageSkipEvent`, `WorkerStoppedEvent`) restores the console state taken at its start. Tests run a real
+  console `Application` and `HttpKernel` on one dispatcher without the services resetter.
+
 ## [1.8.0] - 2026-11-12
 
 ### Added

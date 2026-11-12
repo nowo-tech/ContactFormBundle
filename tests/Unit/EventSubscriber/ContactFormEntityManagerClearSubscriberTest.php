@@ -4,26 +4,67 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\Tests\Unit\EventSubscriber;
 
+use Closure;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
+use LogicException;
 use Nowo\ContactFormBundle\EventSubscriber\ContactFormEntityManagerClearSubscriber;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
+use stdClass;
+use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\ConsoleEvents;
+use Symfony\Component\Console\Event\ConsoleCommandEvent;
+use Symfony\Component\Console\Event\ConsoleTerminateEvent;
+use Symfony\Component\Console\Exception\CommandNotFoundException;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\NullOutput;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Event\FinishRequestEvent;
-use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Controller\ArgumentResolver;
+use Symfony\Component\HttpKernel\Controller\ControllerResolver;
+use Symfony\Component\HttpKernel\HttpKernel;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
+use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Event\WorkerMessageFailedEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageHandledEvent;
 use Symfony\Component\Messenger\Event\WorkerMessageReceivedEvent;
+use Symfony\Component\Messenger\Event\WorkerMessageSkipEvent;
 use Symfony\Component\Messenger\Event\WorkerStoppedEvent;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Worker;
 
+use const PHP_INT_MAX;
+
+/**
+ * Boundaries of {@see ContactFormEntityManagerClearSubscriber} driven by a real HttpKernel and a real console
+ * Application on one event dispatcher, without the services resetter (FrankenPHP worker, kernel reset false).
+ */
 #[CoversClass(ContactFormEntityManagerClearSubscriber::class)]
 final class ContactFormEntityManagerClearSubscriberTest extends TestCase
 {
     private int $clears = 0;
+
+    private EventDispatcher $dispatcher;
+
+    private HttpKernel $kernel;
+
+    private Application $application;
+
+    protected function setUp(): void
+    {
+        $this->dispatcher  = new EventDispatcher();
+        $this->kernel      = new HttpKernel($this->dispatcher, new ControllerResolver(), new RequestStack(), new ArgumentResolver());
+        $this->application = new Application();
+        $this->application->setAutoExit(false);
+        $this->application->setCatchExceptions(false);
+        $this->application->setDispatcher($this->dispatcher);
+    }
 
     public function testSubscribesToEveryUnitOfWorkBoundary(): void
     {
@@ -35,9 +76,11 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
         self::assertSame(['onMessageReceived', 4096], $events[WorkerMessageReceivedEvent::class]);
         self::assertSame(['onMessageFinished', -4096], $events[WorkerMessageHandledEvent::class]);
         self::assertSame(['onMessageFinished', -4096], $events[WorkerMessageFailedEvent::class]);
+        self::assertSame(['onWorkerStopped', -4096], $events[WorkerMessageSkipEvent::class]);
         self::assertSame(['onWorkerStopped', -4096], $events[WorkerStoppedEvent::class]);
-        self::assertSame(['onConsoleCommand', 4096], $events[ConsoleEvents::COMMAND]);
-        self::assertSame(['onConsoleTerminate', -4096], $events[ConsoleEvents::TERMINATE]);
+        self::assertSame(['onConsoleCommand', PHP_INT_MAX], $events[ConsoleEvents::COMMAND]);
+        self::assertSame(['onConsoleEnd', PHP_INT_MAX], $events[ConsoleEvents::ERROR]);
+        self::assertSame([['onConsoleEnd', PHP_INT_MAX], ['onConsoleTerminate', -4096]], $events[ConsoleEvents::TERMINATE]);
     }
 
     public function testWithoutABundleManagerNothingIsTouched(): void
@@ -52,15 +95,15 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
 
     public function testClearsAtTheMainRequestStartAndAtTerminateOnly(): void
     {
-        $subscriber = $this->subscriber();
+        $this->subscribe();
 
-        $subscriber->onRequest($this->request(HttpKernelInterface::SUB_REQUEST));
-        self::assertSame(0, $this->clears);
-        $subscriber->onRequest($this->request(HttpKernelInterface::MAIN_REQUEST));
-        self::assertSame(1, $this->clears);
-        $subscriber->onFinishRequest($this->finish(HttpKernelInterface::SUB_REQUEST));
-        $subscriber->onFinishRequest($this->finish(HttpKernelInterface::MAIN_REQUEST));
-        $subscriber->onTerminate();
+        $this->handle(function (): Response {
+            $this->kernel->handle($this->request(static fn (): Response => new Response()), HttpKernelInterface::SUB_REQUEST);
+            self::assertSame(1, $this->clears, 'A sub-request shares the main request unit of work.');
+
+            return new Response();
+        });
+
         self::assertSame(2, $this->clears);
     }
 
@@ -69,21 +112,20 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
      */
     public function testCommandsInsideAMainRequestDoNotClear(): void
     {
-        $subscriber = $this->subscriber();
+        $this->subscribe();
+        $this->command('app:probe', static fn (): int => Command::SUCCESS);
 
-        $subscriber->onRequest($this->request(HttpKernelInterface::MAIN_REQUEST));
-        self::assertSame(1, $this->clears);
-        $subscriber->onConsoleCommand();
-        $subscriber->onConsoleTerminate();
-        self::assertSame(1, $this->clears, 'A command run from a controller must not clear the request.');
-        // A sub-request's finish does not end the main request.
-        $subscriber->onFinishRequest($this->finish(HttpKernelInterface::SUB_REQUEST));
-        $subscriber->onConsoleCommand();
-        $subscriber->onConsoleTerminate();
-        self::assertSame(1, $this->clears);
-        $subscriber->onFinishRequest($this->finish(HttpKernelInterface::MAIN_REQUEST));
-        $subscriber->onConsoleCommand();
+        $this->handle(function (): Response {
+            $this->runCommand('app:probe');
+            $this->runCommand('app:probe');
+            self::assertSame(1, $this->clears, 'A command run from a controller must not clear the request.');
+
+            return new Response();
+        });
         self::assertSame(2, $this->clears);
+
+        $this->runCommand('app:probe');
+        self::assertSame(4, $this->clears, 'After the request a command clears at its start and end again.');
     }
 
     /**
@@ -91,64 +133,229 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
      */
     public function testRequestsInsideACommandOrAMessageDoNotClear(): void
     {
-        $subscriber = $this->subscriber();
+        $this->subscribe();
+        $this->command('app:render', function (): int {
+            $this->handle(static fn (): Response => new Response());
+            self::assertSame(1, $this->clears, 'A request handled inside a command must not clear it.');
 
-        $subscriber->onConsoleCommand();
-        self::assertSame(1, $this->clears);
-        $subscriber->onRequest($this->request(HttpKernelInterface::MAIN_REQUEST));
-        $subscriber->onFinishRequest($this->finish(HttpKernelInterface::MAIN_REQUEST));
-        $subscriber->onTerminate();
-        self::assertSame(1, $this->clears, 'A request handled inside a command must not clear it.');
-        $subscriber->onConsoleTerminate();
+            return Command::SUCCESS;
+        });
+
+        $this->runCommand('app:render');
         self::assertSame(2, $this->clears);
 
-        $subscriber->onMessageReceived();
+        $this->dispatcher->dispatch(new WorkerMessageReceivedEvent($this->envelope(), 'async'));
         self::assertSame(3, $this->clears);
-        $subscriber->onRequest($this->request(HttpKernelInterface::MAIN_REQUEST));
-        $subscriber->onFinishRequest($this->finish(HttpKernelInterface::MAIN_REQUEST));
-        $subscriber->onTerminate();
+        $this->handle(static fn (): Response => new Response());
         self::assertSame(3, $this->clears, 'A request handled inside a message must not clear it.');
-        $subscriber->onMessageFinished();
+        $this->dispatcher->dispatch(new WorkerMessageHandledEvent($this->envelope(), 'async'));
         self::assertSame(4, $this->clears);
     }
 
     public function testNestedCommandsClearOnlyAtTheOutermostBoundaries(): void
     {
-        $subscriber = $this->subscriber();
+        $this->subscribe();
+        $this->command('app:inner', static fn (): int => Command::SUCCESS);
+        $this->command('app:outer', function (): int {
+            $this->application->doRun(new ArrayInput(['command' => 'app:inner']), new NullOutput());
+            self::assertSame(1, $this->clears, 'A nested command must not clear the outer command.');
 
-        $subscriber->onConsoleCommand();
-        self::assertSame(1, $this->clears);
-        $subscriber->onConsoleCommand();
-        $subscriber->onConsoleTerminate();
-        self::assertSame(1, $this->clears, 'A nested command must not clear the outer command.');
-        $subscriber->onConsoleTerminate();
+            return Command::SUCCESS;
+        });
+
+        $this->runCommand('app:outer');
         self::assertSame(2, $this->clears);
-
-        // A stray terminate never drives the depth below zero.
-        $subscriber->onConsoleTerminate();
-        self::assertSame(3, $this->clears);
-        $subscriber->onConsoleCommand();
-        self::assertSame(4, $this->clears);
     }
 
-    public function testCommandsInsideAMessageDoNotClear(): void
+    public function testCommandsInsideAMessageDoNotClearAndASkippedMessageEnds(): void
     {
-        $subscriber = $this->subscriber();
+        $this->subscribe();
+        $this->command('app:probe', static fn (): int => Command::SUCCESS);
 
-        $subscriber->onMessageReceived();
+        $this->dispatcher->dispatch(new WorkerMessageReceivedEvent($this->envelope(), 'async'));
         self::assertSame(1, $this->clears);
-        $subscriber->onConsoleCommand();
-        $subscriber->onConsoleTerminate();
+        $this->runCommand('app:probe');
         self::assertSame(1, $this->clears, 'A command run from a handler must not clear the message.');
-        $subscriber->onMessageFinished();
+        $this->dispatcher->dispatch(new WorkerMessageFailedEvent($this->envelope(), 'async', new RuntimeException('failed')));
         self::assertSame(2, $this->clears);
 
-        // A skipped message (no handled / failed event): the stopped worker ends the in-flight state.
-        $subscriber->onMessageReceived();
-        $subscriber->onWorkerStopped();
+        // A skipped message (no handled / failed event): the skip event ends the in-flight state.
+        $this->dispatcher->dispatch(new WorkerMessageReceivedEvent($this->envelope(), 'async'));
+        $this->dispatcher->dispatch(new WorkerMessageSkipEvent($this->envelope(), 'async'));
         self::assertSame(3, $this->clears);
-        $subscriber->onConsoleCommand();
+        $this->runCommand('app:probe');
+        self::assertSame(5, $this->clears);
+
+        // Without a skip event, the stopped worker (or the next received message) ends it.
+        $this->dispatcher->dispatch(new WorkerMessageReceivedEvent($this->envelope(), 'async'));
+        $this->dispatcher->dispatch(new WorkerMessageReceivedEvent($this->envelope(), 'async'));
+        $this->dispatcher->dispatch(new WorkerStoppedEvent(new Worker([], $this->createStub(MessageBusInterface::class))));
+        self::assertSame(7, $this->clears);
+        $this->handle(static fn (): Response => new Response());
+        self::assertSame(9, $this->clears);
+    }
+
+    /**
+     * Audit NM (a): a `console.terminate` listener that throws no longer leaves the process "inside a command".
+     */
+    public function testATerminateListenerThatThrowsDoesNotStopLaterRequestClears(): void
+    {
+        $this->subscribe();
+        $this->dispatcher->addListener(ConsoleEvents::TERMINATE, static function (): never {
+            throw new LogicException('terminate listener failed');
+        });
+        $this->command('app:probe', static fn (): int => Command::SUCCESS);
+
+        $this->runAndCatch('app:probe', 'terminate listener failed');
+        self::assertSame(1, $this->clears, 'The listener stopped the end-of-command clear.');
+
+        $this->handle(static fn (): Response => new Response());
+        self::assertSame(3, $this->clears, 'The next main request clears at its start and at terminate.');
+    }
+
+    /**
+     * Audit NM (b): a `console.error` listener that throws (Symfony then skips `console.terminate`) no longer leaves
+     * the process "inside a command".
+     */
+    public function testAnErrorListenerThatThrowsDoesNotStopLaterRequestClears(): void
+    {
+        $this->subscribe();
+        $this->dispatcher->addListener(ConsoleEvents::ERROR, static function (): never {
+            throw new LogicException('error listener failed');
+        });
+        $this->command('app:failing', static function (): int {
+            throw new RuntimeException('command failed');
+        });
+
+        $this->runAndCatch('app:failing', 'error listener failed');
+        self::assertSame(1, $this->clears);
+
+        $this->handle(static fn (): Response => new Response());
+        self::assertSame(3, $this->clears, 'The next main request clears at its start and at terminate.');
+    }
+
+    /**
+     * A failing command whose error is handled still clears once at its end (`console.error` then `console.terminate`).
+     */
+    public function testAFailedOutermostCommandClearsAtItsEnd(): void
+    {
+        $this->subscribe();
+        $this->command('app:failing', static function (): int {
+            throw new RuntimeException('command failed');
+        });
+
+        $this->runAndCatch('app:failing', 'command failed');
+        self::assertSame(2, $this->clears);
+    }
+
+    /**
+     * Audit NM: when even the bookkeeping listener is skipped (a listener registered before it at PHP_INT_MAX throws),
+     * the end of the enclosing request or message restores the console depth.
+     */
+    public function testTheEnclosingRequestAndMessageHealASkippedBookkeeping(): void
+    {
+        $this->dispatcher->addListener(ConsoleEvents::ERROR, static function (): never {
+            throw new LogicException('error listener failed');
+        }, PHP_INT_MAX);
+        $this->subscribe();
+        $this->command('app:failing', static function (): int {
+            throw new RuntimeException('command failed');
+        });
+
+        $this->handle(function (): Response {
+            $this->runAndCatch('app:failing', 'error listener failed');
+
+            return new Response();
+        });
+        self::assertSame(2, $this->clears, 'The request end restored the depth, so terminate cleared.');
+        $this->handle(static fn (): Response => new Response());
         self::assertSame(4, $this->clears);
+
+        $this->dispatcher->dispatch(new WorkerMessageReceivedEvent($this->envelope(), 'async'));
+        $this->runAndCatch('app:failing', 'error listener failed');
+        $this->dispatcher->dispatch(new WorkerMessageHandledEvent($this->envelope(), 'async'));
+        self::assertSame(6, $this->clears);
+        $this->handle(static fn (): Response => new Response());
+        self::assertSame(8, $this->clears, 'The message end restored the depth.');
+    }
+
+    /**
+     * Audit NM (c): an unknown nested command (`console.error` without a command) or a stray terminate never ends the
+     * outer unit.
+     */
+    public function testAnUnknownNestedCommandDoesNotDiscardTheOuterUnit(): void
+    {
+        $this->subscribe();
+        $this->command('app:outer', function (): int {
+            $input = new ArrayInput(['command' => 'app:missing']);
+            $input->setInteractive(false);
+            try {
+                $this->application->doRun($input, new NullOutput());
+            } catch (CommandNotFoundException) {
+                // Command "app:missing" is not defined.
+            }
+            $this->dispatcher->dispatch(new ConsoleTerminateEvent(new Command('app:stray'), new ArrayInput([]), new NullOutput(), 0), ConsoleEvents::TERMINATE);
+            $this->handle(static fn (): Response => new Response());
+            self::assertSame(1, $this->clears, 'The outer unit is still running.');
+
+            return Command::SUCCESS;
+        });
+
+        $this->runCommand('app:outer');
+        self::assertSame(2, $this->clears);
+    }
+
+    /**
+     * Audit NM (d): a `console.command` listener above 4096 that stops the propagation in a nested command no longer
+     * skips the nested start, so the nested end does not clear the outer unit mid-run.
+     */
+    public function testAStoppedNestedCommandStartDoesNotClearTheOuterUnit(): void
+    {
+        $this->subscribe();
+        $this->dispatcher->addListener(ConsoleEvents::COMMAND, static function (ConsoleCommandEvent $event): void {
+            if ($event->getCommand()?->getName() === 'app:inner') {
+                $event->stopPropagation();
+            }
+        }, 5000);
+        $this->command('app:inner', static fn (): int => Command::SUCCESS);
+        $this->command('app:outer', function (): int {
+            $this->application->doRun(new ArrayInput(['command' => 'app:inner']), new NullOutput());
+            self::assertSame(1, $this->clears, 'The nested end must not clear the outer unit.');
+
+            return Command::SUCCESS;
+        });
+
+        $this->runCommand('app:outer');
+        self::assertSame(2, $this->clears);
+    }
+
+    /**
+     * A command object started again while still recorded (its end was never seen) is a new outermost unit.
+     */
+    public function testACommandStartedAgainWithoutAnEndIsANewUnit(): void
+    {
+        $this->subscribe();
+        $command = new Command('app:probe');
+        $start   = new ConsoleCommandEvent($command, new ArrayInput([]), new NullOutput());
+
+        $this->dispatcher->dispatch($start, ConsoleEvents::COMMAND);
+        $this->dispatcher->dispatch($start, ConsoleEvents::COMMAND);
+        self::assertSame(2, $this->clears);
+        $this->dispatcher->dispatch(new ConsoleTerminateEvent($command, new ArrayInput([]), new NullOutput(), 0), ConsoleEvents::TERMINATE);
+        self::assertSame(3, $this->clears);
+        $this->handle(static fn (): Response => new Response());
+        self::assertSame(5, $this->clears);
+    }
+
+    public function testConsoleEventsWithoutACommandChangeNothing(): void
+    {
+        $this->subscribe();
+
+        $this->dispatcher->dispatch(new ConsoleCommandEvent(null, new ArrayInput([]), new NullOutput()), ConsoleEvents::COMMAND);
+        $this->dispatcher->dispatch(new ConsoleTerminateEvent(new Command('app:stray'), new ArrayInput([]), new NullOutput(), 0), ConsoleEvents::TERMINATE);
+        self::assertSame(0, $this->clears);
+        $this->handle(static fn (): Response => new Response());
+        self::assertSame(2, $this->clears);
     }
 
     /**
@@ -179,17 +386,7 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
         (new ContactFormEntityManagerClearSubscriber([$manager], [$registry]))->clearState();
     }
 
-    private function request(int $type): RequestEvent
-    {
-        return new RequestEvent($this->createStub(HttpKernelInterface::class), new Request(), $type);
-    }
-
-    private function finish(int $type): FinishRequestEvent
-    {
-        return new FinishRequestEvent($this->createStub(HttpKernelInterface::class), new Request(), $type);
-    }
-
-    private function subscriber(): ContactFormEntityManagerClearSubscriber
+    private function subscribe(): void
     {
         $this->clears = 0;
         $manager      = $this->createStub(EntityManagerInterface::class);
@@ -198,6 +395,57 @@ final class ContactFormEntityManagerClearSubscriberTest extends TestCase
             ++$this->clears;
         });
 
-        return new ContactFormEntityManagerClearSubscriber([$manager], [], 'contact_form');
+        $this->dispatcher->addSubscriber(new ContactFormEntityManagerClearSubscriber([$manager], [], 'contact_form'));
+    }
+
+    /**
+     * @param Closure(): Response $controller
+     */
+    private function request(Closure $controller): Request
+    {
+        $request = new Request();
+        $request->attributes->set('_controller', $controller);
+
+        return $request;
+    }
+
+    /**
+     * A main request through the real HttpKernel, then `kernel.terminate`.
+     *
+     * @param Closure(): Response $controller
+     */
+    private function handle(Closure $controller): void
+    {
+        $request  = $this->request($controller);
+        $response = $this->kernel->handle($request);
+        $this->kernel->terminate($request, $response);
+    }
+
+    /**
+     * @param Closure(): int $code
+     */
+    private function command(string $name, Closure $code): void
+    {
+        $this->application->addCommand((new Command($name))->setCode($code));
+    }
+
+    private function runCommand(string $name): void
+    {
+        $this->application->run(new ArrayInput(['command' => $name]), new NullOutput());
+    }
+
+    private function runAndCatch(string $name, string $message): void
+    {
+        try {
+            $this->runCommand($name);
+            self::fail('The run must throw.');
+        } catch (RuntimeException|LogicException $e) {
+            self::assertSame($message, $e->getMessage());
+        }
+    }
+
+    private function envelope(): Envelope
+    {
+        return new Envelope(new stdClass());
     }
 }
