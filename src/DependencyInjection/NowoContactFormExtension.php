@@ -8,6 +8,7 @@ use Doctrine\ORM\Events;
 use Nowo\ContactFormBundle\Client\ClientReferenceResolverInterface;
 use Nowo\ContactFormBundle\Client\ObjectClientReferenceResolver;
 use Nowo\ContactFormBundle\Controller\ContactFormPublicController;
+use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormFileUploaderPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier;
@@ -18,11 +19,9 @@ use Nowo\ContactFormBundle\Security\ContactFormAccessCheckerInterface;
 use Nowo\ContactFormBundle\Service\ClientLabelResolver;
 use Nowo\ContactFormBundle\Service\ClientResolverInterface;
 use Nowo\ContactFormBundle\Service\ContactFormEntityManagerResolver;
-use Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface;
 use Nowo\ContactFormBundle\Service\ContactFormSubmissionRateLimiter;
 use Nowo\ContactFormBundle\Service\ContactSubmissionProcessor;
 use Nowo\ContactFormBundle\Service\IpAnonymizer;
-use Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
 use Nowo\ContactFormBundle\Twig\ContactFormAdminTwigExtension;
 use Symfony\Component\Config\FileLocator;
@@ -317,19 +316,16 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
     }
 
     /**
+     * `file_upload.service` is wired by {@see ContactFormFileUploaderPass} (1.8): only there are the host's service
+     * definitions, and so its class, known. The default aliases of both file ports are in services.yaml.
+     *
      * @param array<string, mixed> $config
      */
     private function registerFileUploadHandler(ContainerBuilder $container, array $config): void
     {
         $service = $config['file_upload']['service'] ?? null;
 
-        if ($service !== null) {
-            $container->setAlias(ContactFormFileUploadHandlerInterface::class, (string) $service);
-
-            return;
-        }
-
-        $container->setAlias(ContactFormFileUploadHandlerInterface::class, NullContactFormFileUploadHandler::class);
+        $container->setParameter(ContactFormFileUploaderPass::SERVICE_PARAMETER, $service === null ? null : (string) $service);
     }
 
     /**

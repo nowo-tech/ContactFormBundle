@@ -10,6 +10,7 @@ use Nowo\ContactFormBundle\Entity\ContactSubmissionValue;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotification;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
 
 #[CoversClass(ContactSubmissionNotification::class)]
 final class ContactSubmissionNotificationTest extends TestCase
@@ -43,5 +44,36 @@ final class ContactSubmissionNotificationTest extends TestCase
 
         self::assertSame('', $notification->getFormName());
         self::assertSame('fallback@example.com', $notification->getNotificationRecipient());
+    }
+
+    public function testIdAccessorsAreCapturedAsScalars(): void
+    {
+        $submission = (new ContactSubmission())
+            ->setForm((new ContactForm())->setName('Support')->setSlug('support'))
+            ->setLocale('es')
+            ->setClientReference('0190c3b4-uuid')
+            ->setClientLabel('ACME');
+        (new ReflectionProperty(ContactSubmission::class, 'id'))->setValue($submission, 42);
+
+        $notification = ContactSubmissionNotification::fromSubmission($submission);
+        // Changing the entity afterwards does not change the snapshot.
+        $submission->setLocale('en')->setClientLabel('Other');
+
+        self::assertSame(42, $notification->getSubmissionId());
+        self::assertSame('es', $notification->getLocale());
+        self::assertSame('0190c3b4-uuid', $notification->getClientReference());
+        self::assertSame('ACME', $notification->getClientLabel());
+        self::assertFalse($notification->isAnonymous());
+        self::assertSame($submission->getCreatedAt(), $notification->getCreatedAt());
+    }
+
+    public function testAnonymousSubmission(): void
+    {
+        $notification = ContactSubmissionNotification::fromSubmission(new ContactSubmission());
+
+        self::assertNull($notification->getSubmissionId());
+        self::assertNull($notification->getClientReference());
+        self::assertNull($notification->getClientLabel());
+        self::assertTrue($notification->isAnonymous());
     }
 }

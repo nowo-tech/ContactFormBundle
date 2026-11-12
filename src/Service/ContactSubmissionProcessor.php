@@ -97,7 +97,7 @@ final readonly class ContactSubmissionProcessor implements ContactSubmissionReco
             $submission->addValue(
                 (new ContactSubmissionValue())
                     ->setFieldName($fieldName)
-                    ->setValue($this->valueNormalizer->normalize($field, $value, $form)),
+                    ->setValue($this->valueNormalizer->normalize($field, $value, $form, $locale)),
             );
         }
 
@@ -135,7 +135,7 @@ final readonly class ContactSubmissionProcessor implements ContactSubmissionReco
             $submission->addValue(
                 (new ContactSubmissionValue())
                     ->setFieldName($fieldName)
-                    ->setValue($this->valueNormalizer->normalize($field, $values[$fieldName], $form)),
+                    ->setValue($this->valueNormalizer->normalize($field, $values[$fieldName], $form, $locale)),
             );
         }
 

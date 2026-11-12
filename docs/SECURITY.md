@@ -133,8 +133,13 @@ it; the recipe no longer ships a second `access_control` file, which Symfony ref
 ### File uploads
 
 - File fields are refused in the wizard unless `file_upload.service` is configured (the null handler throws, so every submission with a file would fail).
-- Your handler must never build paths from `UploadedFile::getClientOriginalName()`; generate the name
-  (`guessExtension()`) and store outside the public web root.
+- Your handler must never build paths from the client name (`UploadedContactFile::getClientName()`, or
+  `UploadedFile::getClientOriginalName()` for the deprecated handler); generate the name and store outside the public
+  web root. `UploadedContactFile::moveTo()` keeps only the last path segment of the name you give it.
+- Since 1.8 the bundle hands the file to `ContactFormFileUploaderInterface` as an `UploadedContactFile` VO: its MIME type
+  is the one detected on the server (the value the allowlist checked), and its temporary path and client name are kept
+  outside its properties, so a dump, `var_export()` or `(array)` cast of it (logs, error pages) does not show them.
+  Validation (size, MIME allowlist) is unchanged and runs before your service.
 
 ### Notification content leakage
 

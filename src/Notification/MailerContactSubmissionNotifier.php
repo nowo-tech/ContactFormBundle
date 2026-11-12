@@ -29,17 +29,17 @@ final readonly class MailerContactSubmissionNotifier implements ContactSubmissio
             return;
         }
 
-        $submission = $notification->getSubmission();
-        $bodyLines  = [
+        // 1.8: scalars of the snapshot only, no entity.
+        $bodyLines = [
             'Form: ' . $notification->getFormName(),
             'Slug: ' . $notification->getFormSlug(),
-            'Locale: ' . $submission->getLocale(),
-            'Submitted at: ' . $submission->getCreatedAt()->format('Y-m-d H:i:s'),
+            'Locale: ' . $notification->getLocale(),
+            'Submitted at: ' . $notification->getCreatedAt()->format('Y-m-d H:i:s'),
         ];
 
-        if (!$submission->isAnonymous()) {
+        if (!$notification->isAnonymous()) {
             // The label comes from host data: no line breaks, so it cannot fake other lines of the body.
-            $bodyLines[] = 'Client: ' . str_replace(["\r\n", "\r", "\n"], ' ', $submission->getClientLabel() ?? (string) $submission->getClientId());
+            $bodyLines[] = 'Client: ' . str_replace(["\r\n", "\r", "\n"], ' ', $notification->getClientLabel() ?? (string) $notification->getClientReference());
         }
 
         $bodyLines[] = '';

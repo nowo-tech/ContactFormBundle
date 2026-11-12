@@ -17,7 +17,7 @@ use function count;
 /**
  * Removes contact submissions that exceeded their form retention period.
  */
-final readonly class SubmissionRetentionCleanupService
+final readonly class SubmissionRetentionCleanupService implements SubmissionRetentionCleanerInterface
 {
     /** Submissions loaded, removed and flushed per round (bounded unit of work, one SELECT per chunk). */
     public const CHUNK_SIZE = 500;

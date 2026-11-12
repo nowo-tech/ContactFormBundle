@@ -33,7 +33,7 @@ Extension alias: `nowo_contact_form`.
 | `phone_input.default_country` | `ES` | Default country ISO for phone fields |
 | `phone_input.country_prefix_selector` | `true` | Show prefix selector in PhoneInputBundle |
 | `phone_input.show_flag` | `true` | Show flags in PhoneInputBundle selector |
-| `file_upload.service` | `null` | Custom `ContactFormFileUploadHandlerInterface` service id (required for file fields) |
+| `file_upload.service` | `null` | Service id that stores files (required for file fields): implements `ContactFormFileUploaderInterface` (1.8), or the deprecated `ContactFormFileUploadHandlerInterface` |
 | `file_upload.max_size` | `5M` | Default max size for file fields (`File` constraint format: bytes, `500k`, `5M`, `2Mi`). `null` = no bundle limit |
 | `file_upload.mime_types` | PDF, text, Word/ODT, JPEG/PNG/GIF/WebP | Default allowed MIME types for file fields (wildcards such as `image/*` allowed). `[]` = any type |
 | `public_submission_rate_limit.enabled` | `true` | Enable per-IP rate limiting on public POST |
@@ -186,7 +186,7 @@ Every `file` field gets a Symfony `File` constraint. Defaults come from `file_up
 ```yaml
 nowo_contact_form:
     file_upload:
-        service: App\ContactForm\UploadHandler
+        service: App\ContactForm\ContactAttachmentUploader   # ContactFormFileUploaderInterface (USAGE "File uploads")
         max_size: 5M          # null = no bundle limit (PHP upload_max_filesize still applies)
         mime_types:           # [] = any type; detected from content, not from the extension
             - application/pdf

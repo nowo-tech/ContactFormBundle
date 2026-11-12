@@ -10,11 +10,18 @@ use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
 use Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface;
 use Nowo\ContactFormBundle\Service\ContactFormSubmissionValueNormalizer;
+use Nowo\ContactFormBundle\Upload\ContactFormFileTarget;
+use Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface;
+use Nowo\ContactFormBundle\Upload\UploadedContactFile;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
+use function filesize;
+
 #[CoversClass(ContactFormSubmissionValueNormalizer::class)]
+#[CoversClass(ContactFormFileTarget::class)]
 final class ContactFormSubmissionValueNormalizerTest extends TestCase
 {
     private ContactFormSubmissionValueNormalizer $normalizer;
@@ -47,14 +54,43 @@ final class ContactFormSubmissionValueNormalizerTest extends TestCase
         self::assertSame('2024-06-01', $this->normalizer->normalize($field, '2024-06-01', $form));
     }
 
-    public function testNormalizeFileUpload(): void
+    #[IgnoreDeprecations]
+    public function testNormalizeFileUploadThroughTheDeprecatedHandler(): void
     {
         $field = (new ContactFormField())->setType(ContactFieldType::File);
         $form  = new ContactForm();
         $file  = new UploadedFile(__FILE__, 'test.php', null, null, true);
 
+        $this->expectUserDeprecationMessageMatches('/ContactFormFileUploadHandlerInterface" is deprecated/');
         self::assertSame('uploads/file.pdf', $this->normalizer->normalize($field, $file, $form));
         self::assertSame('', $this->normalizer->normalize($field, null, $form));
+    }
+
+    public function testNormalizeFileUploadThroughTheUploaderPort(): void
+    {
+        $field = (new ContactFormField())->setType(ContactFieldType::File)->setName('attachment')->setOptions(['max_size' => '1M']);
+        $form  = (new ContactForm())->setSlug('support');
+        $file  = new UploadedFile(__FILE__, '../evil.php', 'application/pdf', null, true);
+
+        $seen     = [];
+        $uploader = $this->createMock(ContactFormFileUploaderInterface::class);
+        $uploader->expects(self::once())->method('store')->willReturnCallback(
+            static function (UploadedContactFile $file, ContactFormFileTarget $target) use (&$seen): string {
+                $seen = [$file->getClientName(), $file->getSize(), $file->getMimeType(), $target];
+
+                return 'stored/' . $target->fieldName;
+            },
+        );
+
+        $normalizer = new ContactFormSubmissionValueNormalizer($uploader);
+
+        self::assertSame('stored/attachment', $normalizer->normalize($field, $file, $form, 'es'));
+        self::assertSame($file->getClientOriginalName(), $seen[0]);
+        self::assertSame(filesize(__FILE__), $seen[1]);
+        // Detected on the server from the content, never the client type ('application/pdf' above).
+        self::assertSame((new UploadedFile(__FILE__, 'x', null, null, true))->getMimeType(), $seen[2]);
+        self::assertEquals(new ContactFormFileTarget(null, 'support', null, 'attachment', 'es', ['max_size' => '1M']), $seen[3]);
+        self::assertSame('', $normalizer->normalize($field, 'not-a-file', $form));
     }
 
     public function testNormalizeScalarText(): void
