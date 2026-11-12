@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.8.0](#to-180)
 - [To 1.7.1](#to-171)
 - [To 1.7.0](#to-170)
 - [To 1.6.4](#to-164)
@@ -60,6 +61,70 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## To 1.8.0
+
+From **1.7.x**: no migration, no configuration change. Every change is additive; deprecated APIs keep working until
+2.0 (REQ-ARCH-001, framework-free ports).
+
+```bash
+composer require nowo-tech/contact-form-bundle:^1.8
+```
+
+**File upload service.** `ContactFormFileUploadHandlerInterface::upload(UploadedFile, ContactForm, ContactFormField)`
+is deprecated (removed in 2.0). Implement `Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface` instead:
+
+```php
+// Before (deprecated)
+public function upload(UploadedFile $file, ContactForm $form, ContactFormField $field): string
+{
+    $name = bin2hex(random_bytes(16)) . '.' . $file->guessExtension();
+    $file->move($this->dir . '/' . $form->getSlug(), $name);
+
+    return $name;
+}
+
+// After (1.8)
+public function store(UploadedContactFile $file, ContactFormFileTarget $target): string
+{
+    $name = bin2hex(random_bytes(16)) . '.bin';            // or map $file->getMimeType() to an extension
+    $file->moveTo($this->dir . '/' . $target->formSlug, $name);
+
+    return $name;
+}
+```
+
+| Before (`UploadedFile` / entities) | After (`UploadedContactFile` / `ContactFormFileTarget`) |
+|---|---|
+| `getClientOriginalName()` | `getClientName()` (same value) |
+| `getClientOriginalExtension()` | `getClientExtension()` |
+| `getSize()` | `getSize()` (`null` instead of `false` when unknown) |
+| `getMimeType()` (server-side guess) | `getMimeType()` (same value) |
+| `getPathname()` / `fopen()` | `openStream()` (you close it) |
+| `move($dir, $name)` | `moveTo($dir, $name)` (same move for a real upload; `ContactFormFileException` instead of `FileException`) |
+| `$form->getId()` / `getSlug()` | `$target->formId` / `formSlug` |
+| `$field->getId()` / `getName()` / `getOptions()` | `$target->fieldId` / `fieldName` / `fieldOptions`; `$target->locale` is new |
+
+- `nowo_contact_form.file_upload.service` accepts either kind of service. The bundle uses the new port when your
+  service implements it (also when it implements both), otherwise the old `upload()` (with a runtime deprecation).
+- If you aliased `ContactFormFileUploadHandlerInterface` in your own services, alias (or decorate)
+  `ContactFormFileUploaderInterface` instead. The deprecated alias now points at the bundle's null handler unless your
+  service implements the old interface, so `lint:container` stays green.
+- Validation is identical: the same size and MIME limits run before your service, which never sees a rejected file.
+- The null handler's exception message now names `ContactFormFileUploaderInterface`.
+
+**Notifiers.** `ContactSubmissionNotification::getSubmission()` (the entity) is deprecated (removed in 2.0). Use
+`getSubmissionId()`, `getLocale()`, `getClientReference()`, `getClientLabel()`, `isAnonymous()`, `getCreatedAt()` and the
+existing `getFormName()`, `getFormSlug()`, `getFieldValues()`, `getNotificationRecipient()`.
+
+**Mailer notifier.** For a client without a label, the "Client:" line now shows the client reference (any id type)
+instead of the integer `client_id` (empty for UUID / ULID clients).
+
+**Retention cleanup.** `SubmissionRetentionCleanerInterface` (alias of `SubmissionRetentionCleanupService`) is the new
+port; the cleanup command depends on it. Type-hint the interface in your code.
+
+**Removed in 2.0:** `ContactFormFileUploadHandlerInterface` (and its alias), `NullContactFormFileUploadHandler::upload()`,
+`ContactSubmissionNotification::getSubmission()`.
 
 ## To 1.7.1
 

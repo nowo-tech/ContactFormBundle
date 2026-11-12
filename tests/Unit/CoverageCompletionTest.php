@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\Tests\Unit;
 
+use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormFileUploaderPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\TwigPathsPass;
 use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
@@ -404,6 +405,9 @@ final class CoverageCompletionTest extends TestCase
 
         $resolverDef = $container->getDefinition(SecurityClientResolver::class);
         self::assertInstanceOf(Reference::class, $resolverDef->getArgument('$tokenStorage'));
+        // 1.8: file_upload.service is a parameter; ContactFormFileUploaderPass aliases the port the class implements.
+        self::assertSame('app.upload_handler', $container->getParameter(ContactFormFileUploaderPass::SERVICE_PARAMETER));
+        (new ContactFormFileUploaderPass())->process($container);
         self::assertSame('app.upload_handler', (string) $container->getAlias(ContactFormFileUploadHandlerInterface::class));
         self::assertSame(
             MailerContactSubmissionNotifier::class,

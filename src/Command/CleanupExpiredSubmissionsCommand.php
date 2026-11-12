@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\Command;
 
-use Nowo\ContactFormBundle\Service\SubmissionRetentionCleanupService;
+use Nowo\ContactFormBundle\Service\SubmissionRetentionCleanerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -24,7 +24,7 @@ use function sprintf;
 final class CleanupExpiredSubmissionsCommand extends Command
 {
     public function __construct(
-        private readonly SubmissionRetentionCleanupService $cleanupService,
+        private readonly SubmissionRetentionCleanerInterface $cleanupService,
     ) {
         parent::__construct();
     }

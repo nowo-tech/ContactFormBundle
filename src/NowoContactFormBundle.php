@@ -7,6 +7,7 @@ namespace Nowo\ContactFormBundle;
 use Doctrine\Bundle\DoctrineBundle\DependencyInjection\Compiler\DoctrineOrmMappingsPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormCsrfProtectionPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormEntityManagerPass;
+use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormFileUploaderPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormSecurityPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\TwigPathsPass;
@@ -27,6 +28,8 @@ final class NowoContactFormBundle extends Bundle
         $container->addCompilerPass(new ContactFormSecurityPass());
         $container->addCompilerPass(new ContactFormCsrfProtectionPass());
         $container->addCompilerPass(new ContactFormOptionalServicesPass());
+        // 1.8: file_upload.service and the file port the bundle's consumers use (host definitions are loaded here).
+        $container->addCompilerPass(new ContactFormFileUploaderPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 0);
 
         // Before the mapping pass: an unknown doctrine.entity_manager fails with a clear message.
         $container->addCompilerPass(new ContactFormEntityManagerPass(true), PassConfig::TYPE_BEFORE_OPTIMIZATION, 10);

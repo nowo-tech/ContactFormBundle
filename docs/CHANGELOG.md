@@ -53,6 +53,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Framework-free file upload port (REQ-ARCH-001 rules 1 and 3).** `Upload\ContactFormFileUploaderInterface::store(
+  UploadedContactFile, ContactFormFileTarget): string`. `UploadedContactFile` is a bundle VO (`openStream()`,
+  `moveTo()`, `getClientName()`, `getClientExtension()`, `getSize()`, `getMimeType()` detected on the server); its
+  values live in an internal `WeakMap`, so VarDumper, `var_export()`, `print_r()`, `json_encode()` and `(array)` casts
+  show no temporary path or client name, and it cannot be cloned or serialized. `ContactFormFileTarget` carries the
+  form and field ids and names, the locale and the field options. `file_upload.service`, an alias or a decorator of the
+  new port is used by the bundle's consumers (public form normalizer, admin field wizard).
+- `ContactFormFileException` for files that cannot be read or moved.
+- `ContactSubmissionNotification` id and scalar accessors: `getSubmissionId()`, `getLocale()`, `getClientReference()`,
+  `getClientLabel()`, `isAnonymous()`, `getCreatedAt()`.
+- `Service\SubmissionRetentionCleanerInterface` (rule 1), aliased to `SubmissionRetentionCleanupService`; the cleanup
+  command depends on it.
+- `ContactFormSubmissionValueNormalizer::normalize()` takes an optional `$locale` (given to the file target).
+- Tests: old-versus-new upload equivalence through the real public form (accepted and rejected files: size limit,
+  server-side MIME allowlist, spoofed extension, script and SVG content, traversal and backslash client names; same
+  status, same stored value, same data seen by the storage, same moved file), a DDD host kernel whose adapter maps the
+  VO to its own domain port, and `lint:container` kernels for the new port only, the deprecated port only, both, a
+  decorator of the new port, and `file_upload.service` with each kind of service.
+
+### Changed
+
+- `file_upload.service` is wired by the new `ContactFormFileUploaderPass`: the new port's alias points at the service
+  when it implements that port; the deprecated alias (marked deprecated) only when it implements the deprecated one.
+  The bundle never injects the deprecated alias unless the host is on that port only.
+- The mailer notifier reads the notification's scalars; for a client without a label the "Client:" line shows the
+  client reference (was the integer `client_id`, empty for non-integer ids).
+- The null handler's exception message names `ContactFormFileUploaderInterface`.
+
+### Deprecated
+
+- `Service\ContactFormFileUploadHandlerInterface` and its service alias (use `ContactFormFileUploaderInterface`); a
+  service implementing only it still works and triggers a runtime deprecation per upload. Removed in 2.0.
+- `ContactSubmissionNotification::getSubmission()` (use the id and scalar accessors). Removed in 2.0.
+
+Upload validation (`file_upload.max_size` / `mime_types`, per-field options) is unchanged. REQ-RUNTIME-002: no new
+service state (the VO data is a `WeakMap` keyed by the per-request VO); the 1.7.1 `ContactFormEntityManagerClearSubscriber`
+is unchanged.
+
 ## [1.7.1] - 2026-11-12
 
 ### Fixed

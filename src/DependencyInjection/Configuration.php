@@ -232,7 +232,7 @@ class Configuration implements ConfigurationInterface
                     ->children()
                         ->scalarNode('service')
                             ->defaultNull()
-                            ->info('Custom service id implementing ContactFormFileUploadHandlerInterface (required for file fields).')
+                            ->info('Service id that stores files submitted through file fields (required for them): implements ContactFormFileUploaderInterface (1.8), or the deprecated ContactFormFileUploadHandlerInterface.')
                         ->end()
                         ->scalarNode('max_size')
                             ->defaultValue(DynamicContactFormBuilder::DEFAULT_FILE_MAX_SIZE)

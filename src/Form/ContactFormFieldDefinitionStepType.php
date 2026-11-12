@@ -8,6 +8,7 @@ use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
 use Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface;
 use Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler;
+use Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface;
 use Nowo\FormKitBundle\Attribute\FormKitConfig;
 use Nowo\FormKitBundle\Form\FormOptionsTrait;
 use Symfony\Component\Form\AbstractType;
@@ -41,7 +42,8 @@ class ContactFormFieldDefinitionStepType extends AbstractType
 
     public function __construct(
         private readonly ?TranslatorInterface $translator = null,
-        private readonly ?ContactFormFileUploadHandlerInterface $fileUploadHandler = null,
+        // 1.8: the file port ContactFormFileUploaderPass resolved (the uploader, or a host's deprecated handler).
+        private readonly ContactFormFileUploaderInterface|ContactFormFileUploadHandlerInterface|null $fileUploadHandler = null,
     ) {
     }
 
