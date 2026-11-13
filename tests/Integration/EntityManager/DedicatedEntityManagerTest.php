@@ -20,9 +20,11 @@ use Nowo\ContactFormBundle\Enum\ContactFieldType;
 use Nowo\ContactFormBundle\Event\ContactSubmissionCreatedEvent;
 use Nowo\ContactFormBundle\Event\ContactSubmissionsDeletedEvent;
 use Nowo\ContactFormBundle\Exception\ContactFormNotFoundException;
+use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Service\ContactSubmissionRecorderInterface;
 use Nowo\ContactFormBundle\Service\SubmissionRetentionCleanupService;
 use Nowo\ContactFormBundle\Tests\Integration\EntityManager\Entity\HostNote;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -127,6 +129,46 @@ final class DedicatedEntityManagerTest extends TestCase
 
         $this->expectException(ContactFormNotFoundException::class);
         $recorder->record('unknown', [], 'en');
+    }
+
+    /**
+     * DoctrineBundle 3.4 regression: `auto_discover_entities` (on by default for a manager without `mappings` and
+     * `auto_mapping`) gives the host manager's chain a default attribute driver, which claims every `#[ORM\Entity]`
+     * class, so `getManagerForClass()` answered the host manager and the repositories queried its database. The
+     * explicit catch-all default driver reproduces it on every DoctrineBundle version.
+     */
+    #[DataProvider('hostManagersWithADefaultDriver')]
+    public function testDedicatedManagerWinsOverADefaultDriverOfTheHostManager(bool $explicitDefaultDriver): void
+    {
+        $doctrine = $this->dedicatedDoctrine();
+        unset($doctrine['orm']['entity_managers']['default']['auto_mapping'], $doctrine['orm']['entity_managers']['default']['mappings']);
+        $this->boot($doctrine, ['doctrine' => ['entity_manager' => 'contact_form']], $explicitDefaultDriver);
+        $bundle = $this->registry()->getManager('contact_form');
+
+        // Neither manager is initialized yet: DoctrineBundle 3.4 asks the metadata drivers.
+        self::assertSame($bundle, $this->registry()->getManagerForClass(ContactSubmission::class));
+        self::assertSame($bundle, $this->registry()->getManagerForClass(ContactForm::class));
+
+        [$host, $bundle] = $this->managersWithSchema();
+        self::assertTrue($host->getMetadataFactory()->isTransient(ContactSubmission::class), 'not mapped on the host manager');
+        self::assertSame($bundle, $this->registry()->getManagerForClass(ContactSubmission::class));
+
+        $repository = $this->container()->get(ContactFormRepository::class);
+        self::assertInstanceOf(ContactFormRepository::class, $repository);
+        self::assertInstanceOf(ContactForm::class, $repository->findOneBy(['slug' => 'support']), 'the repository reads the bundle database');
+        $recorder = $this->container()->get(ContactSubmissionRecorderInterface::class);
+        self::assertInstanceOf(ContactSubmissionRecorderInterface::class, $recorder);
+        $id = $recorder->record('support', ['email' => 'visitor@example.com'], 'en');
+        self::assertSame(1, (int) $bundle->getConnection()->fetchOne('SELECT COUNT(*) FROM nowo_contact_submission WHERE id = ?', [$id]), 'written to the bundle database');
+    }
+
+    /**
+     * @return iterable<string, array{bool}>
+     */
+    public static function hostManagersWithADefaultDriver(): iterable
+    {
+        yield 'host manager without mappings (DoctrineBundle 3.4 auto-discovery)' => [false];
+        yield 'host manager with a catch-all default driver' => [true];
     }
 
     public function testRetentionCleanupNeverClearsTheHostManager(): void
@@ -278,9 +320,9 @@ final class DedicatedEntityManagerTest extends TestCase
      * @param array<string, mixed> $doctrine
      * @param array<string, mixed> $contactForm
      */
-    private function boot(array $doctrine, array $contactForm = []): void
+    private function boot(array $doctrine, array $contactForm = [], bool $hostDefaultDriver = false): void
     {
-        $this->kernel = new EntityManagerTestKernel($doctrine, $contactForm);
+        $this->kernel = new EntityManagerTestKernel($doctrine, $contactForm, $hostDefaultDriver);
         $this->kernel->boot();
     }
 
