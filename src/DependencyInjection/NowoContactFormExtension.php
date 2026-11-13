@@ -7,6 +7,7 @@ namespace Nowo\ContactFormBundle\DependencyInjection;
 use Doctrine\ORM\Events;
 use Nowo\ContactFormBundle\Client\ClientReferenceResolverInterface;
 use Nowo\ContactFormBundle\Client\ObjectClientReferenceResolver;
+use Nowo\ContactFormBundle\Collation\ContactFormExactKeyColumns;
 use Nowo\ContactFormBundle\Controller\ContactFormPublicController;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormFileUploaderPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
@@ -266,6 +267,7 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
     {
         $tablePrefix = trim((string) ($config['doctrine']['table_prefix'] ?? ''));
         $container->setParameter('nowo_contact_form.doctrine.table_prefix', $tablePrefix);
+        $this->registerExactKeyColumns($container, $tablePrefix);
 
         if ($tablePrefix === '') {
             return;
@@ -274,6 +276,20 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
         $definition = new Definition(TablePrefixListener::class, [$tablePrefix]);
         $definition->addTag('doctrine.event_listener', ['event' => Events::loadClassMetadata]);
         $container->setDefinition(TablePrefixListener::class, $definition);
+    }
+
+    /**
+     * REQ-SEC-006: declare client_reference as an identity key, so a host's nowo:migrations:check-key-collations
+     * asserts its binary NO PAD collation against the real schema. The contract comes from
+     * nowo-tech/migrations-kit-contracts (interfaces and value objects, no dependencies beyond PHP); the check itself
+     * lives in MigrationsKitBundle, which only the host needs. A host without it simply never reads the tag. The
+     * table prefix is the configured one, so the declaration names the table the host really has.
+     */
+    private function registerExactKeyColumns(ContainerBuilder $container, string $tablePrefix): void
+    {
+        $definition = new Definition(ContactFormExactKeyColumns::class, [$tablePrefix]);
+        $definition->addTag('nowo_migrations_kit.exact_key_columns');
+        $container->setDefinition(ContactFormExactKeyColumns::class, $definition);
     }
 
     /**
