@@ -5,15 +5,18 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\DependencyInjection\Compiler;
 
 use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
+use Nowo\ContactFormBundle\Doctrine\ExcludedEntityNamespaceDriver;
 use Nowo\ContactFormBundle\EventSubscriber\ContactFormEntityManagerClearSubscriber;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Reference;
 
 use function array_keys;
+use function array_unshift;
 use function implode;
 use function is_array;
 use function is_string;
@@ -26,8 +29,11 @@ use function str_starts_with;
  * DoctrineBundle's `auto_mapping` (the Flex default on the default manager) maps every bundle's `Entity` directory,
  * so with a dedicated manager configured the entities would be mapped twice and `getManagerForClass()` would return
  * the default manager. This pass removes the bundle namespace from the mapping driver chain of every other manager
- * and fails the build when the configured manager does not exist or does not map the entities. Since 1.7.1 it also
- * hands that manager to {@see ContactFormEntityManagerClearSubscriber} unless it is the host's default manager.
+ * and gives that chain an {@see ExcludedEntityNamespaceDriver} for it instead, so a default driver of the chain cannot
+ * claim the entities either (DoctrineBundle 3.4 `auto_discover_entities`; only the public `addDriver()` of the
+ * `doctrine.orm.<manager>_metadata_driver` chain is used), and fails the build when the configured manager does not
+ * exist or does not map the entities. Since 1.7.1 it also hands that manager to
+ * {@see ContactFormEntityManagerClearSubscriber} unless it is the host's default manager.
  */
 final readonly class ContactFormEntityManagerPass implements CompilerPassInterface
 {
@@ -92,6 +98,11 @@ final readonly class ContactFormEntityManagerPass implements CompilerPassInterfa
 
                 $maps    = $maps || $isBundleDriver;
                 $calls[] = $call;
+            }
+
+            if ($manager !== $name) {
+                // First in the chain: a chain asks its namespace drivers in order, then its default driver.
+                array_unshift($calls, ['addDriver', [new Definition(ExcludedEntityNamespaceDriver::class), self::ENTITY_NAMESPACE]]);
             }
 
             $chain->setMethodCalls($calls);
