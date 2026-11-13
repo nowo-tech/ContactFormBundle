@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Since 1.9.0: XML mapping of the bundle entity (same tables, columns, indexes and constraints as its attributes). Used with nowo_contact_form.doctrine.mapping_type: xml, or by a host that maps the bundle entities itself. -->
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+    <entity name="Nowo\ContactFormBundle\Entity\ContactSubmissionValue" table="nowo_contact_submission_value" repository-class="Nowo\ContactFormBundle\Repository\ContactSubmissionValueRepository">
+        <id name="id" type="integer">
+            <generator strategy="AUTO"/>
+        </id>
+        <field name="fieldName" column="field_name" type="string" length="120"/>
+        <field name="value" type="text"/>
+        <many-to-one field="submission" target-entity="Nowo\ContactFormBundle\Entity\ContactSubmission" inversed-by="values">
+            <join-column nullable="false" on-delete="CASCADE"/>
+        </many-to-one>
+    </entity>
+</doctrine-mapping>

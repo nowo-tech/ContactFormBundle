@@ -56,6 +56,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **XML mapping of the six entities (REQ-ARCH-001 rule 2):** `src/Resources/config/doctrine-xml/*.orm.xml`, the same
+  tables, columns, indexes, constraints and associations as the attributes (`XmlMappingParityTest` compares the
+  metadata and the schema with both naming strategies). New option `doctrine.mapping_type` (`attribute` by default,
+  unchanged; `xml`) registers it on `doctrine.entity_manager` (or the default manager) for hosts whose managers load
+  XML mapping only; `NowoContactFormExtension::XML_MAPPING_DIR` points at the directory for hosts that map it
+  themselves.
+- **`docs/ARCHITECTURE.md`:** ports, SPI, events, persistence, the standard Symfony and DDD host paths, the
+  REQ-ARCH-001 status per rule, and what waits for 2.0 (the rule 6 default: the default entity manager is flushed
+  unless `doctrine.entity_manager` is set).
+
 ## [1.8.2] - 2026-11-13
 
 ### Fixed

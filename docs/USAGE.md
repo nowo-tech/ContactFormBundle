@@ -188,6 +188,7 @@ doctrine:
 nowo_contact_form:
     doctrine:
         entity_manager: contact_form       # 1.7: entities, flushes and resets on this manager only
+        mapping_type: xml                  # 1.9, optional: the shipped XML mapping instead of the attributes
     client_reference_resolver: App\Infrastructure\ContactForm\ClientReferenceResolver   # returns ClientReference(id, label)
 ```
 
@@ -212,6 +213,9 @@ final class SendContactMessageHandler
 }
 ```
 
+- `mapping_type: xml` (1.9) maps the six bundle entities from `src/Resources/config/doctrine-xml` (same tables and
+  columns as the attributes) for managers that load XML mapping only; the default stays `attribute`. See
+  [ARCHITECTURE.md](ARCHITECTURE.md) for the ports, SPI and what waits for 2.0.
 - The bundle never flushes, clears or resets your manager: submissions, admin edits and the retention cleanup write to
   `contact_form` only, and a closed `contact_form` manager is recovered on the next request or write (FrankenPHP worker
   mode, no services resetter needed). The entities are not mapped on your managers even with `auto_mapping: true`.

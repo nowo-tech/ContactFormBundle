@@ -36,6 +36,7 @@ final class ConfigurationTest extends TestCase
         self::assertFalse($config['notifications']['enabled']);
         self::assertFalse($config['notifications']['mailer']['enabled']);
         self::assertSame('', $config['doctrine']['table_prefix']);
+        self::assertSame('attribute', $config['doctrine']['mapping_type']);
         self::assertSame('5M', $config['file_upload']['max_size']);
         self::assertSame(DynamicContactFormBuilder::DEFAULT_FILE_MIME_TYPES, $config['file_upload']['mime_types']);
     }

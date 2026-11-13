@@ -22,6 +22,7 @@
 | `DependencyInjection/Compiler/TwigPathsPass.php` | Twig paths | FR-TWIG-001 |
 | `DependencyInjection/Compiler/ContactFormSecurityPass.php` | Security wiring | FR-SEC-001 |
 | `DependencyInjection/Compiler/ContactFormOptionalServicesPass.php` | Optional clock / mailer wiring on the merged container | FR-CFG-003 |
+| `DependencyInjection/Compiler/ContactFormMappingDriverPass.php` | Attribute (default) or XML mapping of the entities (1.9, `doctrine.mapping_type`) | FR-ORM-001 |
 | `DependencyInjection/TablePrefixListener.php` | Doctrine `table_prefix` for bundle entity tables | FR-CFG-004 |
 
 ## Security
@@ -42,6 +43,12 @@
 | `Entity/ContactFormFieldTranslation.php` | Field i18n | FR-ORM-001 |
 | `Entity/ContactSubmission.php` | Submission | FR-ORM-001 |
 | `Entity/ContactSubmissionValue.php` | Field values | FR-ORM-001 |
+| `Resources/config/doctrine-xml/ContactForm.orm.xml` | XML mapping, same as the attributes (1.9, opt-in) | FR-ORM-001 |
+| `Resources/config/doctrine-xml/ContactFormField.orm.xml` | XML mapping, same as the attributes (1.9, opt-in) | FR-ORM-001 |
+| `Resources/config/doctrine-xml/ContactFormFieldTranslation.orm.xml` | XML mapping, same as the attributes (1.9, opt-in) | FR-ORM-001 |
+| `Resources/config/doctrine-xml/ContactFormTranslation.orm.xml` | XML mapping, same as the attributes (1.9, opt-in) | FR-ORM-001 |
+| `Resources/config/doctrine-xml/ContactSubmission.orm.xml` | XML mapping, same as the attributes (1.9, opt-in) | FR-ORM-001 |
+| `Resources/config/doctrine-xml/ContactSubmissionValue.orm.xml` | XML mapping, same as the attributes (1.9, opt-in) | FR-ORM-001 |
 
 ## Repositories
 

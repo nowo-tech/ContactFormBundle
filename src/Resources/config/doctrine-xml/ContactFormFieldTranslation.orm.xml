@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Since 1.9.0: XML mapping of the bundle entity (same tables, columns, indexes and constraints as its attributes). Used with nowo_contact_form.doctrine.mapping_type: xml, or by a host that maps the bundle entities itself. -->
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+    <entity name="Nowo\ContactFormBundle\Entity\ContactFormFieldTranslation" table="nowo_contact_form_field_translation" repository-class="Nowo\ContactFormBundle\Repository\ContactFormFieldTranslationRepository">
+        <unique-constraints>
+            <unique-constraint name="uniq_contact_form_field_translation_locale" columns="field_id,locale"/>
+        </unique-constraints>
+        <id name="id" type="integer">
+            <generator strategy="AUTO"/>
+        </id>
+        <field name="locale" type="string" length="10"/>
+        <field name="label" type="string" length="255"/>
+        <field name="placeholder" type="string" length="255" nullable="true"/>
+        <field name="help" type="text" nullable="true"/>
+        <field name="selectOptions" column="select_options" type="json" nullable="true"/>
+        <many-to-one field="field" target-entity="Nowo\ContactFormBundle\Entity\ContactFormField" inversed-by="translations">
+            <join-column nullable="false" on-delete="CASCADE"/>
+        </many-to-one>
+    </entity>
+</doctrine-mapping>

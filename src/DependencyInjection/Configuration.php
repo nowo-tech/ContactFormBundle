@@ -285,6 +285,11 @@ class Configuration implements ConfigurationInterface
                                 ->thenInvalid('nowo_contact_form.doctrine.entity_manager must be the name of a Doctrine entity manager (letters, digits and underscores).')
                             ->end()
                         ->end()
+                        ->enumNode('mapping_type')
+                            ->values(['attribute', 'xml'])
+                            ->defaultValue('attribute')
+                            ->info('Mapping driver of the bundle entities (1.9): attribute (default, unchanged) or xml (src/Resources/config/doctrine-xml/*.orm.xml, the same tables, columns, indexes and constraints) for hosts whose managers only load XML mapping. Registered on doctrine.entity_manager (or the default entity manager).')
+                        ->end()
                     ->end()
                 ->end()
             ->end();

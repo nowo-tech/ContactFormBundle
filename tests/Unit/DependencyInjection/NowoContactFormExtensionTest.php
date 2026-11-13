@@ -67,6 +67,7 @@ final class NowoContactFormExtensionTest extends TestCase
         self::assertTrue($container->hasParameter('nowo_contact_form.web_ui.layout_template'));
         self::assertSame(['ROLE_ADMIN'], $container->getParameter('nowo_contact_form.security.access_roles'));
         self::assertSame('', $container->getParameter('nowo_contact_form.doctrine.table_prefix'));
+        self::assertSame('attribute', $container->getParameter(NowoContactFormExtension::MAPPING_TYPE_PARAMETER));
         self::assertFalse($container->hasDefinition(TablePrefixListener::class));
         self::assertSame('5M', $container->getParameter('nowo_contact_form.file_upload.max_size'));
         self::assertSame(DynamicContactFormBuilder::DEFAULT_FILE_MIME_TYPES, $container->getParameter('nowo_contact_form.file_upload.mime_types'));
@@ -77,10 +78,11 @@ final class NowoContactFormExtensionTest extends TestCase
         $container = new ContainerBuilder();
         $extension = new NowoContactFormExtension();
         $extension->load([array_merge($this->baseConfig(), [
-            'doctrine' => ['table_prefix' => 'cf_'],
+            'doctrine' => ['table_prefix' => 'cf_', 'mapping_type' => 'xml'],
         ])], $container);
 
         self::assertSame('cf_', $container->getParameter('nowo_contact_form.doctrine.table_prefix'));
+        self::assertSame('xml', $container->getParameter(NowoContactFormExtension::MAPPING_TYPE_PARAMETER));
         self::assertTrue($container->hasDefinition(TablePrefixListener::class));
         $definition = $container->getDefinition(TablePrefixListener::class);
         self::assertSame(['cf_'], $definition->getArguments());
