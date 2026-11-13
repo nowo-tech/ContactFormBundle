@@ -202,9 +202,13 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
 
         $this->dropStaleUnits();
         $request = $event->getRequest();
-        if ($this->requests->count() > 0 && $this->requestStack?->getMainRequest() === $request) {
+        $main    = $this->requestStack?->getMainRequest();
+        if ($this->requests->count() > 0 && $this->requestStack !== null && ($main === $request || $main !== $this->bottomRequest())) {
             // The HTTP kernel runs no other request (it pops its own stack in a `finally`): the requests left here never
-            // reached their finish_request / terminate (a throwing `kernel.exception` listener).
+            // reached their finish_request / terminate (a throwing `kernel.exception` listener). Audit OB2-L1: also
+            // when the bottom request here is not the kernel's main request (host code left the request stack
+            // unbalanced, then a request threw out of `handle()`); a real nested main request has the outer request
+            // at the bottom of both stacks.
             // @igor-ignore - Unit-of-work stack, healed at a top-level request start (no request data kept).
             $this->requests = new SplObjectStorage();
         }
@@ -216,6 +220,16 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
         if ($outermost) {
             $this->clearState();
         }
+    }
+
+    /**
+     * The outermost main request still in flight here (audit OB2-L1); only called while one is in flight.
+     */
+    private function bottomRequest(): Request
+    {
+        $this->requests->rewind();
+
+        return $this->requests->current();
     }
 
     public function onFinishRequest(FinishRequestEvent $event): void
