@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.8.2](#to-182)
 - [To 1.8.1](#to-181)
 - [To 1.8.0](#to-180)
 - [To 1.7.1](#to-171)
@@ -62,6 +63,14 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## To 1.8.2
+
+From **1.8.1**:
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
 
 ## To 1.8.1
 
