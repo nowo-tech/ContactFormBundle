@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\Tests\Integration\EntityManager;
 
+use Doctrine\Bundle\DoctrineBundle\Mapping\MappingDriver as DoctrineBundleMappingDriver;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\Mapping\Driver\XmlDriver;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\ORM\Tools\ToolEvents;
 use Doctrine\Persistence\ManagerRegistry;
+use Doctrine\Persistence\Mapping\Driver\MappingDriver;
+use Doctrine\Persistence\Mapping\Driver\MappingDriverChain;
 use Nowo\ContactFormBundle\Client\ClientReference;
 use Nowo\ContactFormBundle\Client\ClientReferenceResolverInterface;
+use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormEntityManagerPass;
 use Nowo\ContactFormBundle\Doctrine\ClientReferenceCollationListener;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormField;
@@ -26,6 +31,7 @@ use Nowo\ContactFormBundle\Service\SubmissionRetentionCleanupService;
 use Nowo\ContactFormBundle\Tests\Integration\EntityManager\Entity\HostNote;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionProperty;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -289,6 +295,54 @@ final class DedicatedEntityManagerTest extends TestCase
     }
 
     /**
+     * 1.9 (REQ-ARCH-001 rule 2): a DDD host whose managers load XML mapping only maps the bundle entities from the
+     * shipped XML (`doctrine.mapping_type: xml`) on its dedicated manager; the bundle behaves exactly as with the
+     * attribute mapping.
+     */
+    public function testXmlMappingOnADedicatedManager(): void
+    {
+        $this->boot($this->dedicatedDoctrine(), ['doctrine' => ['entity_manager' => 'contact_form', 'mapping_type' => 'xml']]);
+        [$host, $bundle] = $this->managersWithSchema();
+
+        self::assertInstanceOf(XmlDriver::class, $this->bundleDriver($bundle));
+        self::assertTrue($host->getMetadataFactory()->isTransient(ContactSubmission::class), 'not mapped on the host manager');
+        self::assertSame($bundle, $this->registry()->getManagerForClass(ContactSubmission::class));
+
+        $recorder = $this->container()->get(ContactSubmissionRecorderInterface::class);
+        self::assertInstanceOf(ContactSubmissionRecorderInterface::class, $recorder);
+        $id  = $recorder->record('support', ['email' => 'visitor@example.com'], 'en', client: new ClientReference('42', 'ACME'));
+        $row = $bundle->getConnection()->fetchAssociative('SELECT client_id, client_reference, client_label FROM nowo_contact_submission WHERE id = ?', [$id]);
+        // An integer id is also stored in the integer client_id column (1.6.4 rule, unchanged).
+        self::assertSame(['client_id' => 42, 'client_reference' => '42', 'client_label' => 'ACME'], $row);
+        self::assertSame(['email'], $bundle->getConnection()->fetchFirstColumn('SELECT field_name FROM nowo_contact_submission_value'));
+    }
+
+    /**
+     * 1.9: the XML mapping on a standard host's default manager without `auto_mapping` (no attribute driver at all).
+     */
+    public function testXmlMappingOnTheDefaultManagerWithoutAutoMapping(): void
+    {
+        $this->boot([
+            'dbal' => ['url' => 'sqlite:///' . $this->database('xml')],
+            'orm'  => ['auto_mapping' => false],
+        ], ['doctrine' => ['mapping_type' => 'xml']]);
+        $default = $this->registry()->getManager();
+        self::assertInstanceOf(EntityManagerInterface::class, $default);
+
+        self::assertInstanceOf(XmlDriver::class, $this->bundleDriver($default));
+        self::assertSame($default, $this->registry()->getManagerForClass(ContactSubmission::class));
+        self::assertCount(6, $default->getMetadataFactory()->getAllMetadata());
+        (new SchemaTool($default))->createSchema($default->getMetadataFactory()->getAllMetadata());
+
+        $default->persist((new ContactForm())->setName('Support')->setSlug('support')->setEnabled(true));
+        $default->flush();
+        $default->clear();
+        $form = $default->getRepository(ContactForm::class)->findOneBy(['slug' => 'support']);
+        self::assertInstanceOf(ContactForm::class, $form);
+        self::assertSame(365, $form->getRetentionDays());
+    }
+
+    /**
      * @return array{EntityManagerInterface, EntityManagerInterface}
      */
     private function managersWithSchema(): array
@@ -394,5 +448,19 @@ final class DedicatedEntityManagerTest extends TestCase
         $this->files[] = $file;
 
         return $file;
+    }
+
+    /**
+     * The metadata driver of the bundle namespace in the manager's chain (DoctrineBundle wraps the chain).
+     */
+    private function bundleDriver(EntityManagerInterface $manager): ?MappingDriver
+    {
+        $driver = $manager->getConfiguration()->getMetadataDriverImpl();
+        if ($driver instanceof DoctrineBundleMappingDriver) {
+            $driver = (new ReflectionProperty($driver, 'driver'))->getValue($driver);
+        }
+        self::assertInstanceOf(MappingDriverChain::class, $driver);
+
+        return $driver->getDrivers()[ContactFormEntityManagerPass::ENTITY_NAMESPACE] ?? null;
     }
 }

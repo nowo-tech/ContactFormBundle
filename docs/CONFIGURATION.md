@@ -44,6 +44,7 @@ Extension alias: `nowo_contact_form`.
 | `public_field_max_length.textarea` | `10000` | Max characters of textarea values |
 | `doctrine.table_prefix` | `""` | Prefix prepended to entity table names (`nowo_contact_form`, …). Empty = no prefix |
 | `doctrine.entity_manager` | `null` | **1.7.** Doctrine entity manager the bundle entities are mapped on, e.g. a dedicated `contact_form` manager. Mapped on that manager only (also when the default one has `auto_mapping: true` or a default metadata driver: DoctrineBundle 3.4 `auto_discover_entities`, fixed in Unreleased); every read, write, flush and recovery reset of the bundle uses it. Unknown manager = build error. Null = the default entity manager (unchanged) |
+| `doctrine.mapping_type` | `attribute` | **1.9.** Mapping driver of the six bundle entities, registered on `doctrine.entity_manager` (or the default manager): `attribute` (unchanged) or `xml` (`src/Resources/config/doctrine-xml/*.orm.xml`, the same tables, columns, indexes and constraints) for managers that load XML mapping only |
 
 ## Table of contents
 

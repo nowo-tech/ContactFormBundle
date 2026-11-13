@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.9.0](#to-190)
 - [To 1.8.2](#to-182)
 - [To 1.8.1](#to-181)
 - [To 1.8.0](#to-180)
@@ -63,6 +64,25 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## To 1.9.0
+
+From **1.8.x** (next minor, unreleased): no migration, no configuration change, nothing to do. The entities keep
+their attribute mapping unless you opt in.
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
+
+- **XML mapping (opt-in, REQ-ARCH-001 rule 2).** Hosts whose entity managers load XML mapping only set
+  `nowo_contact_form.doctrine.mapping_type: xml`: the bundle registers `src/Resources/config/doctrine-xml/*.orm.xml`
+  on `doctrine.entity_manager` (or the default manager) instead of the attributes. Same tables, columns, indexes and
+  constraints, so `doctrine:migrations:diff` finds nothing. Client ids stay as they are (integer `client_id`,
+  string `client_reference`).
+- **Deferred to 2.0** (needs a major, see [ARCHITECTURE.md](ARCHITECTURE.md#deferred-to-20)): without
+  `doctrine.entity_manager`, the bundle keeps flushing the default entity manager (REQ-ARCH-001 rule 6). Set
+  `doctrine.entity_manager` to a dedicated manager now if the bundle must never commit your pending changes; the
+  deprecated `ContactFormFileUploadHandlerInterface` is removed in 2.0.
 
 ## To 1.8.2
 

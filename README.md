@@ -98,6 +98,7 @@ make release-check
 - [Installation](docs/INSTALLATION.md)
 - [Configuration](docs/CONFIGURATION.md)
 - [Usage](docs/USAGE.md)
+- [Architecture](docs/ARCHITECTURE.md) — ports, SPI, events, standard Symfony and DDD hosts (REQ-ARCH-001)
 - [Contributing](docs/CONTRIBUTING.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Changelog](docs/CHANGELOG.md)

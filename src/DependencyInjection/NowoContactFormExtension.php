@@ -46,6 +46,12 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
     /** Container parameter holding `doctrine.entity_manager` (null: the default entity manager), 1.7. */
     public const ENTITY_MANAGER_PARAMETER = 'nowo_contact_form.doctrine.entity_manager';
 
+    /** Container parameter holding `doctrine.mapping_type` (`attribute` or `xml`), 1.9. */
+    public const MAPPING_TYPE_PARAMETER = 'nowo_contact_form.doctrine.mapping_type';
+
+    /** Directory of the XML mapping of the six bundle entities (1.9, same tables and columns as the attributes). */
+    public const XML_MAPPING_DIR = __DIR__ . '/../Resources/config/doctrine-xml';
+
     public const DEFAULT_ACCESS_CHECKER_ID = 'nowo_contact_form.access_checker.default';
 
     public const ALLOW_ALL_ACCESS_CHECKER_ID = 'nowo_contact_form.access_checker.allow_all';
@@ -230,6 +236,7 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
         $entityManagerName = $config['doctrine']['entity_manager'] ?? null;
         $entityManagerName = is_string($entityManagerName) && $entityManagerName !== '' ? $entityManagerName : null;
         $container->setParameter(self::ENTITY_MANAGER_PARAMETER, $entityManagerName);
+        $container->setParameter(self::MAPPING_TYPE_PARAMETER, ($config['doctrine']['mapping_type'] ?? 'attribute') === 'xml' ? 'xml' : 'attribute');
 
         $container->getDefinition(ContactSubmissionProcessor::class)
             ->setArgument('$clock', new Reference('clock'))

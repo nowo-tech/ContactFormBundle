@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Since 1.9.0: XML mapping of the bundle entity (same tables, columns, indexes and constraints as its attributes). Used with nowo_contact_form.doctrine.mapping_type: xml, or by a host that maps the bundle entities itself. -->
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+    <entity name="Nowo\ContactFormBundle\Entity\ContactForm" table="nowo_contact_form" repository-class="Nowo\ContactFormBundle\Repository\ContactFormRepository">
+        <unique-constraints>
+            <unique-constraint name="uniq_contact_form_slug" columns="slug"/>
+        </unique-constraints>
+        <id name="id" type="integer">
+            <generator strategy="AUTO"/>
+        </id>
+        <field name="name" type="string" length="120"/>
+        <field name="slug" type="string" length="120"/>
+        <field name="enabled" type="boolean">
+            <options>
+                <option name="default">1</option>
+            </options>
+        </field>
+        <field name="privacyPolicyUrl" column="privacy_policy_url" type="string" length="500" nullable="true"/>
+        <field name="retentionDays" column="retention_days" type="integer">
+            <options>
+                <option name="default">365</option>
+            </options>
+        </field>
+        <field name="requireConsent" column="require_consent" type="boolean">
+            <options>
+                <option name="default">0</option>
+            </options>
+        </field>
+        <field name="notificationEmail" column="notification_email" type="string" length="255" nullable="true"/>
+        <one-to-many field="translations" target-entity="Nowo\ContactFormBundle\Entity\ContactFormTranslation" mapped-by="form" orphan-removal="true">
+            <cascade>
+                <cascade-persist/>
+                <cascade-remove/>
+            </cascade>
+        </one-to-many>
+        <one-to-many field="fields" target-entity="Nowo\ContactFormBundle\Entity\ContactFormField" mapped-by="form" orphan-removal="true">
+            <cascade>
+                <cascade-persist/>
+                <cascade-remove/>
+            </cascade>
+        </one-to-many>
+    </entity>
+</doctrine-mapping>
