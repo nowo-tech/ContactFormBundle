@@ -136,6 +136,51 @@ jobs:
           fi
           echo "✅ Coverage generated"
 
+  mysql-schema:
+    name: Identity key collations (${{ matrix.db }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        db: ['mysql:8.4', 'mariadb:11.4']
+
+    services:
+      database:
+        image: ${{ matrix.db }}
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: contact_form
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: contact_form
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot || healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Identity key collation gate (REQ-SEC-006)
+        env:
+          NOWO_CONTACT_FORM_TEST_MYSQL_URL: pdo-mysql://root:root@127.0.0.1:3306/contact_form
+        run: vendor/bin/phpunit --no-coverage --fail-on-skipped tests/Integration/Collation/ContactFormExactKeyColumnsTest.php
+
   static-analysis:
     name: Static analysis (PHPStan, Rector, Igor)
     runs-on: ubuntu-latest

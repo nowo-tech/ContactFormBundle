@@ -19,7 +19,7 @@
     },
     "authors": [
         {
-            "name": "H\u00e9ctor Franco Aceituno",
+            "name": "Héctor Franco Aceituno",
             "email": "hectorfranco@nowo.tech",
             "homepage": "https://github.com/HecFranco",
             "role": "Developer"
@@ -56,15 +56,17 @@
         "twig/string-extra": "^3.12"
     },
     "suggest": {
-        "symfony/mailer": "Send submission notifications via email",
+        "nowo-tech/migrations-kit-bundle": "Declares client_reference as an identity key so nowo:migrations:check-key-collations asserts its binary NO PAD collation against the real schema (REQ-SEC-006)",
         "nowo-tech/phone-input-bundle": "Rich phone fields with country flags and search in the prefix selector",
-        "symfony/security-bundle": "Link submissions to authenticated clients automatically",
+        "symfony/form": "^8.1 required for the admin field wizard (FormFlow)",
+        "symfony/mailer": "Send submission notifications via email",
         "symfony/rate-limiter": "Atomic public submission rate limiting (public_submission_rate_limit.limiter)",
-        "symfony/form": "^8.1 required for the admin field wizard (FormFlow)"
+        "symfony/security-bundle": "Link submissions to authenticated clients automatically"
     },
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.0",
         "igor-php/igor-php": "^0.10.0",
+        "nowo-tech/migrations-kit-bundle": "^2.4",
         "nowo-tech/phpstan-frankenphp": "^1.0",
         "phpstan/extension-installer": "^1.0",
         "phpstan/phpstan": "^2.0",

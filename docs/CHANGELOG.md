@@ -57,6 +57,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **`client_reference` declared as an identity key for the REQ-SEC-006 gate.**
+  `Collation\ContactFormExactKeyColumns` declares `client_reference` of the submission table (with the configured
+  `doctrine.table_prefix` applied, so it names the table the host really has) as a column that must be in a binary
+  NO PAD collation. When MigrationsKitBundle is installed the service is registered and tagged automatically, and
+  `nowo:migrations:check-key-collations` fails on it if it is not — including a table created before 1.7, converted
+  by hand, or restored from a dump, which `ClientReferenceCollationListener` cannot see. MigrationsKitBundle stays
+  **optional**: nothing is registered when it is absent. `ip_hash` is deliberately not declared: it is written and
+  exported, never used as a lookup key.
+- **New `mysql-schema` CI job** (MySQL 8.4 and MariaDB 11.4) running
+  `tests/Integration/Collation/ContactFormExactKeyColumnsTest`: it creates the schema from the bundle's own mapping
+  with the real collation listener and asserts the collation the database actually ends up with.
+
 ## [1.9.0] - 2026-11-13
 
 ### Added

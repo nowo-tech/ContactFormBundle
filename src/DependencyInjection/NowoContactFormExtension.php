@@ -7,6 +7,7 @@ namespace Nowo\ContactFormBundle\DependencyInjection;
 use Doctrine\ORM\Events;
 use Nowo\ContactFormBundle\Client\ClientReferenceResolverInterface;
 use Nowo\ContactFormBundle\Client\ObjectClientReferenceResolver;
+use Nowo\ContactFormBundle\Collation\ContactFormExactKeyColumns;
 use Nowo\ContactFormBundle\Controller\ContactFormPublicController;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormFileUploaderPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
@@ -24,6 +25,7 @@ use Nowo\ContactFormBundle\Service\ContactSubmissionProcessor;
 use Nowo\ContactFormBundle\Service\IpAnonymizer;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
 use Nowo\ContactFormBundle\Twig\ContactFormAdminTwigExtension;
+use Nowo\MigrationsKitBundle\Collation\ExactKeyColumnsInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -266,6 +268,7 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
     {
         $tablePrefix = trim((string) ($config['doctrine']['table_prefix'] ?? ''));
         $container->setParameter('nowo_contact_form.doctrine.table_prefix', $tablePrefix);
+        $this->registerExactKeyColumns($container, $tablePrefix);
 
         if ($tablePrefix === '') {
             return;
@@ -274,6 +277,23 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
         $definition = new Definition(TablePrefixListener::class, [$tablePrefix]);
         $definition->addTag('doctrine.event_listener', ['event' => Events::loadClassMetadata]);
         $container->setDefinition(TablePrefixListener::class, $definition);
+    }
+
+    /**
+     * REQ-SEC-006: declare client_reference as an identity key when MigrationsKitBundle is installed, so
+     * nowo:migrations:check-key-collations asserts its binary NO PAD collation against the host's real schema.
+     * Optional: the bundle does not require MigrationsKitBundle and nothing is registered when the interface is
+     * absent. The table prefix is the configured one, so the declaration names the table the host really has.
+     */
+    private function registerExactKeyColumns(ContainerBuilder $container, string $tablePrefix): void
+    {
+        if (!interface_exists(ExactKeyColumnsInterface::class)) {
+            return;
+        }
+
+        $definition = new Definition(ContactFormExactKeyColumns::class, [$tablePrefix]);
+        $definition->addTag('nowo_migrations_kit.exact_key_columns');
+        $container->setDefinition(ContactFormExactKeyColumns::class, $definition);
     }
 
     /**
