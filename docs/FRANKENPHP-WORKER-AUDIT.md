@@ -78,6 +78,8 @@ Precisely: with the stock Symfony kernel, `FRANKENPHP_RESET_KERNEL=false` only s
 | 11 form types | yes | stateless, except FormKit `FormOptionsTrait` fields (bound builder restored in `finally`, profile name memoized from a class attribute) | ✅ | ✅ |
 | `Command\CleanupExpiredSubmissionsCommand` | CLI only | none | N/A | N/A |
 
+Note (audit OB2): with a custom asynchronous Messenger `MessageExecutionStrategyInterface` the tracker loses its nested-worker protection (a worker run inside a handler may clear the outer message's unit); the boundary clears still happen.
+
 Entities, `ContactSubmissionNotification`, `ContactSubmissionCreatedEvent` and `ContactFormFieldPhoneOptions` are created per call and never stored in a service property.
 
 ## Findings
