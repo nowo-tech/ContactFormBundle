@@ -30,11 +30,12 @@
         }
     ],
     "require": {
-        "php": ">=8.2 <8.6",
         "doctrine/doctrine-bundle": "^2.13 || ^3.0",
         "doctrine/orm": "^3.7",
         "nowo-tech/form-kit-bundle": "^2.13.3",
+        "nowo-tech/migrations-kit-contracts": "^1.0",
         "nowo-tech/ui-kit-bundle": "^2.15.3",
+        "php": ">=8.2 <8.6",
         "psr/clock": "^1.0",
         "psr/log": "^1.1 || ^2.0 || ^3.0",
         "symfony/clock": "^7.4 || ^8.0",
@@ -56,7 +57,7 @@
         "twig/string-extra": "^3.12"
     },
     "suggest": {
-        "nowo-tech/migrations-kit-bundle": "Declares client_reference as an identity key so nowo:migrations:check-key-collations asserts its binary NO PAD collation against the real schema (REQ-SEC-006)",
+        "nowo-tech/migrations-kit-bundle": "Runs nowo:migrations:check-key-collations, which asserts the declared client_reference collation against the live schema (REQ-SEC-006)",
         "nowo-tech/phone-input-bundle": "Rich phone fields with country flags and search in the prefix selector",
         "symfony/form": "^8.1 required for the admin field wizard (FormFlow)",
         "symfony/mailer": "Send submission notifications via email",
@@ -66,7 +67,7 @@
     "require-dev": {
         "friendsofphp/php-cs-fixer": "^3.0",
         "igor-php/igor-php": "^0.10.0",
-        "nowo-tech/migrations-kit-bundle": "^2.4",
+        "nowo-tech/migrations-kit-bundle": "^2.5",
         "nowo-tech/phpstan-frankenphp": "^1.0",
         "phpstan/extension-installer": "^1.0",
         "phpstan/phpstan": "^2.0",

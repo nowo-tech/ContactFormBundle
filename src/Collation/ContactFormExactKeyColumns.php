@@ -6,8 +6,8 @@ namespace Nowo\ContactFormBundle\Collation;
 
 use Nowo\ContactFormBundle\Doctrine\ClientReferenceCollationListener;
 use Nowo\ContactFormBundle\Entity\ContactSubmission;
-use Nowo\MigrationsKitBundle\Collation\ExactKeyColumn;
-use Nowo\MigrationsKitBundle\Collation\ExactKeyColumnsInterface;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumn;
+use Nowo\MigrationsKitContracts\Collation\ExactKeyColumnsInterface;
 
 /**
  * Declares `client_reference` of the submission table as an identity key (REQ-SEC-006).

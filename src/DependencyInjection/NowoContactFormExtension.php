@@ -25,7 +25,6 @@ use Nowo\ContactFormBundle\Service\ContactSubmissionProcessor;
 use Nowo\ContactFormBundle\Service\IpAnonymizer;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
 use Nowo\ContactFormBundle\Twig\ContactFormAdminTwigExtension;
-use Nowo\MigrationsKitBundle\Collation\ExactKeyColumnsInterface;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -280,17 +279,14 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
     }
 
     /**
-     * REQ-SEC-006: declare client_reference as an identity key when MigrationsKitBundle is installed, so
-     * nowo:migrations:check-key-collations asserts its binary NO PAD collation against the host's real schema.
-     * Optional: the bundle does not require MigrationsKitBundle and nothing is registered when the interface is
-     * absent. The table prefix is the configured one, so the declaration names the table the host really has.
+     * REQ-SEC-006: declare client_reference as an identity key, so a host's nowo:migrations:check-key-collations
+     * asserts its binary NO PAD collation against the real schema. The contract comes from
+     * nowo-tech/migrations-kit-contracts (interfaces and value objects, no dependencies beyond PHP); the check itself
+     * lives in MigrationsKitBundle, which only the host needs. A host without it simply never reads the tag. The
+     * table prefix is the configured one, so the declaration names the table the host really has.
      */
     private function registerExactKeyColumns(ContainerBuilder $container, string $tablePrefix): void
     {
-        if (!interface_exists(ExactKeyColumnsInterface::class)) {
-            return;
-        }
-
         $definition = new Definition(ContactFormExactKeyColumns::class, [$tablePrefix]);
         $definition->addTag('nowo_migrations_kit.exact_key_columns');
         $container->setDefinition(ContactFormExactKeyColumns::class, $definition);
