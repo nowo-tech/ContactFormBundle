@@ -49,6 +49,8 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 - **FR-CFG-003**: `ContactFormOptionalServicesPass` wires services that depend on other bundles (clock, mailer) on the merged container.
 - **FR-CFG-004**: `TablePrefixListener` prepends `doctrine.table_prefix` to the bundle entity tables.
 - **FR-SEC-001**: Admin access checker interface + configurable/allow-all implementations; `ContactFormSecurityPass`; `ContactFormAdminAccessSubscriber` enforces roles on admin CRUD (demo may use allow-all).
+- **FR-SEC-002**: `SafeRelativePath` keeps redirects and links same-origin (CWE-601).
+- **FR-SEC-003**: `client_reference` is an identity key: `ContactFormExactKeyColumns` + `ClientReferenceCollationListener` give it an exact-match collation on MySQL / MariaDB (REQ-SEC-006).
 
 ### Entities & repositories
 
@@ -72,11 +74,12 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 ### Services
 
 - **FR-SVC-001**: Submission processor, dynamic builder, value normalizer, rate limiter, sanitizer.
-- **FR-SVC-002**: Client resolver interface + security implementation, label resolver.
+- **FR-SVC-002**: Client resolver interface + security implementation, label resolver; since 1.7 the submission stores a `ClientReference` (id + label) from `ClientReferenceResolverInterface` (default `ObjectClientReferenceResolver`).
 - **FR-SVC-003**: Phone prefix/options resolvers, availability, `ContactPhoneValue`.
-- **FR-SVC-004**: Select options synchronizer, file upload handler interface + null impl.
+- **FR-SVC-004**: Select options synchronizer, file upload handler interface + null impl; since 1.8 the framework-free `ContactFormFileUploaderInterface` port with `UploadedContactFile` / `ContactFormFileTarget` value objects.
 - **FR-SVC-005**: `IpAnonymizer`, `SubmissionRetentionCleanupService`.
 - **FR-SVC-006**: `ContactFormEnabledLocales` (admin content locales, `en` fallback).
+- **FR-SVC-007**: `ContactSubmissionRecorderInterface` records a submission from plain values without a Symfony form or request (throws `ContactFormNotFoundException` for an unknown slug).
 
 ### Notifications
 
@@ -110,7 +113,7 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 
 ## Success Criteria
 
-- **SC-001**: **95/95** files under `src/` mapped in [`code-inventory.md`](code-inventory.md) (audited 2026-10-27).
+- **SC-001**: **122/122** files under `src/` mapped in [`code-inventory.md`](code-inventory.md) (audited 2026-11-16).
 - **SC-002**: Config matches `docs/CONFIGURATION.md`.
 - **SC-003**: QA/CI green.
 

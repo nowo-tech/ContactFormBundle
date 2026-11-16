@@ -2,7 +2,7 @@
 
 **Baseline spec**: [`spec.md`](spec.md)  
 **Package**: `nowo-tech/contact-form-bundle`  
-**Last audited**: 2026-10-27
+**Last audited**: 2026-11-16
 
 ## Symfony config
 
@@ -24,6 +24,9 @@
 | `DependencyInjection/Compiler/ContactFormOptionalServicesPass.php` | Optional clock / mailer wiring on the merged container | FR-CFG-003 |
 | `DependencyInjection/Compiler/ContactFormMappingDriverPass.php` | Attribute (default) or XML mapping of the entities (1.9, `doctrine.mapping_type`) | FR-ORM-001 |
 | `DependencyInjection/TablePrefixListener.php` | Doctrine `table_prefix` for bundle entity tables | FR-CFG-004 |
+| `DependencyInjection/Compiler/ContactFormCsrfProtectionPass.php` | Fails closed when the admin UI is enabled without CSRF protection | FR-SEC-001 |
+| `DependencyInjection/Compiler/ContactFormEntityManagerPass.php` | Keeps the bundle entities on `doctrine.entity_manager` only (1.7) | FR-ORM-001, FR-WORKER-001 |
+| `DependencyInjection/Compiler/ContactFormFileUploaderPass.php` | Wires the file ports (1.8) and the deprecated handler bridge | FR-SVC-004 |
 
 ## Security
 
@@ -32,6 +35,9 @@
 | `Security/ContactFormAccessCheckerInterface.php` | Admin access contract | FR-SEC-001 |
 | `Security/ConfigurableContactFormAccessChecker.php` | Role-based checker | FR-SEC-001 |
 | `Security/AllowAllContactFormAccessChecker.php` | Demo allow-all checker | FR-SEC-001 |
+| `Security/SafeRelativePath.php` | Same-origin relative paths for redirects and links (CWE-601) | FR-SEC-002 |
+| `Collation/ContactFormExactKeyColumns.php` | Declares `client_reference` as an identity key (REQ-SEC-006) | FR-SEC-003 |
+| `Doctrine/ClientReferenceCollationListener.php` | Exact-match collation for `client_reference` on MySQL / MariaDB | FR-SEC-003 |
 
 ## Entities
 
@@ -49,6 +55,7 @@
 | `Resources/config/doctrine-xml/ContactFormTranslation.orm.xml` | XML mapping, same as the attributes (1.9, opt-in) | FR-ORM-001 |
 | `Resources/config/doctrine-xml/ContactSubmission.orm.xml` | XML mapping, same as the attributes (1.9, opt-in) | FR-ORM-001 |
 | `Resources/config/doctrine-xml/ContactSubmissionValue.orm.xml` | XML mapping, same as the attributes (1.9, opt-in) | FR-ORM-001 |
+| `Doctrine/ExcludedEntityNamespaceDriver.php` | Maps nothing for the bundle namespace on every other entity manager | FR-ORM-001, FR-WORKER-001 |
 
 ## Repositories
 
@@ -72,6 +79,8 @@
 | `EventSubscriber/ContactFormAdminLocaleSubscriber.php` | Admin locale | FR-EVT-001 |
 | `EventSubscriber/ContactFormAdminAccessSubscriber.php` | Admin access gate | FR-SEC-001 |
 | `EventSubscriber/ContactFormEntityManagerSubscriber.php` | Closed EM recovery (worker) | FR-WORKER-001 |
+| `Event/ContactSubmissionsDeletedEvent.php` | Dispatched after admin / retention deletions are flushed (1.7) | FR-EVT-001 |
+| `EventSubscriber/ContactFormEntityManagerClearSubscriber.php` | Clears the bundle's own entity manager at the outermost unit-of-work boundary | FR-WORKER-001 |
 
 ## Controllers
 
@@ -122,6 +131,10 @@
 | `Service/IpAnonymizer.php` | GDPR IP mask | FR-SVC-005 |
 | `Service/SubmissionRetentionCleanupService.php` | Retention purge | FR-SVC-005 |
 | `Service/ContactFormEnabledLocales.php` | Admin content locales | FR-SVC-006 |
+| `Service/ContactSubmissionRecorderInterface.php` | Request-free write port: record a submission from plain values (1.7) | FR-SVC-007 |
+| `Service/SubmissionRetentionCleanerInterface.php` | Port behind `nowo:contact-form:cleanup-expired` (1.8) | FR-SVC-005 |
+| `Exception/ContactFormNotFoundException.php` | No contact form has the given slug | FR-SVC-007 |
+| `Exception/ContactFormFileException.php` | A submitted file cannot be read or stored | FR-SVC-004 |
 
 ## Notifications
 
@@ -191,27 +204,46 @@
 | `Resources/views/public/_form_fields.html.twig` | Field partial | FR-TWIG-002 |
 | `Resources/views/form/contact_phone.html.twig` | Phone widget | FR-TWIG-002 |
 
+## Client references
+
+| Source file | Spec section | Requirement IDs |
+| --- | --- | --- |
+| `Client/ClientReference.php` | Host client of a submission as an id reference + optional label (1.7) | FR-SVC-002 |
+| `Client/ClientReferenceResolverInterface.php` | Host contract `client_reference_resolver` | FR-SVC-002 |
+| `Client/ObjectClientReferenceResolver.php` | Default resolver adapting `ClientResolverInterface` | FR-SVC-002 |
+
+## File upload ports
+
+| Source file | Spec section | Requirement IDs |
+| --- | --- | --- |
+| `Upload/ContactFormFileUploaderInterface.php` | Host port that stores a submitted file (1.8) | FR-SVC-004 |
+| `Upload/UploadedContactFile.php` | Framework-free submitted-file value object | FR-SVC-004 |
+| `Upload/UploadedContactFileData.php` | Keeps the file values outside the VO so dumps cannot leak paths / names | FR-SVC-004 |
+| `Upload/ContactFormFileTarget.php` | File field ids, names and admin options (no entity) | FR-SVC-004 |
+
 ## Coverage summary
 
 | Category | Files | Mapped |
 | --- | ---: | ---: |
 | Symfony config | 3 | 3 |
-| Bundle & DI | 7 | 7 |
-| Security | 3 | 3 |
-| Entities | 6 | 6 |
+| Bundle & DI | 11 | 11 |
+| Security | 6 | 6 |
+| Entities | 13 | 13 |
 | Repositories | 7 | 7 |
-| Enums & events | 6 | 6 |
+| Enums & events | 8 | 8 |
 | Controllers | 5 | 5 |
 | Forms | 11 | 11 |
-| Services | 19 | 19 |
+| Services | 23 | 23 |
 | Notifications | 4 | 4 |
 | Phone | 1 | 1 |
 | CLI | 1 | 1 |
 | Twig PHP | 1 | 1 |
 | UI view models | 2 | 2 |
 | Translations | 7 | 7 |
-| Twig admin | 9 | 9 |
-| Twig public | 3 | 3 |
-| **Total production sources** | **95** | **95** |
+| Twig views — admin | 9 | 9 |
+| Twig views — public | 3 | 3 |
+| Client references | 3 | 3 |
+| File upload ports | 4 | 4 |
+| **Total production sources** | **122** | **122** |
 
 Audit command: `git ls-files src | wc -l` → 95.
