@@ -58,6 +58,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Demo
+
+- The demo shell is UiKit's admin layout with UiKit's default theme (REQ-DEMO-014): the Bootstrap CDN stylesheet and scripts, the hand-written navbar/card shell, the Bootstrap form theme and the unused `icon_demo` templates are gone; the demo requires `nowo-tech/ui-kit-bundle`. No bundle runtime change.
+
 ### Documentation
 
 - Spec Kit baseline: `code-inventory.md` maps all 122 `src/` files again (20 files added in 1.7–1.9 were missing: client references, file upload ports, entity manager isolation, collation, `SafeRelativePath`), the coverage summary is recounted from the tables, and `spec.md` gains `FR-SEC-002`, `FR-SEC-003` and `FR-SVC-007` (REQ-SPECKIT-001/003).

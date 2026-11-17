@@ -246,4 +246,4 @@
 | File upload ports | 4 | 4 |
 | **Total production sources** | **122** | **122** |
 
-Audit command: `git ls-files src | wc -l` → 95.
+Audit command: `git ls-files src | wc -l` → 122.
