@@ -24,7 +24,7 @@ async function boxOf(page: Page, selector: string): Promise<Box | null> {
 
 /** Navbar → main → profiler (union), padded. */
 async function clipDemoFrame(page: Page): Promise<Box> {
-  const masthead = await boxOf(page, 'nav.demo-navbar');
+  const masthead = await boxOf(page, '[data-testid="demo-masthead"]');
   const main = await boxOf(page, 'main');
   const profiler = (await boxOf(page, '.sf-toolbar')) ?? (await boxOf(page, '.sf-minitoolbar'));
   if (!masthead || !main) {

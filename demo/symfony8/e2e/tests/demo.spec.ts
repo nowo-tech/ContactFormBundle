@@ -7,7 +7,7 @@ import { test, expect } from '@playwright/test';
 test.describe('ContactFormBundle demo', () => {
   test('home lists the seeded forms', async ({ page }) => {
     await page.goto('/en');
-    await expect(page.locator('nav.demo-navbar')).toBeVisible();
+    await expect(page.locator('[data-testid="demo-masthead"]')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Admin' }).first()).toBeVisible();
     await expect(page.locator('main code', { hasText: 'contact' }).first()).toBeVisible();
   });
