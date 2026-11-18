@@ -45,6 +45,8 @@ Extension alias: `nowo_contact_form`.
 | `doctrine.table_prefix` | `""` | Prefix prepended to entity table names (`nowo_contact_form`, …). Empty = no prefix |
 | `doctrine.entity_manager` | `null` | **1.7.** Doctrine entity manager the bundle entities are mapped on, e.g. a dedicated `contact_form` manager. Mapped on that manager only (also when the default one has `auto_mapping: true` or a default metadata driver: DoctrineBundle 3.4 `auto_discover_entities`, fixed in Unreleased); every read, write, flush and recovery reset of the bundle uses it. Unknown manager = build error. Null = the default entity manager (unchanged) |
 | `doctrine.mapping_type` | `attribute` | **1.9.** Mapping driver of the six bundle entities, registered on `doctrine.entity_manager` (or the default manager): `attribute` (unchanged) or `xml` (`src/Resources/config/doctrine-xml/*.orm.xml`, the same tables, columns, indexes and constraints) for managers that load XML mapping only |
+| `conflict_response.status` | `null` | **Unreleased.** Status of a lock-conflict answer on the bundle's routes: 409 (`CONFLICT_001` / `CONFLICT_002`) or 503. Null = transaction-doctrine's `conflict_response` when its bundle is registered, else 409. See [CONCURRENCY](CONCURRENCY.md) |
+| `conflict_response.retry_after` | `null` | **Unreleased.** `Retry-After` seconds of a `CONFLICT_001` answer (min 0). Null = transaction-doctrine's value, else 1 |
 
 ## Table of contents
 
@@ -241,6 +243,9 @@ php bin/console nowo:contact-form:cleanup-submissions --dry-run
 ```
 
 Each form's `retention_days` (0 to 3650) defines when its submissions are eligible for deletion; `0` keeps them forever (the cleanup skips the form).
+
+The command deletes in chunks of 500, one transaction each. When a chunk meets a lock conflict it exits with code 1 and
+"Run the command again": that chunk is unchanged, the chunks before it stay deleted ([CONCURRENCY](CONCURRENCY.md)).
 
 ## FormKit profile (`contact_form`)
 

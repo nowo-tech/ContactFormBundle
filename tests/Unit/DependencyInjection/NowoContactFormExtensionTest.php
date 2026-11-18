@@ -7,6 +7,7 @@ namespace Nowo\ContactFormBundle\Tests\Unit\DependencyInjection;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
 use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
 use Nowo\ContactFormBundle\DependencyInjection\TablePrefixListener;
+use Nowo\ContactFormBundle\EventSubscriber\ContactFormConflictListener;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier;
@@ -18,10 +19,13 @@ use Nowo\ContactFormBundle\Service\ContactFormSubmissionRateLimiter;
 use Nowo\ContactFormBundle\Service\DynamicContactFormBuilder;
 use Nowo\ContactFormBundle\Service\IpAnonymizer;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
+use Nowo\TransactionDoctrine\Symfony\Conflict\ConflictResponsePolicy;
+use Nowo\TransactionDoctrine\WriteUnit\Dbal\CommitTrackingMiddleware;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Reference;
 
@@ -331,6 +335,43 @@ final class NowoContactFormExtensionTest extends TestCase
             $container->getExtensionConfig('nowo_ui_kit'),
             static fn (array $cfg): bool => ($cfg['css_framework'] ?? null) === 'bootstrap5',
         ));
+    }
+
+    /**
+     * 1.11 (REQ-RUNTIME-003): the conflict answer follows transaction-doctrine's policy service by default (optional
+     * reference), the bundle's options win when set; the commit-tracking middleware is tagged for every connection.
+     */
+    public function testTheConflictAnswerIsRegistered(): void
+    {
+        $container = new ContainerBuilder();
+        (new NowoContactFormExtension())->load([$this->baseConfig()], $container);
+
+        $listener = $container->getDefinition(ContactFormConflictListener::class);
+        $policy   = $listener->getArgument(0);
+        self::assertInstanceOf(Reference::class, $policy);
+        self::assertSame(ConflictResponsePolicy::class, (string) $policy);
+        self::assertSame(ContainerInterface::NULL_ON_INVALID_REFERENCE, $policy->getInvalidBehavior());
+        self::assertSame(NowoContactFormExtension::COMMIT_LEDGER_SERVICE, (string) $listener->getArgument(1));
+        self::assertSame([
+            ['event' => 'kernel.request', 'method' => 'onRequest', 'priority' => ContactFormConflictListener::REQUEST_PRIORITY],
+            ['event' => 'kernel.exception', 'method' => 'onException', 'priority' => ContactFormConflictListener::PRIORITY],
+        ], $listener->getTag('kernel.event_listener'));
+
+        $middleware = $container->getDefinition(NowoContactFormExtension::COMMIT_TRACKING_MIDDLEWARE);
+        self::assertSame(CommitTrackingMiddleware::class, $middleware->getClass());
+        self::assertSame([[]], $middleware->getTag('doctrine.middleware'), 'every connection');
+
+        $container = new ContainerBuilder();
+        (new NowoContactFormExtension())->load([$this->baseConfig() + ['conflict_response' => ['status' => 503]]], $container);
+        $policy = $container->getDefinition(ContactFormConflictListener::class)->getArgument(0);
+        self::assertInstanceOf(Definition::class, $policy);
+        self::assertSame([503, ConflictResponsePolicy::DEFAULT_RETRY_AFTER], $policy->getArguments());
+
+        $container = new ContainerBuilder();
+        (new NowoContactFormExtension())->load([$this->baseConfig() + ['conflict_response' => ['retry_after' => 5]]], $container);
+        $policy = $container->getDefinition(ContactFormConflictListener::class)->getArgument(0);
+        self::assertInstanceOf(Definition::class, $policy);
+        self::assertSame([ConflictResponsePolicy::STATUS_CONFLICT, 5], $policy->getArguments());
     }
 
     /**

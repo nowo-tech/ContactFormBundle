@@ -139,4 +139,21 @@ final class ConfigurationTest extends TestCase
         self::assertSame('tailwind', $config['web_ui']['css_framework']);
         self::assertSame('none', $config['web_ui']['icon_set']);
     }
+
+    public function testConflictResponseDefaultsToNullAndAccepts409Or503(): void
+    {
+        $config = (new Processor())->processConfiguration(new Configuration(), []);
+        self::assertSame(['status' => null, 'retry_after' => null], $config['conflict_response']);
+
+        $config = (new Processor())->processConfiguration(new Configuration(), [['conflict_response' => ['status' => 503, 'retry_after' => 3]]]);
+        self::assertSame(['status' => 503, 'retry_after' => 3], $config['conflict_response']);
+    }
+
+    public function testConflictResponseRejectsOtherStatuses(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('must be 409 or 503');
+
+        (new Processor())->processConfiguration(new Configuration(), [['conflict_response' => ['status' => 500]]]);
+    }
 }

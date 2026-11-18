@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Tests\Unit\Service;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Persistence\ManagerRegistry;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactSubmission;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Repository\ContactSubmissionRepository;
+use Nowo\ContactFormBundle\Service\ContactFormEntityManagerResolver;
 use Nowo\ContactFormBundle\Service\SubmissionRetentionCleanupService;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\EventDispatcher\EventDispatcherInterface;
+use RuntimeException;
 use Symfony\Component\Clock\MockClock;
 
 use function count;
@@ -70,6 +74,36 @@ final class SubmissionRetentionCleanupServiceTest extends TestCase
         );
 
         self::assertSame(1, $service->cleanup(false));
+    }
+
+    /**
+     * 1.11 (REQ-RUNTIME-003): a failed chunk (a lock conflict) recovers the manager it closed and is rethrown, never
+     * swallowed; no event is dispatched for it.
+     */
+    public function testAFailedChunkResetsTheClosedManagerAndIsRethrown(): void
+    {
+        $formRepository = $this->createStub(ContactFormRepository::class);
+        $formRepository->method('findAll')->willReturn([(new ContactForm())->setRetentionDays(30)]);
+        $submissionRepository = $this->createStub(ContactSubmissionRepository::class);
+        $submissionRepository->method('findExpiredIdsByForm')->willReturn([5]);
+        $submissionRepository->method('findBy')->willReturn([new ContactSubmission()]);
+
+        $failure       = new RuntimeException('Lock wait timeout exceeded');
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->method('isOpen')->willReturnOnConsecutiveCalls(true, false);
+        $entityManager->expects(self::once())->method('flush')->willThrowException($failure);
+
+        $registry = $this->createMock(ManagerRegistry::class);
+        $registry->method('getManager')->with('contact_form')->willReturn($entityManager);
+        $registry->expects(self::once())->method('resetManager')->with('contact_form')->willReturn($this->createStub(EntityManagerInterface::class));
+
+        $dispatcher = $this->createMock(EventDispatcherInterface::class);
+        $dispatcher->expects(self::never())->method('dispatch');
+
+        $service = new SubmissionRetentionCleanupService($formRepository, $submissionRepository, $entityManager, new MockClock(), new ContactFormEntityManagerResolver($registry, 'contact_form'), $dispatcher);
+
+        $this->expectExceptionObject($failure);
+        $service->cleanup();
     }
 
     public function testCleanupLoadsAndFlushesExpiredSubmissionsInChunks(): void

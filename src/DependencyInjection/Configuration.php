@@ -6,6 +6,7 @@ namespace Nowo\ContactFormBundle\DependencyInjection;
 
 use Nowo\ContactFormBundle\Service\DynamicContactFormBuilder;
 use Nowo\ContactFormBundle\Ui\ContactFormPages;
+use Nowo\TransactionDoctrine\Symfony\Conflict\ConflictResponsePolicy;
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
@@ -13,6 +14,7 @@ use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use function array_diff;
 use function array_keys;
 use function implode;
+use function in_array;
 use function is_scalar;
 use function is_string;
 use function preg_match;
@@ -289,6 +291,25 @@ class Configuration implements ConfigurationInterface
                             ->values(['attribute', 'xml'])
                             ->defaultValue('attribute')
                             ->info('Mapping driver of the bundle entities (1.9): attribute (default, unchanged) or xml (src/Resources/config/doctrine-xml/*.orm.xml, the same tables, columns, indexes and constraints) for hosts whose managers only load XML mapping. Registered on doctrine.entity_manager (or the default entity manager).')
+                        ->end()
+                    ->end()
+                ->end()
+                ->arrayNode('conflict_response')
+                    ->info('1.11 (REQ-RUNTIME-003): answer of a lock conflict (deadlock, lock wait timeout, serialization failure) on the bundle\'s routes. Unset: nowo-tech/transaction-doctrine\'s conflict_response when that bundle is registered, else 409 with Retry-After 1.')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->integerNode('status')
+                            ->info('409 (default, CONFLICT_001 / CONFLICT_002) or 503. Null: follow transaction-doctrine, else 409.')
+                            ->defaultNull()
+                            ->validate()
+                                ->ifTrue(static fn (mixed $value): bool => $value !== null && !in_array($value, ConflictResponsePolicy::STATUSES, true))
+                                ->thenInvalid('nowo_contact_form.conflict_response.status must be 409 or 503, got %s.')
+                            ->end()
+                        ->end()
+                        ->integerNode('retry_after')
+                            ->info('Retry-After seconds of a CONFLICT_001 answer. Null: follow transaction-doctrine, else 1.')
+                            ->defaultNull()
+                            ->min(0)
                         ->end()
                     ->end()
                 ->end()

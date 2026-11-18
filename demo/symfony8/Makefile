@@ -95,7 +95,7 @@ link-bundle: ensure-up
 	@echo "Bundle linked to mounted source. Reload the page in the browser."
 
 update-bundle: ensure-up
-	$(COMPOSE) exec php composer update nowo-tech/contact-form-bundle --no-interaction
+	$(COMPOSE) exec php composer update nowo-tech/contact-form-bundle -w --no-interaction
 	$(COMPOSE) exec php php bin/console cache:clear --env=dev
 	@echo "Bundle updated. Reload the page in the browser."
 

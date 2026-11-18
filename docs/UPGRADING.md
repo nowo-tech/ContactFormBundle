@@ -66,6 +66,26 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 
 ## Unreleased
 
+Concurrency (REQ-RUNTIME-003, minor, no action required):
+
+- **New dependencies**: `nowo-tech/transaction-contract` ^1.0 and `nowo-tech/transaction-doctrine` ^1.6 (installed by Composer). Registering transaction-doctrine's Symfony bundle is optional.
+- **Lock conflicts answer 409 instead of 500** on the bundle's routes, with `X-Conflict-Code: CONFLICT_001` + `Retry-After`, or `CONFLICT_002` without `Retry-After` when part of the request was committed. To answer 503 instead (proxies or monitors that retry on 503):
+
+  ```yaml
+  nowo_contact_form:
+      conflict_response:
+          status: 503
+          retry_after: 2
+  ```
+
+  Unset, the options follow `nowo_transaction_doctrine.conflict_response` when that bundle is registered. Your own routes are not affected. Cross-origin clients that read the code must have `X-Conflict-Code` in `Access-Control-Expose-Headers`.
+- **Commit tracking on every connection**: the bundle tags transaction-doctrine's `CommitTrackingMiddleware` (`nowo_contact_form.commit_tracking_middleware`) for every Doctrine connection, so a commit of yours earlier in the request makes a later conflict `CONFLICT_002`. It only counts commits.
+- **Duplicate keys on admin saves answer 409** with `X-Error-Code: CONTACT_FORM_DUPLICATE_KEY` (before: 500). Nothing changes on the public form.
+- **`nowo:contact-form:cleanup-submissions` exits 1** with "A lock conflict … Run the command again" on a lock conflict (before: an uncaught exception, also exit 1). Schedulers that retry on a non-zero exit keep working.
+- The bundle does not use transaction-doctrine's runner on your entity manager, so the runner's `LogicException` on unflushed host changes does not apply here.
+
+See [CONCURRENCY](CONCURRENCY.md).
+
 ## To 1.10.0
 
 From **1.9.0**:

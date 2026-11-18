@@ -116,6 +116,7 @@ make release-check
 - [Coverage policy](docs/COVERAGE.md)
 - [Demo FrankenPHP](docs/DEMO-FRANKENPHP.md) (when using the FrankenPHP demo)
 - [FrankenPHP worker audit (no kernel reset)](docs/FRANKENPHP-WORKER-AUDIT.md)
+- [Concurrency (REQ-RUNTIME-003)](docs/CONCURRENCY.md) — write paths, 409 + `CONFLICT_001` / `CONFLICT_002`, host options
 
 ## Tests and coverage
 
