@@ -454,8 +454,9 @@ final class WorkerBoundariesTest extends TestCase
         $dispatcher = $this->dispatcher();
         foreach ([WorkerMessageHandledEvent::class, WorkerMessageFailedEvent::class] as $event) {
             foreach ($dispatcher->getListeners($event) as $listener) {
-                if (is_array($listener) && $listener[0] instanceof DoctrineClearEntityManagerWorkerSubscriber && is_callable($listener)) {
-                    $dispatcher->removeListener($event, $listener);
+                $clear = $this->doctrineClearListener($listener);
+                if ($clear !== null) {
+                    $dispatcher->removeListener($event, $clear);
                 }
             }
         }
@@ -649,5 +650,13 @@ final class WorkerBoundariesTest extends TestCase
         $this->files[] = $file;
 
         return $file;
+    }
+
+    /**
+     * DoctrineBundle's per-message clear listener, else null (getListeners() is typed differently on Symfony 7.4 and 8).
+     */
+    private function doctrineClearListener(mixed $listener): ?callable
+    {
+        return is_array($listener) && ($listener[0] ?? null) instanceof DoctrineClearEntityManagerWorkerSubscriber && is_callable($listener) ? $listener : null;
     }
 }
