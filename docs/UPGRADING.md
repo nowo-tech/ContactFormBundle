@@ -67,6 +67,17 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 
 ## Unreleased
 
+- **`nowo-tech/transaction-doctrine` ^1.7.1** is required (was ^1.6): `composer update nowo-tech/contact-form-bundle
+  nowo-tech/transaction-doctrine`. No configuration change.
+- **Commit tracking (`conflict_response.commit_tracking: bundle`) without `doctrine.entity_manager`:** if you map the
+  bundle entities on a non-default manager, that manager's connection is now wrapped by the commit-tracking middleware
+  too (next to the default manager's), so a commit there earlier in the request answers `CONFLICT_002`. Nothing to do;
+  set `doctrine.entity_manager` to keep a single wrapped connection.
+- **Your own `CommitLedger` service:** the bundle reuses transaction-doctrine's ledger only when its
+  `nowo_transaction_doctrine.commit_tracking_middleware` is registered too (`commit_detection: true`). A
+  `Nowo\TransactionDoctrine\WriteUnit\CommitLedger` service you registered yourself is no longer taken for it; the
+  bundle keeps its own ledger and middleware. Nothing to do.
+
 ## To 1.11.0
 
 From **1.10.0**:

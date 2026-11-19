@@ -88,13 +88,18 @@ nowo_contact_form:
 - `status: 503` for proxies or monitors that treat 503 as retryable; the codes and the `Retry-After` rule stay the same.
 - `commit_tracking` decides which commits make a later conflict `CONFLICT_002` when transaction-doctrine's
   `commit_detection` is off (or its bundle is not registered):
-  - `bundle` (default): the bundle registers transaction-doctrine's `CommitTrackingMiddleware` on the connection of its
-    entity manager only (`doctrine.entity_manager`, else your default manager). Your other connections are not wrapped.
+  - `bundle` (default): the bundle registers transaction-doctrine's `CommitTrackingMiddleware` on the connections of
+    its entity managers only: the `doctrine.entity_manager` one when set; unset, your default manager's connection and
+    the connection of every manager whose mapping covers `Nowo\ContactFormBundle\Entity` (the runtime resolver,
+    `getManagerForClass()`, may pick any of them). Your other connections are not wrapped.
   - `all`: every Doctrine connection, so a commit of yours on another connection earlier in the request counts too.
   - `off`: no middleware; only the failure itself (and transaction-doctrine's request mark) decides.
 
   With transaction-doctrine's bundle registered and `commit_detection` on (its default), the bundle reuses that
-  bundle's ledger and adds no middleware of its own, whatever this option says: no connection is wrapped twice.
+  bundle's ledger and adds no middleware of its own, whatever this option says: no connection is wrapped twice. The
+  bundle detects this by transaction-doctrine's `CommitLedger` service AND its tagged
+  `nowo_transaction_doctrine.commit_tracking_middleware`; a `CommitLedger` service of your own, without that
+  middleware, is ignored and the bundle keeps its own tracking.
 - `doctrine.entity_manager`: give the bundle its own manager (see [CONFIGURATION](CONFIGURATION.md)) so a failed flush
   of the bundle never closes yours.
 - Database settings: READ COMMITTED and a short `innodb_lock_wait_timeout` / `lock_timeout` (a few seconds) for HTTP;
