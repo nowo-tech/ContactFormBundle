@@ -59,6 +59,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Commit tracking follows a host mapping on a non-default manager (audit UE3-CF-1).** With
+  `conflict_response.commit_tracking: bundle` and `doctrine.entity_manager` unset, the bundle's commit-tracking
+  middleware wrapped only the default manager's connection, while the runtime resolver (`getManagerForClass()`) could
+  return another manager whose mapping covers `Nowo\ContactFormBundle\Entity`: a commit there earlier in the request
+  then answered `CONFLICT_001` (with `Retry-After`) instead of `CONFLICT_002`. The middleware now wraps the default
+  manager's connection and the connection of every manager that maps the bundle entities. With
+  `doctrine.entity_manager` set nothing changes.
+- **A stray `CommitLedger` service no longer silences `CONFLICT_002` (audit UE3-CF-2).** The bundle dropped its own
+  ledger and middleware whenever a `Nowo\TransactionDoctrine\WriteUnit\CommitLedger` service existed. It now does so only
+  when transaction-doctrine's tagged `nowo_transaction_doctrine.commit_tracking_middleware` exists too (its
+  `commit_detection` on); a ledger nothing feeds is ignored and the bundle keeps its own tracking.
+
+### Changed
+
+- **Requires `nowo-tech/transaction-doctrine` ^1.7.1** (was ^1.6): DBAL 3 `Connection::commit()` returns `true` again
+  through the commit-tracking middleware the bundle registers (transaction-doctrine 1.7.0, audit UE-CF-1), and Messenger
+  wrappers are read through the bounded walk (1.7.1). The bundle runs no write units of its own, so
+  `WriteUnit::forManagers()` is not used: there is no replay that could clear the host's manager.
+
 ## [1.11.0] - 2026-11-19
 
 ### Added

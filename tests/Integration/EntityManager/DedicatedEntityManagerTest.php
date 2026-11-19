@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Tests\Integration\EntityManager;
 
 use Doctrine\Bundle\DoctrineBundle\Mapping\MappingDriver as DoctrineBundleMappingDriver;
+use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping\Driver\XmlDriver;
 use Doctrine\ORM\Tools\SchemaTool;
@@ -15,6 +16,7 @@ use Doctrine\Persistence\Mapping\Driver\MappingDriverChain;
 use Nowo\ContactFormBundle\Client\ClientReference;
 use Nowo\ContactFormBundle\Client\ClientReferenceResolverInterface;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormEntityManagerPass;
+use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
 use Nowo\ContactFormBundle\Doctrine\ClientReferenceCollationListener;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormField;
@@ -29,6 +31,7 @@ use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Service\ContactSubmissionRecorderInterface;
 use Nowo\ContactFormBundle\Service\SubmissionRetentionCleanupService;
 use Nowo\ContactFormBundle\Tests\Integration\EntityManager\Entity\HostNote;
+use Nowo\TransactionDoctrine\WriteUnit\CommitLedger;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
@@ -38,6 +41,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 use function array_keys;
+use function dirname;
 use function gc_collect_cycles;
 use function getmypid;
 use function is_file;
@@ -253,6 +257,52 @@ final class DedicatedEntityManagerTest extends TestCase
         self::assertInstanceOf(EntityManagerInterface::class, $main);
         self::assertTrue($main->getMetadataFactory()->isTransient(ContactSubmission::class));
         self::assertSame($this->registry()->getManager('contact_form'), $this->registry()->getManagerForClass(ContactSubmission::class));
+    }
+
+    /**
+     * Audit UE3-CF-1: without `doctrine.entity_manager`, a host that maps the bundle entities on a non-default manager
+     * gets that manager's connection tracked for CONFLICT_002 (getManagerForClass() may resolve it), and a connection no
+     * bundle manager uses stays unwrapped.
+     */
+    public function testHostMappingOnANonDefaultManagerIsTrackedWithoutDoctrineEntityManager(): void
+    {
+        $this->boot([
+            'dbal' => [
+                'default_connection' => 'default',
+                'connections'        => [
+                    'default'      => ['url' => 'sqlite:///' . $this->database('ue3-host')],
+                    'contact_form' => ['url' => 'sqlite:///' . $this->database('ue3-bundle')],
+                    'reports'      => ['url' => 'sqlite:///' . $this->database('ue3-reports')],
+                ],
+            ],
+            'orm' => [
+                'default_entity_manager' => 'default',
+                'entity_managers'        => [
+                    'contact_form' => ['connection' => 'contact_form', 'mappings' => ['ContactForm' => [
+                        'type'      => 'attribute',
+                        'is_bundle' => false,
+                        'dir'       => dirname(__DIR__, 3) . '/src/Entity',
+                        'prefix'    => ContactFormEntityManagerPass::ENTITY_NAMESPACE,
+                    ]]],
+                    'default' => ['connection' => 'default'],
+                ],
+            ],
+        ]);
+        $ledger = $this->container()->get(NowoContactFormExtension::COMMIT_LEDGER_SERVICE);
+        self::assertInstanceOf(CommitLedger::class, $ledger);
+        self::assertSame($this->registry()->getManager('contact_form'), $this->registry()->getManagerForClass(ContactSubmission::class));
+
+        foreach (['contact_form' => true, 'default' => true, 'reports' => false] as $name => $tracked) {
+            $connection = $this->container()->get(sprintf('doctrine.dbal.%s_connection', $name));
+            self::assertInstanceOf(Connection::class, $connection);
+            $connection->executeStatement('CREATE TABLE ue3_probe (id INTEGER)');
+            $before = $ledger->count();
+            $connection->beginTransaction();
+            $connection->executeStatement('INSERT INTO ue3_probe (id) VALUES (1)');
+            $connection->commit();
+
+            self::assertSame($tracked, $ledger->count() > $before, $name);
+        }
     }
 
     public function testUnknownManagerFailsTheBuild(): void
