@@ -26,6 +26,7 @@
 | `DependencyInjection/TablePrefixListener.php` | Doctrine `table_prefix` for bundle entity tables | FR-CFG-004 |
 | `DependencyInjection/Compiler/ContactFormCsrfProtectionPass.php` | Fails closed when the admin UI is enabled without CSRF protection | FR-SEC-001 |
 | `DependencyInjection/Compiler/ContactFormEntityManagerPass.php` | Keeps the bundle entities on `doctrine.entity_manager` only (1.7) | FR-ORM-001, FR-WORKER-001 |
+| `DependencyInjection/Compiler/ContactFormCommitTrackingPass.php` | Scopes the commit-tracking middleware to the bundle connection, or reuses transaction-doctrine's ledger (REQ-RUNTIME-003) | FR-CONC-001 |
 | `DependencyInjection/Compiler/ContactFormFileUploaderPass.php` | Wires the file ports (1.8) and the deprecated handler bridge | FR-SVC-004 |
 
 ## Security
@@ -81,6 +82,7 @@
 | `EventSubscriber/ContactFormEntityManagerSubscriber.php` | Closed EM recovery (worker) | FR-WORKER-001 |
 | `Event/ContactSubmissionsDeletedEvent.php` | Dispatched after admin / retention deletions are flushed (1.7) | FR-EVT-001 |
 | `EventSubscriber/ContactFormEntityManagerClearSubscriber.php` | Clears the bundle's own entity manager at the outermost unit-of-work boundary | FR-WORKER-001 |
+| `EventSubscriber/ContactFormConflictListener.php` | 409 + `CONFLICT_001` / `CONFLICT_002` on lock conflicts, domain 409 on admin duplicate keys (REQ-RUNTIME-003) | FR-CONC-001 |
 
 ## Controllers
 
@@ -226,11 +228,11 @@
 | Category | Files | Mapped |
 | --- | ---: | ---: |
 | Symfony config | 3 | 3 |
-| Bundle & DI | 11 | 11 |
+| Bundle & DI | 12 | 12 |
 | Security | 6 | 6 |
 | Entities | 13 | 13 |
 | Repositories | 7 | 7 |
-| Enums & events | 8 | 8 |
+| Enums & events | 9 | 9 |
 | Controllers | 5 | 5 |
 | Forms | 11 | 11 |
 | Services | 23 | 23 |
@@ -244,6 +246,6 @@
 | Twig views — public | 3 | 3 |
 | Client references | 3 | 3 |
 | File upload ports | 4 | 4 |
-| **Total production sources** | **122** | **122** |
+| **Total production sources** | **124** | **124** |
 
-Audit command: `git ls-files src | wc -l` → 122.
+Audit command: `git ls-files src | wc -l` → 124.

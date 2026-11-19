@@ -10,6 +10,7 @@ use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Repository\ContactSubmissionRepository;
 use Psr\Clock\ClockInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Throwable;
 
 use function array_chunk;
 use function count;
@@ -75,7 +76,16 @@ final readonly class SubmissionRetentionCleanupService implements SubmissionRete
                 $removed[] = (int) $submission->getId();
                 $entityManager->remove($submission);
             }
-            $entityManager->flush();
+            // 1.11 (REQ-RUNTIME-003 rules 1, 9): each chunk is one flush, i.e. one short transaction; a failed chunk
+            // rolls back whole (the chunks before it stay deleted) and a manager it closed is recovered before the
+            // failure is rethrown (never swallowed: the command reports it, a host caller sees it).
+            try {
+                $entityManager->flush();
+            } catch (Throwable $exception) {
+                $this->entityManagerResolver?->resetClosed();
+
+                throw $exception;
+            }
             $this->eventDispatcher?->dispatch(new ContactSubmissionsDeletedEvent($removed, ContactSubmissionsDeletedEvent::REASON_RETENTION));
         }
 

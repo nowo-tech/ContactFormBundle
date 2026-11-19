@@ -20,6 +20,8 @@ services:
             - '../../Service/ContactFormSubmissionRateLimiter.php'
             - '../../Security/'
             - '../../EventSubscriber/ContactFormAdminAccessSubscriber.php'
+            # 1.11: registered by the extension (conflict_response options).
+            - '../../EventSubscriber/ContactFormConflictListener.php'
             - '../../Controller/'
 
     # REQ-SF-004 rule 7: the controllers carry #[Route] and must not be autoconfigured. On Symfony >= 7.3

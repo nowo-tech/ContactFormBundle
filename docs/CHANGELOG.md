@@ -58,6 +58,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- Concurrency (REQ-RUNTIME-003): a lock conflict (deadlock, lock wait timeout, serialization failure) on a route of the bundle answers **409** with `X-Conflict-Code: CONFLICT_001` and `Retry-After` when nothing of the request was committed, or `CONFLICT_002` without `Retry-After` when part of it was (commits counted by nowo-tech/transaction-doctrine's ledger and request mark when its bundle is registered with `commit_detection`, else by its commit-tracking middleware on the bundle's own connection). New `conflict_response.status` (409 or 503), `conflict_response.retry_after` and `conflict_response.commit_tracking` (`bundle` default, `all`, `off`) options; unset, they follow `nowo_transaction_doctrine.conflict_response`. Host routes are untouched. See [CONCURRENCY](CONCURRENCY.md).
+- `docs/CONCURRENCY.md`: write paths, conflict codes, host options and residual risks.
+- CI: **Real databases (MySQL 8.4, MariaDB 11.4, PostgreSQL 16)** job on DBAL 3 and 4 running two-connection race tests (public submission against the retention purge, a locked form, a commit then a conflict, two admin edits of one form), and **Dependency floor** job (lowest nowo-tech/transaction-* versions, demo lock check with `.scripts/check-demo-lock.py`). `make test-with-db` / `make down-db` run the race tests locally.
+
+### Changed
+
+- Requires `nowo-tech/transaction-contract` ^1.0 and `nowo-tech/transaction-doctrine` ^1.6.
+- An admin save refused by a unique key (the same slug, field name or translation saved twice at once, or a slug or name already used) answers 409 with `X-Error-Code: CONTACT_FORM_DUPLICATE_KEY` instead of a 500. It carries no `X-Conflict-Code`.
+- `nowo:contact-form:cleanup-submissions` exits with code 1 and "A lock conflict … Run the command again" when a chunk meets a lock conflict, instead of an uncaught exception; other failures are unchanged.
+
+### Fixed
+
+- A deadlock or lock wait timeout on the public form or the admin pages answered a 500 that told the client nothing (contention only: no data loss; no GHSA).
+- A failed retention purge chunk left the bundle's entity manager closed for the rest of a long-running process; it is now replaced (only when closed).
+
 ### Demo
 
 - The demo shell is UiKit's admin layout with UiKit's default theme (REQ-DEMO-014): the Bootstrap CDN stylesheet and scripts, the hand-written navbar/card shell, the Bootstrap form theme and the unused `icon_demo` templates are gone; the demo requires `nowo-tech/ui-kit-bundle`. No bundle runtime change.

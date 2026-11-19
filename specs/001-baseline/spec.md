@@ -108,6 +108,7 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 ### FrankenPHP worker mode
 
 - **FR-WORKER-001**: Safe under FrankenPHP worker with kernel **not** reset between requests (scenario B): no mutable service state; closed EntityManager recovered via `ContactFormEntityManagerResolver` + `ContactFormEntityManagerSubscriber`; submissions detached after process; public form/field reads use `HINT_REFRESH`; repositories extend `WorkerSafeServiceEntityRepository` so they always use the current manager after `resetManager()`.
+- **FR-CONC-001**: Safe under concurrent writes (REQ-RUNTIME-003): every write is one flush (one transaction; the purge one per chunk of 500); a lock conflict on a bundle route answers 409 (configurable 503) with `X-Conflict-Code` `CONFLICT_001` + `Retry-After` when nothing was committed in the request, `CONFLICT_002` without `Retry-After` otherwise (`ContactFormConflictListener`, transaction-doctrine commit ledger); admin unique-key refusals answer a domain 409 (`CONTACT_FORM_DUPLICATE_KEY`); unique violations elsewhere and lost connections are not mapped; the purge command exits 1 with "run the command again". See `docs/CONCURRENCY.md`.
 
 ---
 
