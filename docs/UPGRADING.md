@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.11.1](#to-1111)
 - [To 1.11.0](#to-1110)
 - [To 1.10.0](#to-1100)
 - [To 1.9.0](#to-190)
@@ -66,6 +67,14 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## To 1.11.1
+
+From **1.11.0**:
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
 
 - **`nowo-tech/transaction-doctrine` ^1.7.1** is required (was ^1.6): `composer update nowo-tech/contact-form-bundle
   nowo-tech/transaction-doctrine`. No configuration change.
