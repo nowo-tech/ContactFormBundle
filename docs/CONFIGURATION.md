@@ -47,6 +47,7 @@ Extension alias: `nowo_contact_form`.
 | `doctrine.mapping_type` | `attribute` | **1.9.** Mapping driver of the six bundle entities, registered on `doctrine.entity_manager` (or the default manager): `attribute` (unchanged) or `xml` (`src/Resources/config/doctrine-xml/*.orm.xml`, the same tables, columns, indexes and constraints) for managers that load XML mapping only |
 | `conflict_response.status` | `null` | **Unreleased.** Status of a lock-conflict answer on the bundle's routes: 409 (`CONFLICT_001` / `CONFLICT_002`) or 503. Null = transaction-doctrine's `conflict_response` when its bundle is registered, else 409. See [CONCURRENCY](CONCURRENCY.md) |
 | `conflict_response.retry_after` | `null` | **Unreleased.** `Retry-After` seconds of a `CONFLICT_001` answer (min 0). Null = transaction-doctrine's value, else 1 |
+| `conflict_response.commit_tracking` | `bundle` | **Unreleased.** Which commits make a later conflict `CONFLICT_002` when transaction-doctrine's `commit_detection` is off: `bundle` (the connection of the bundle's entity manager only), `all` (every Doctrine connection) or `off`. With `commit_detection` on, transaction-doctrine's ledger is reused and no middleware is added. See [CONCURRENCY](CONCURRENCY.md#host-options) |
 
 ## Table of contents
 

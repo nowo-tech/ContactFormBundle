@@ -359,7 +359,14 @@ final class NowoContactFormExtensionTest extends TestCase
 
         $middleware = $container->getDefinition(NowoContactFormExtension::COMMIT_TRACKING_MIDDLEWARE);
         self::assertSame(CommitTrackingMiddleware::class, $middleware->getClass());
-        self::assertSame([[]], $middleware->getTag('doctrine.middleware'), 'every connection');
+        self::assertSame([[]], $middleware->getTag('doctrine.middleware'), 'scoped by ContactFormCommitTrackingPass');
+        self::assertSame('bundle', $container->getParameter(NowoContactFormExtension::COMMIT_TRACKING_PARAMETER));
+
+        $container = new ContainerBuilder();
+        (new NowoContactFormExtension())->load([$this->baseConfig() + ['conflict_response' => ['commit_tracking' => 'off']]], $container);
+        self::assertFalse($container->hasDefinition(NowoContactFormExtension::COMMIT_TRACKING_MIDDLEWARE), 'off: no middleware');
+        self::assertFalse($container->hasDefinition(NowoContactFormExtension::COMMIT_LEDGER_SERVICE));
+        self::assertNull($container->getDefinition(ContactFormConflictListener::class)->getArgument(1));
 
         $container = new ContainerBuilder();
         (new NowoContactFormExtension())->load([$this->baseConfig() + ['conflict_response' => ['status' => 503]]], $container);

@@ -143,10 +143,10 @@ final class ConfigurationTest extends TestCase
     public function testConflictResponseDefaultsToNullAndAccepts409Or503(): void
     {
         $config = (new Processor())->processConfiguration(new Configuration(), []);
-        self::assertSame(['status' => null, 'retry_after' => null], $config['conflict_response']);
+        self::assertSame(['status' => null, 'retry_after' => null, 'commit_tracking' => 'bundle'], $config['conflict_response']);
 
-        $config = (new Processor())->processConfiguration(new Configuration(), [['conflict_response' => ['status' => 503, 'retry_after' => 3]]]);
-        self::assertSame(['status' => 503, 'retry_after' => 3], $config['conflict_response']);
+        $config = (new Processor())->processConfiguration(new Configuration(), [['conflict_response' => ['status' => 503, 'retry_after' => 3, 'commit_tracking' => 'off']]]);
+        self::assertSame(['status' => 503, 'retry_after' => 3, 'commit_tracking' => 'off'], $config['conflict_response']);
     }
 
     public function testConflictResponseRejectsOtherStatuses(): void
@@ -155,5 +155,12 @@ final class ConfigurationTest extends TestCase
         $this->expectExceptionMessage('must be 409 or 503');
 
         (new Processor())->processConfiguration(new Configuration(), [['conflict_response' => ['status' => 500]]]);
+    }
+
+    public function testCommitTrackingRejectsUnknownModes(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        (new Processor())->processConfiguration(new Configuration(), [['conflict_response' => ['commit_tracking' => 'host']]]);
     }
 }

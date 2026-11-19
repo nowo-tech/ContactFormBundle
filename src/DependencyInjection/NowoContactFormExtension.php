@@ -9,6 +9,7 @@ use Nowo\ContactFormBundle\Client\ClientReferenceResolverInterface;
 use Nowo\ContactFormBundle\Client\ObjectClientReferenceResolver;
 use Nowo\ContactFormBundle\Collation\ContactFormExactKeyColumns;
 use Nowo\ContactFormBundle\Controller\ContactFormPublicController;
+use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormCommitTrackingPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormFileUploaderPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
 use Nowo\ContactFormBundle\EventSubscriber\ContactFormConflictListener;
@@ -65,8 +66,11 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
     /** 1.11: real commits counted by {@see self::COMMIT_TRACKING_MIDDLEWARE}, read by the conflict answer. */
     public const COMMIT_LEDGER_SERVICE = 'nowo_contact_form.commit_ledger';
 
-    /** 1.11: transaction-doctrine's commit-tracking DBAL middleware (every connection: a host commit counts too). */
+    /** 1.11: transaction-doctrine's commit-tracking DBAL middleware (scoped by {@see ContactFormCommitTrackingPass}). */
     public const COMMIT_TRACKING_MIDDLEWARE = 'nowo_contact_form.commit_tracking_middleware';
+
+    /** 1.11: container parameter holding `conflict_response.commit_tracking` (bundle, all or off). */
+    public const COMMIT_TRACKING_PARAMETER = 'nowo_contact_form.conflict_response.commit_tracking';
 
     /**
      * Seeds UiKit defaults from web_ui when the host has not set nowo_ui_kit (REQ-UI-001-kit).
@@ -276,16 +280,22 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
      * 1.11 (REQ-RUNTIME-003 rule 6): 409 (or 503) + CONFLICT_001 / CONFLICT_002 instead of a 500 for lock conflicts on
      * the bundle's routes. Unset options follow transaction-doctrine's policy service when its bundle is registered.
      *
-     * The commit-tracking middleware is tagged for every connection: a commit of the host (or of another bundle) earlier
-     * in the request is a partial commit too, so the answer is then CONFLICT_002.
+     * Commit tracking (`conflict_response.commit_tracking`): `bundle` (default) and `all` register transaction-doctrine's
+     * commit-tracking middleware; {@see ContactFormCommitTrackingPass} scopes it to the bundle's connection (`bundle`), or
+     * drops it and reuses transaction-doctrine's own ledger when that bundle's `commit_detection` is on. `off` registers
+     * neither the ledger nor the middleware.
      *
-     * @param array{status: int|null, retry_after: int|null} $conflictResponse
+     * @param array{status: int|null, retry_after: int|null, commit_tracking: string} $conflictResponse
      */
     private function registerConflictAnswer(ContainerBuilder $container, array $conflictResponse): void
     {
-        $container->setDefinition(self::COMMIT_LEDGER_SERVICE, new Definition(CommitLedger::class));
-        $container->setDefinition(self::COMMIT_TRACKING_MIDDLEWARE, (new Definition(CommitTrackingMiddleware::class, [new Reference(self::COMMIT_LEDGER_SERVICE)]))
-            ->addTag('doctrine.middleware'));
+        $container->setParameter(self::COMMIT_TRACKING_PARAMETER, $conflictResponse['commit_tracking']);
+        $tracking = $conflictResponse['commit_tracking'] !== 'off';
+        if ($tracking) {
+            $container->setDefinition(self::COMMIT_LEDGER_SERVICE, new Definition(CommitLedger::class));
+            $container->setDefinition(self::COMMIT_TRACKING_MIDDLEWARE, (new Definition(CommitTrackingMiddleware::class, [new Reference(self::COMMIT_LEDGER_SERVICE)]))
+                ->addTag('doctrine.middleware'));
+        }
 
         $policy = $conflictResponse['status'] === null && $conflictResponse['retry_after'] === null
             ? new Reference(ConflictResponsePolicy::class, ContainerInterface::NULL_ON_INVALID_REFERENCE)
@@ -296,7 +306,7 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
 
         $container->setDefinition(ContactFormConflictListener::class, (new Definition(ContactFormConflictListener::class, [
             $policy,
-            new Reference(self::COMMIT_LEDGER_SERVICE),
+            $tracking ? new Reference(self::COMMIT_LEDGER_SERVICE) : null,
             new Reference('request_stack', ContainerInterface::NULL_ON_INVALID_REFERENCE),
         ]))
             ->addTag('kernel.event_listener', ['event' => KernelEvents::REQUEST, 'method' => 'onRequest', 'priority' => ContactFormConflictListener::REQUEST_PRIORITY])

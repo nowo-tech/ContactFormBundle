@@ -54,7 +54,7 @@ error handling):
 | Code | When | Status | `Retry-After` | Client should |
 | --- | --- | --- | --- | --- |
 | `CONFLICT_001` | Deadlock, lock wait timeout or serialization failure (MySQL 1213 / 1205, MariaDB 1020, PostgreSQL 40001 / 40P01 / 55P03, anywhere in the exception chain) and nothing committed since the request started | 409 (`conflict_response.status`) | Yes: `conflict_response.retry_after`, else 1 s | Retry |
-| `CONFLICT_002` | The same after a commit earlier in the request (the bundle's commit ledger, fed by transaction-doctrine's commit-tracking middleware on every connection; and transaction-doctrine's request mark, `ConflictCode::forRequest()`, when its bundle is registered with `commit_detection`), a `ConcurrencyConflict` that committed, or a lost savepoint with no deadlock behind it (outcome unknown) | 409 (`conflict_response.status`) | No | Reload, do not repeat blindly |
+| `CONFLICT_002` | The same after a commit earlier in the request (transaction-doctrine's request mark and ledger, `ConflictCode::forRequest()`, when its bundle is registered with `commit_detection`; otherwise the bundle's own ledger, fed by transaction-doctrine's commit-tracking middleware on the bundle's connection, see `conflict_response.commit_tracking`), a `ConcurrencyConflict` that committed, or a lost savepoint with no deadlock behind it (outcome unknown) | 409 (`conflict_response.status`) | No | Reload, do not repeat blindly |
 | `CONTACT_FORM_DUPLICATE_KEY` (`X-Error-Code`) | An admin save refused by a unique key: two admins adding the same missing translation, or the same slug or field name, at once (or a slug / name that is already used) | 409 | No | Reload the page and apply the change again |
 
 - The `CONFLICT_*` code is in the `X-Conflict-Code` header, which only ever holds `CONFLICT_001` or `CONFLICT_002`. The
@@ -80,11 +80,21 @@ nowo_contact_form:
     conflict_response:
         status: null        # 409 (default) or 503
         retry_after: null   # seconds for CONFLICT_001
+        commit_tracking: bundle   # bundle (default), all or off
 ```
 
 - Unset (null), the bundle follows `nowo_transaction_doctrine.conflict_response` when nowo-tech/transaction-doctrine's
   Symfony bundle is registered, so the whole application answers the same; otherwise 409 with `Retry-After: 1`.
 - `status: 503` for proxies or monitors that treat 503 as retryable; the codes and the `Retry-After` rule stay the same.
+- `commit_tracking` decides which commits make a later conflict `CONFLICT_002` when transaction-doctrine's
+  `commit_detection` is off (or its bundle is not registered):
+  - `bundle` (default): the bundle registers transaction-doctrine's `CommitTrackingMiddleware` on the connection of its
+    entity manager only (`doctrine.entity_manager`, else your default manager). Your other connections are not wrapped.
+  - `all`: every Doctrine connection, so a commit of yours on another connection earlier in the request counts too.
+  - `off`: no middleware; only the failure itself (and transaction-doctrine's request mark) decides.
+
+  With transaction-doctrine's bundle registered and `commit_detection` on (its default), the bundle reuses that
+  bundle's ledger and adds no middleware of its own, whatever this option says: no connection is wrapped twice.
 - `doctrine.entity_manager`: give the bundle its own manager (see [CONFIGURATION](CONFIGURATION.md)) so a failed flush
   of the bundle never closes yours.
 - Database settings: READ COMMITTED and a short `innodb_lock_wait_timeout` / `lock_timeout` (a few seconds) for HTTP;
@@ -110,8 +120,11 @@ nowo_contact_form:
     option); nothing is stored, the closed manager is replaced and the retry stores exactly one submission;
   - a lock conflict after a committed submission of the same request answers `CONFLICT_002` without `Retry-After`
     (commit counted by the real commit-tracking middleware);
+  - `ContactFormCommitTrackingPassTest` (with DoctrineBundle's `MiddlewaresPass`): `bundle` wraps only the bundle's
+    connection, `all` every connection, `off` none, and transaction-doctrine's ledger is reused with no middleware of the
+    bundle when its `commit_detection` is on;
   - two admin edits of one form: the second meets the first's lock and answers `CONFLICT_001`, the row is the first
-    edit whole, and the retry keeps both changes;
+    edit whole, and a retry that reads the form again and changes one column keeps both changes;
   - two admin edits adding the same missing translation keep one translation and answer the domain 409; the same
     failure on the public route is not mapped.
 - `tests/Unit/EventSubscriber/ContactFormConflictListenerTest.php` maps every case: `CONFLICT_001` for each vendor
@@ -130,10 +143,12 @@ make down-db
 
 ## Residual risks
 
-- **Two admins editing the same form or field: last write wins per column.** There is no version column: an edit
-  writes the columns it changed over a stale read, without a warning, and two edits of the same column keep the later
-  one. The lock makes each save whole, never a mix of one row. Admin-only path; a version column needs a schema
-  change and is left for a later minor.
+- **Two admins editing the same form or field: the later save wins whole.** There is no version column, and the
+  admin edit page posts every field. When admin B saves a page opened before admin A saved, B's request writes the
+  values of B's page for every field, so every column A changed in between goes back to what B's page showed, without a
+  warning. The lock makes each save whole, never a mix inside one row. Admin-only path; a version column needs a
+  schema change and is left for a later minor. (Only a write that changes some fields of a freshly read entity, as the
+  race test's retry does, keeps the other admin's columns.)
 - **The request-free port inside your transaction.** `ContactSubmissionRecorderInterface::record()` called while your
   connection is in a transaction flushes inside it; the created event and the notification then run before your
   commit, and a rollback of yours leaves a mail for a submission that is not stored. Call it outside your transaction,
@@ -141,7 +156,8 @@ make down-db
 - **MySQL / MariaDB foreign-key reads.** A public submission reads the form row with a shared lock (InnoDB's foreign-key
   check), so it waits while an admin save or delete of that form is open; a long admin transaction of yours on the form
   answers the visitor `CONFLICT_001`. PostgreSQL's key-share lock does not wait for a plain update.
-- **Commit detection covers the connections of the application's Doctrine registry.** A commit of yours through another
-  client (PDO, another library) earlier in the request is not counted without transaction-doctrine's bundle.
+- **Commit detection covers the bundle's connection by default.** Without transaction-doctrine's `commit_detection`, a
+  commit of yours on another Doctrine connection earlier in the request is counted only with `commit_tracking: all`, and
+  a commit through another client (PDO, another library) is never counted.
 - **A host closed manager.** Without `doctrine.entity_manager` a failed flush of the bundle closes your default
   manager; the bundle replaces it on its own routes and command (it was closed already), never an open one.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle;
 
+use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormCommitTrackingPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormCsrfProtectionPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormEntityManagerPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormFileUploaderPass;
@@ -40,6 +41,9 @@ final class NowoContactFormBundle extends Bundle
 
         // After the mapping pass above (and DoctrineBundle's auto_mapping): keep the entities on one manager.
         $container->addCompilerPass(new ContactFormEntityManagerPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, -10);
+
+        // 1.11 (REQ-RUNTIME-003): scope the commit-tracking middleware before DoctrineBundle's MiddlewaresPass (priority 0).
+        $container->addCompilerPass(new ContactFormCommitTrackingPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 5);
     }
 
     public function getContainerExtension(): ExtensionInterface
