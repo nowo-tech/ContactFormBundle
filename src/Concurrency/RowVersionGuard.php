@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\Concurrency;
 
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\ORM\PersistentCollection;
 
 use function array_map;
 use function array_values;
 use function explode;
 use function implode;
+use function spl_object_id;
 use function sprintf;
 
 /**
@@ -64,19 +67,34 @@ final class RowVersionGuard
     }
 
     /**
-     * Drops the unsaved form changes of a refused (stale) edit from the managed entities: a refresh of the row and of its
-     * managed children, never a clear or a reset of the manager (it may be the host's). Without it, a later flush of
-     * the same manager (worker mode, kernel reset off) would write the outdated page over the other admin's save.
+     * Drops the unsaved form changes of a refused (stale) edit from the managed entities: the row and the children of
+     * its collections (translations) are refreshed, and the orphan removals the form scheduled are cancelled. Never a
+     * clear or a reset of the manager (it may be the host's). Without it, a later flush of the same manager (worker
+     * mode, kernel reset off) would write the outdated page over the other admin's save, or delete a translation the
+     * form had blanked (`removeElement()` on an orphan-removal collection schedules the delete at once).
      * Children the form added and that were never persisted are dropped with the row's refreshed collections.
      *
      * @param EntityManagerInterface $entityManager The manager of the entity
      * @param VersionedRowInterface $row The edited entity
-     * @param iterable<object> $children The entities the form edited through the row (translations), read before the refresh
+     * @param iterable<Collection<array-key, covariant object>> $collections The collections the form edited through the row (translations), read before the refresh
      */
-    public static function discard(EntityManagerInterface $entityManager, VersionedRowInterface $row, iterable $children = []): void
+    public static function discard(EntityManagerInterface $entityManager, VersionedRowInterface $row, iterable $collections = []): void
     {
+        $unitOfWork = $entityManager->getUnitOfWork();
+        $children   = [];
+        foreach ($collections as $collection) {
+            // The snapshot holds the children as loaded, including those the form removed from the collection.
+            foreach ($collection instanceof PersistentCollection ? $collection->getSnapshot() : [] as $child) {
+                $children[spl_object_id($child)] = $child;
+            }
+            foreach ($collection as $child) {
+                $children[spl_object_id($child)] = $child;
+            }
+        }
+
         $entityManager->refresh($row);
         foreach ($children as $child) {
+            $unitOfWork->cancelOrphanRemoval($child);
             if ($entityManager->contains($child)) {
                 $entityManager->refresh($child);
             }

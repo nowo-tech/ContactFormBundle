@@ -162,7 +162,7 @@ class ContactFormAdminController extends AbstractController
                     $stale = true;
                     // Drop the form's unsaved changes from the managed entities (refresh only: the manager is never
                     // cleared or reset), so no later flush of the manager can write them over the other admin's save.
-                    RowVersionGuard::discard($entityManager, $contactForm, $contactForm->getTranslations()->toArray());
+                    RowVersionGuard::discard($entityManager, $contactForm, [$contactForm->getTranslations()]);
                     // The UiKit layout prints the flashes of every type above the page.
                     $this->addFlash('error', $this->translator->trans(StaleVersionException::MESSAGE_KEY, [], 'NowoContactFormBundle'));
                 }

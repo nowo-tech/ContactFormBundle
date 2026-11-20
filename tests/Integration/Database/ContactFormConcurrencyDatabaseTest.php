@@ -15,6 +15,7 @@ use Doctrine\ORM\ORMSetup;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\ContactFormBundle\Command\CleanupExpiredSubmissionsCommand;
+use Nowo\ContactFormBundle\Concurrency\RowVersionGuard;
 use Nowo\ContactFormBundle\Concurrency\StaleVersionException;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormField;
@@ -447,6 +448,49 @@ final class ContactFormConcurrencyDatabaseTest extends TestCase
         self::assertSame(['Winner', 30, 2], $this->formRowWithVersion($a, $formId), 'nothing of the loser');
         self::assertSame(0, $b->getConnection()->getTransactionNestingLevel());
         self::assertSame(1, (int) $b->getConnection()->fetchOne('SELECT 1'), 'the connection is still usable');
+    }
+
+    /**
+     * A refused stale edit that had removed a stored translation (removeElement() on the orphan-removal collection
+     * schedules the delete at once) leaves nothing scheduled: a later flush of the same manager deletes no translation and
+     * writes nothing of the refused page.
+     */
+    #[DataProvider('databases')]
+    public function testARefusedStaleEditCancelsTheOrphanRemovalsAndALaterFlushDeletesNothing(?string $url): void
+    {
+        $a      = $this->freshDatabase($url);
+        $formId = $this->seedForm($a);
+        $page   = $a->find(ContactForm::class, $formId);
+        self::assertInstanceOf(ContactForm::class, $page);
+        $page->addTranslation((new ContactFormTranslation())->setLocale('fr')->setTitle('Contactez-nous'));
+        $a->flush();
+
+        // Another admin saved the form after this page was opened.
+        $a->getConnection()->executeStatement('UPDATE nowo_contact_form SET name = ?, row_version = row_version + 1 WHERE id = ?', ['Other admin', $formId]);
+        $stale = $page->getRowVersion();
+        $page->setName('Stale page');
+        $fr = $page->findTranslation('fr');
+        self::assertInstanceOf(ContactFormTranslation::class, $fr);
+        $page->removeTranslation($fr);
+
+        try {
+            $this->formsOn($a)->saveEdit($page, $a, $stale);
+            self::fail('A stale edit must be refused.');
+        } catch (StaleVersionException) {
+            RowVersionGuard::discard($a, $page, [$page->getTranslations()]);
+        }
+        $unitOfWork = $a->getUnitOfWork();
+        $unitOfWork->computeChangeSets();
+        self::assertSame([], $unitOfWork->getScheduledEntityInsertions());
+        self::assertSame([], $unitOfWork->getScheduledEntityUpdates());
+        self::assertSame([], $unitOfWork->getScheduledEntityDeletions(), 'no orphan removal left scheduled');
+        self::assertSame([], $unitOfWork->getScheduledCollectionUpdates());
+        self::assertSame([], $unitOfWork->getScheduledCollectionDeletions());
+        $a->flush();
+
+        self::assertSame(['en' => 'Support', 'fr' => 'Contactez-nous'], $a->getConnection()->fetchAllKeyValue('SELECT locale, title FROM nowo_contact_form_translation WHERE form_id = ? ORDER BY locale', [$formId]));
+        self::assertSame('Other admin', $a->getConnection()->fetchOne('SELECT name FROM nowo_contact_form WHERE id = ?', [$formId]));
+        self::assertTrue($a->isOpen());
     }
 
     private function freshDatabase(?string $url): EntityManagerInterface
