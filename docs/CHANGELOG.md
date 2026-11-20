@@ -62,6 +62,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed
+
+- Demo: aligned with UiKit. The masthead menu uses `nowo-ui-menu` / `nowo-ui-link` with `demo-nav-*` test ids, the home page uses the UiKit page header, and `public/css/demo.css` is down to the layout of the bundle's own phone widget (the unused `.demo-code` rule is gone).
+
 ## [1.12.1] - 2026-11-20
 
 ### Fixed
