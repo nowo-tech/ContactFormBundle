@@ -61,6 +61,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- A refused stale edit now also cancels the orphan removals scheduled on the edited collections (translations) and
+  refreshes every child, snapshot included, so a later flush of the same manager deletes no translation. The shipped
+  admin forms cannot remove a translation (`allow_delete` is false), so this hardens hosts that reuse the guard and the
+  forms of their own.
+
 ### Changed
 
 - Requires `nowo-tech/transaction-doctrine` ^1.8.1 (fixes GHSA-9wh3-m3m5-jffx and GHSA-65w2-9r4h-848g).

@@ -193,7 +193,7 @@ class ContactFormFieldAdminController extends AbstractController
                     $stale = true;
                     // Drop the wizard's unsaved changes from the managed entities (refresh only: the manager is never
                     // cleared or reset) and start the wizard again on the stored field.
-                    RowVersionGuard::discard($entityManager, $managedField, $managedField->getTranslations()->toArray());
+                    RowVersionGuard::discard($entityManager, $managedField, [$managedField->getTranslations()]);
                     $flow->reset();
                     // The UiKit layout prints the flashes of every type above the page.
                     $this->addFlash('error', $this->translator->trans(StaleVersionException::MESSAGE_KEY, [], 'NowoContactFormBundle'));

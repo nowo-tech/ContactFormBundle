@@ -67,8 +67,8 @@ On save, inside the save's transaction and before the flush, `RowVersionGuard::a
   flush writes the change;
 - no row matched: another admin saved the row after the page was opened (or deleted it). `StaleVersionException` is
   thrown before anything is flushed; the controller drops the form's changes from the managed entities (`refresh()` of
-  the row and of its managed translations: the manager is never cleared or reset, and a later flush of it writes nothing
-  of the refused page) and re-renders the page with **409**, `X-Error-Code: CONTACT_FORM_STALE_VERSION`, the text the
+  the row and of its managed translations, and the orphan removals the form scheduled are cancelled: the manager is never
+  cleared or reset, and a later flush of it writes nothing of the refused page and deletes no translation) and re-renders the page with **409**, `X-Error-Code: CONTACT_FORM_STALE_VERSION`, the text the
   admin typed (form edit) and a "changed by someone else, reload" message. A stale wizard starts again on the stored field
   (its draft is discarded: the session copy would otherwise stay outdated). No `X-Conflict-Code` and no `Retry-After`: it
   is not a lock conflict, and repeating the same page can never succeed.

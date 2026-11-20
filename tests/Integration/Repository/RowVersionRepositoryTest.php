@@ -98,24 +98,36 @@ final class RowVersionRepositoryTest extends IntegrationTestCase
         $repository  = $this->formRepository();
         $translation = $form->findTranslation('en');
         self::assertInstanceOf(ContactFormTranslation::class, $translation);
+        $blanked = (new ContactFormTranslation())->setLocale('fr')->setTitle('Contactez-nous');
+        $form->addTranslation($blanked);
+        $em->flush();
         // Another admin saved the form after this page was opened (version 1).
         $em->getConnection()->executeStatement('UPDATE nowo_contact_form SET name = ?, row_version = 2 WHERE id = ?', ['Other admin', $form->getId()]);
 
         $form->setName('Stale page');
         $translation->setTitle('Stale title');
         $form->addTranslation((new ContactFormTranslation())->setLocale('es')->setTitle('Stale es'));
+        // The admin removed the stored 'fr' translation: removeElement() schedules its orphan removal at once.
+        $form->removeTranslation($blanked);
 
         try {
             $repository->saveEdit($form, $em, 1);
             self::fail('A stale edit must be refused.');
         } catch (StaleVersionException) {
             self::assertSame('Other admin', $em->getConnection()->fetchOne('SELECT name FROM nowo_contact_form WHERE id = ?', [$form->getId()]));
-            RowVersionGuard::discard($em, $form, $form->getTranslations()->toArray());
+            RowVersionGuard::discard($em, $form, [$form->getTranslations()]);
         }
+        $unitOfWork = $em->getUnitOfWork();
+        $unitOfWork->computeChangeSets();
+        self::assertSame([], $unitOfWork->getScheduledEntityInsertions());
+        self::assertSame([], $unitOfWork->getScheduledEntityUpdates());
+        self::assertSame([], $unitOfWork->getScheduledEntityDeletions(), 'no orphan removal left scheduled');
+        self::assertSame([], $unitOfWork->getScheduledCollectionUpdates());
+        self::assertSame([], $unitOfWork->getScheduledCollectionDeletions());
         $em->flush();
 
         self::assertSame('Other admin', $em->getConnection()->fetchOne('SELECT name FROM nowo_contact_form WHERE id = ?', [$form->getId()]));
-        self::assertSame(['en' => 'Contact us'], $em->getConnection()->fetchAllKeyValue('SELECT locale, title FROM nowo_contact_form_translation'), 'a later flush writes nothing of the refused page');
+        self::assertSame(['en' => 'Contact us', 'fr' => 'Contactez-nous'], $em->getConnection()->fetchAllKeyValue('SELECT locale, title FROM nowo_contact_form_translation ORDER BY locale'), 'a later flush writes nothing of the refused page');
         self::assertSame('Other admin', $form->getName(), 'the managed entity shows the stored row again');
         self::assertTrue($em->isOpen());
         self::assertSame(0, $em->getConnection()->getTransactionNestingLevel());
