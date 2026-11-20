@@ -10,6 +10,7 @@ use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormEntityManager
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormFileUploaderPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormMappingDriverPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
+use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormPrivateEntityManagerPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormSecurityPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\TwigPathsPass;
 use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
@@ -41,6 +42,10 @@ final class NowoContactFormBundle extends Bundle
 
         // After the mapping pass above (and DoctrineBundle's auto_mapping): keep the entities on one manager.
         $container->addCompilerPass(new ContactFormEntityManagerPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, -10);
+
+        // 1.13 (doctrine.private_entity_manager: true): the private manager's source and its DBAL middleware, before
+        // DoctrineBundle's MiddlewaresPass (priority 0).
+        $container->addCompilerPass(new ContactFormPrivateEntityManagerPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 5);
 
         // 1.11 (REQ-RUNTIME-003): scope the commit-tracking middleware before DoctrineBundle's MiddlewaresPass (priority 0).
         $container->addCompilerPass(new ContactFormCommitTrackingPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 5);

@@ -14,8 +14,10 @@ use Nowo\ContactFormBundle\Enum\ContactFieldType;
 use Nowo\ContactFormBundle\EventSubscriber\ContactFormEntityManagerSubscriber;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Service\ContactFormEntityManagerResolver;
+use Nowo\ContactFormBundle\Tests\Integration\HostModeTestKernel;
 use Nowo\ContactFormBundle\Tests\Integration\IntegrationTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use ReflectionMethod;
 use ReflectionProperty;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -23,11 +25,20 @@ use Symfony\Component\HttpKernel\Kernel;
 
 /**
  * Consecutive requests on the same kernel with services_resetter skipped (FrankenPHP worker mode, scenario B).
+ *
+ * Host mode (`private_entity_manager: false`, removed in 2.0): the bundle recovers the application's closed manager on
+ * its routes. The private manager's recovery is covered by EntityManager\PrivateEntityManagerTest.
  */
 #[CoversClass(ContactFormEntityManagerSubscriber::class)]
 #[CoversClass(ContactFormEntityManagerResolver::class)]
+#[IgnoreDeprecations]
 final class ContactFormWorkerModeTest extends IntegrationTestCase
 {
+    protected static function getKernelClass(): string
+    {
+        return HostModeTestKernel::class;
+    }
+
     public function testAdminEditMadeElsewhereIsVisibleOnNextRequest(): void
     {
         $client = self::createTestClient();

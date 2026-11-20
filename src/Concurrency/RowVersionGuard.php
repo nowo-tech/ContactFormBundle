@@ -7,6 +7,7 @@ namespace Nowo\ContactFormBundle\Concurrency;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\PersistentCollection;
+use Nowo\TransactionDoctrine\PrivateManager\PrivateEntityManager;
 
 use function array_map;
 use function array_values;
@@ -61,6 +62,11 @@ final class RowVersionGuard
 
         if ((int) $affected !== 1) {
             throw new StaleVersionException($row::class, $id, $expected);
+        }
+
+        if ($entityManager instanceof PrivateEntityManager) {
+            // 1.13: a rollback of this level now makes the private manager's identity map stale (row version in memory).
+            $entityManager->noteWrite();
         }
 
         $row->setRowVersion($expected + 1);

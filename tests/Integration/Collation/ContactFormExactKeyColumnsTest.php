@@ -13,7 +13,6 @@ use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\ORM\Tools\ToolEvents;
 use Nowo\ContactFormBundle\Collation\ContactFormExactKeyColumns;
 use Nowo\ContactFormBundle\Doctrine\ClientReferenceCollationListener;
-use Nowo\ContactFormBundle\Entity\ContactSubmission;
 use Nowo\MigrationsKitBundle\Test\ExactKeyColumnsTestCase;
 
 use function dirname;
@@ -71,7 +70,7 @@ final class ContactFormExactKeyColumnsTest extends ExactKeyColumnsTestCase
 
         $manager = new EntityManager($connection, $config);
         $manager->getEventManager()->addEventListener(
-            ToolEvents::postGenerateSchemaTable,
+            ToolEvents::postGenerateSchema,
             new ClientReferenceCollationListener(null, $connection->getDatabasePlatform()),
         );
         $this->manager = $manager;
@@ -82,10 +81,13 @@ final class ContactFormExactKeyColumnsTest extends ExactKeyColumnsTestCase
     }
 
     /**
+     * Every bundle table: since 1.13 (audit XH-1) the generated schema keeps nowo_contact_submission's foreign key to
+     * nowo_contact_form, so the submission table alone can no longer be created.
+     *
      * @return list<ClassMetadata<object>>
      */
     private function metadata(EntityManagerInterface $manager): array
     {
-        return [$manager->getClassMetadata(ContactSubmission::class)];
+        return $manager->getMetadataFactory()->getAllMetadata();
     }
 }

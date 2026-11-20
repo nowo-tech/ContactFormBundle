@@ -175,6 +175,15 @@ The entities live on the default entity manager; the client of the public form i
 still implement the deprecated `ContactFormFileUploadHandlerInterface` until 2.0; new code implements
 `ContactFormFileUploaderInterface` ([File uploads](#file-uploads)).
 
+Since 1.13, set `doctrine.private_entity_manager: true` (the only mode in 2.0, zero-config; see
+[UPGRADING](UPGRADING.md#to-1130)):
+
+```yaml
+nowo_contact_form:
+    doctrine:
+        private_entity_manager: true   # the bundle's writes never flush your pending changes
+```
+
 ### DDD / hexagonal host (opt-in)
 
 ```yaml
@@ -222,8 +231,13 @@ final class SendContactMessageHandler
 - `record()` takes plain values (no Symfony form, no request) and returns the submission id; it flushes the bundle's
   manager and dispatches `ContactSubmissionCreatedEvent` after that flush. Listen to the id getters and translate them
   into your own events / outbox rows.
-- **Standard host and your own transaction (LI-CF-L1).** Without `doctrine.entity_manager`, the bundle's manager *is*
-  your default entity manager: `record()` flushes it (your pending changes too), and the created event and the
+- **Private entity manager (1.13).** `doctrine.private_entity_manager: true` keeps the bundle's writes off your
+  manager without any other configuration: same connection and tables, a private manager of the bundle that never
+  flushes your pending changes. 2.0 makes it the only mode without `doctrine.entity_manager`; see
+  [UPGRADING](UPGRADING.md#to-1130).
+- **Standard host and your own transaction (LI-CF-L1).** Without `doctrine.entity_manager` (and without
+  `doctrine.private_entity_manager: true`), the bundle's manager *is* your default entity manager: `record()` flushes
+  it (your pending changes too), and the created event and the
   notification (e-mail) run right after that flush — **before** your transaction commits. If your transaction then
   rolls back, the submission is gone but the event and the e-mail already went out. When you call `record()` inside
   your own transaction, either use a dedicated manager (`doctrine.entity_manager`, its own connection) or call it
