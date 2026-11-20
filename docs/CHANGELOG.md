@@ -72,16 +72,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   (replaced on the next use). The private manager is dropped at every request, Messenger message and console command
   boundary (FrankenPHP worker mode with the kernel reset off included) and at `kernel.reset`. Built on the private
   entity manager kit of `nowo-tech/transaction-doctrine` 1.9. Submission ids stay database identities.
-- Host-flush probe: while neither `doctrine.private_entity_manager` nor `doctrine.entity_manager` is set, each bundle
-  flush first reports every application entity class with pending changes in the flushed manager, once per class and
+- Host-flush probe: while the bundle flushes the application's manager (`doctrine.private_entity_manager` unset or
+  false, without `doctrine.entity_manager`), each bundle flush first reports every application entity class with pending changes in the flushed manager, once per class and
   request / message / command: *"Your pending changes to App\X were flushed by NowoContactFormBundle; 2.0 no longer
   does."* (`E_USER_DEPRECATED`). Read-only: nothing is flushed, cleared or reset by it.
 
 ### Deprecated
 
-- Leaving `doctrine.private_entity_manager` unset (with `doctrine.entity_manager` unset too) triggers a deprecation
-  notice when the container is built: 2.0 defaults to `true`. Set it to `true` to opt in now, or to `false` to keep
-  the current behaviour. See UPGRADING "To 1.13.0".
+- Without `doctrine.entity_manager`, leaving `doctrine.private_entity_manager` unset or setting it to `false` triggers
+  a deprecation notice when the container is built (one text for each). 2.0 removes the option: the private entity
+  manager is the only mode unless `doctrine.entity_manager` is set. Set it to `true` to opt in now. See UPGRADING
+  "To 1.13.0".
 
 ### Changed
 

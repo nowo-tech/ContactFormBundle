@@ -90,12 +90,21 @@ that lists what that flip would change for your application. It requires `nowo-t
 
 ### The private entity manager notice
 
-With neither `doctrine.private_entity_manager` nor `doctrine.entity_manager` set, building the container now logs:
+Without `doctrine.entity_manager`, building the container now logs one of two notices. With
+`doctrine.private_entity_manager` not set:
 
 > Not setting "nowo_contact_form.doctrine.private_entity_manager" is deprecated: contact form writes flush the
 > application's entity manager, including its own pending changes. 2.0 defaults to true: a private entity manager on
 > the same connection and tables that never flushes them. Opt in now with "nowo_contact_form: { doctrine: {
-> private_entity_manager: true } }", or set it to false to keep the current behaviour (see UPGRADING.md "To 1.13.0").
+> private_entity_manager: true } }", or set doctrine.entity_manager to a dedicated manager (see UPGRADING.md "To
+> 1.13.0").
+
+With `doctrine.private_entity_manager: false`:
+
+> Setting "nowo_contact_form.doctrine.private_entity_manager" to false is deprecated: contact form writes flush the
+> application's entity manager, including its own pending changes. 2.0 removes the option; the private entity manager
+> (same connection and tables) becomes the only mode unless you set doctrine.entity_manager. Opt in now with
+> "nowo_contact_form: { doctrine: { private_entity_manager: true } }" (see UPGRADING.md "To 1.13.0").
 
 What it means: today every contact form write (a public submission, `ContactSubmissionRecorderInterface::record()`,
 an admin save or delete, the retention cleanup) flushes your default entity manager. Anything your code had left
@@ -110,13 +119,15 @@ nowo_contact_form:
         private_entity_manager: true
 ```
 
-`private_entity_manager: false` keeps the 1.x behaviour and silences the notice and the probe. A host with
-`doctrine.entity_manager` set (a dedicated manager, the DDD option) gets neither: the bundle already never flushes your
-default manager, and that option stays in 2.0.
+`private_entity_manager: false` keeps the 1.x behaviour for now, with its own notice and the probe: 2.0 removes the
+option, so no mode flushes your manager any more. A host with `doctrine.entity_manager` set (a dedicated manager, the
+DDD option) gets neither notice nor probe: the bundle already never flushes your default manager, and that option
+stays in 2.0.
 
 ### Reading the host-flush probe
 
-While both options are unset, the bundle calls the host-flush probe of nowo-tech/transaction-doctrine right before
+While the bundle flushes your manager (`private_entity_manager` unset or false, without `doctrine.entity_manager`), it
+calls the host-flush probe of nowo-tech/transaction-doctrine right before
 each of its flushes. Every entity class outside `Nowo\ContactFormBundle\Entity` with pending changes in the flushed
 manager (a scheduled insert or delete, a changed field, association or collection) triggers one deprecation per
 request, message or command:
@@ -166,8 +177,9 @@ With `private_entity_manager: true`:
 
 2.0 contains only the deprecations announced in 1.x:
 
-- `doctrine.private_entity_manager` defaults to `true` (the private manager above). `false` and
-  `doctrine.entity_manager` stay.
+- The private manager above is the only mode without `doctrine.entity_manager`: `doctrine.private_entity_manager` is
+  removed (`true` is the behaviour, `false` is no longer possible). `doctrine.entity_manager` (a dedicated manager,
+  the DDD option) stays.
 - `ContactFormFileUploadHandlerInterface` and its service alias, `ContactSubmissionNotification::getSubmission()` and
   the legacy admin layout bridge are removed (see [To 1.8.0](#to-180) and [To 1.6.0](#to-160)).
 
