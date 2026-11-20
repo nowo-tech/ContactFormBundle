@@ -1,9 +1,5 @@
-/* Contact form demo: only bundle-specific styling; the base style is UiKit's default theme, unchanged. */
-.demo-code {
-    font-size: 0.875rem;
-}
-
-/* ContactPhoneType (Symfony widget): prefix select + number side by side. */
+/* ContactPhoneType (the bundle's own widget, no UiKit equivalent): prefix select + number side by side. UiKit's default
+   theme does the rest; nothing is overridden. */
 .nowo-contact-form-phone {
     display: flex;
     gap: 0.5rem;

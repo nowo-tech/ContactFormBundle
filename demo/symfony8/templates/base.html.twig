@@ -2,7 +2,7 @@
     asset package, no CSS framework, no CDN). Bundle pages render through the same shell (nowo_ui_kit.layouts). -#}
 {% extends '@NowoUiKit/layout/admin.html.twig' %}
 
-{% block nowo_ui_document_title %}{% block title %}{{ 'demo.title'|trans({}, 'messages') }}{% endblock %}{% endblock %}
+{% block nowo_ui_document_title %}{% block title %}{{ 'demo.title'|trans({}, 'messages') }}{% endblock %} — Symfony 8{% endblock %}
 
 {% block nowo_ui_styles %}
     {{ parent() }}
@@ -17,12 +17,12 @@
     {% set _route_params = app.request.attributes.get('_route_params')|default({}) %}
     <header class="nowo-ui-header" data-testid="demo-masthead">
         <a class="nowo-ui-brand" href="{{ path('demo_home', { _locale: _locale }) }}">{{ 'demo.title'|trans({}, 'messages') }}</a>
-        <nav class="nowo-ui-header__nav" aria-label="{{ 'demo.nav_toggle'|trans({}, 'messages') }}">
-            <a href="{{ path('demo_home', { _locale: _locale }) }}"{% if _current_route == 'demo_home' %} aria-current="page"{% endif %}>{{ 'demo.menu_home'|trans({}, 'messages') }}</a>
-            <a href="{{ path('nowo_contact_form_public_show', { slug: 'contact', _locale: _locale }) }}">{{ 'demo.form_contact'|trans({}, 'messages') }}</a>
-            <a href="{{ path('nowo_contact_form_public_show', { slug: 'job-application', _locale: _locale }) }}">{{ 'demo.form_job'|trans({}, 'messages') }}</a>
-            <a href="{{ path('nowo_contact_form_public_show', { slug: 'partner-inquiry', _locale: _locale }) }}">{{ 'demo.form_partner'|trans({}, 'messages') }}</a>
-            <a href="{{ path('nowo_contact_form_admin_index') }}"{% if _current_route starts with 'nowo_contact_form_admin' or _current_route starts with 'nowo_contact_form_fields' or _current_route starts with 'nowo_contact_form_submissions' %} aria-current="page"{% endif %}>{{ 'demo.menu_admin'|trans({}, 'messages') }}</a>
+        <nav class="nowo-ui-menu" aria-label="{{ 'demo.nav_toggle'|trans({}, 'messages') }}">
+            <a class="nowo-ui-link" href="{{ path('demo_home', { _locale: _locale }) }}"{% if _current_route == 'demo_home' %} aria-current="page"{% endif %} data-testid="demo-nav-demo_home">{{ 'demo.menu_home'|trans({}, 'messages') }}</a>
+            <a class="nowo-ui-link" href="{{ path('nowo_contact_form_public_show', { slug: 'contact', _locale: _locale }) }}" data-testid="demo-nav-nowo_contact_form_public_show-contact">{{ 'demo.form_contact'|trans({}, 'messages') }}</a>
+            <a class="nowo-ui-link" href="{{ path('nowo_contact_form_public_show', { slug: 'job-application', _locale: _locale }) }}" data-testid="demo-nav-nowo_contact_form_public_show-job-application">{{ 'demo.form_job'|trans({}, 'messages') }}</a>
+            <a class="nowo-ui-link" href="{{ path('nowo_contact_form_public_show', { slug: 'partner-inquiry', _locale: _locale }) }}" data-testid="demo-nav-nowo_contact_form_public_show-partner-inquiry">{{ 'demo.form_partner'|trans({}, 'messages') }}</a>
+            <a class="nowo-ui-link" href="{{ path('nowo_contact_form_admin_index') }}"{% if _current_route starts with 'nowo_contact_form_admin' or _current_route starts with 'nowo_contact_form_fields' or _current_route starts with 'nowo_contact_form_submissions' %} aria-current="page"{% endif %} data-testid="demo-nav-nowo_contact_form_admin_index">{{ 'demo.menu_admin'|trans({}, 'messages') }}</a>
         </nav>
         <div class="nowo-ui-header__end">
             <nav class="nowo-ui-row-actions" aria-label="Locale">
