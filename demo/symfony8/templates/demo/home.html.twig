@@ -2,11 +2,14 @@
 
 {% block title %}{{ 'demo.page_title'|trans({}, 'messages') }}{% endblock %}
 
+{% block nowo_ui_page_header %}
+    {{ include(nowo_ui_partial('page_header'), {title: 'demo.page_title'|trans({}, 'messages')}) }}
+{% endblock %}
+
 {% block body %}
     <section class="nowo-ui-card">
         <div class="nowo-ui-card__body">
             <span class="nowo-ui-badge nowo-ui-badge--primary">{{ 'demo.symfony_badge'|trans({}, 'messages') }}</span>
-            <h1>{{ 'demo.page_title'|trans({}, 'messages') }}</h1>
             <p class="nowo-ui-muted">{{ 'demo.lead'|trans({}, 'messages')|raw }}</p>
             <div class="nowo-ui-row-actions">
                 <a href="{{ path('nowo_contact_form_admin_index') }}" class="nowo-ui-btn nowo-ui-btn--primary">{{ 'demo.menu_admin'|trans({}, 'messages') }}</a>
