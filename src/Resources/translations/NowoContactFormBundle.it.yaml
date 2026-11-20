@@ -7,6 +7,7 @@ nowo_contact_form:
     phone_number_invalid: Inserisci un numero di telefono valido usando solo cifre.
   admin:
     back: Torna all'elenco
+    stale_version: 'Questo elemento è stato modificato da qualcun altro dopo l''apertura della pagina. Le tue modifiche non sono state salvate. Ricarica la pagina e applicale di nuovo.'
     nav:
       brand: Admin moduli di contatto
       locale_switch: Lingua dell'interfaccia

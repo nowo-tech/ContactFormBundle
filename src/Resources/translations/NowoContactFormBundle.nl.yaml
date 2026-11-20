@@ -7,6 +7,7 @@ nowo_contact_form:
     phone_number_invalid: Voer een geldig telefoonnummer in met alleen cijfers.
   admin:
     back: Terug naar lijst
+    stale_version: 'Dit item is door iemand anders gewijzigd nadat u de pagina opende. Uw wijzigingen zijn niet opgeslagen. Laad de pagina opnieuw en pas ze nogmaals toe.'
     nav:
       brand: Contactformulier-admin
       locale_switch: Taal van de interface

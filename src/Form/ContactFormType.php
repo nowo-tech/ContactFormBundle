@@ -33,6 +33,9 @@ class ContactFormType extends AbstractType
     {
         $prefix = $options['label_prefix'];
 
+        // 1.12 (REQ-RUNTIME-003 rule 4): the row version of the page, checked when an existing form is saved.
+        RowVersionField::add($builder);
+
         $this->withBuilder($builder, function () use ($prefix, $options): void {
             // empty_data + NotBlank: a blank submission is a validation error, not a TypeError on the string setter.
             $this->addTextField('name', [

@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+  - [Admin edits: row version (REQ-RUNTIME-003 rule 4)](#admin-edits-row-version-req-runtime-003-rule-4)
 - [To 1.11.1](#to-1111)
 - [To 1.11.0](#to-1110)
 - [To 1.10.0](#to-1100)
@@ -67,6 +68,48 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+### Admin edits: row version (REQ-RUNTIME-003 rule 4)
+
+From **1.11.1**:
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
+
+**Schema change: add one column to two tables before you deploy** (the bundle ships no migrations; the mapped entities
+select it, so every page that reads a form or a field fails until it exists). Generate the migration
+(`php bin/console doctrine:migrations:diff`, with `--em=<name>` when you use `doctrine.entity_manager`) or run
+`doctrine:schema:update --force` where you use that. On MySQL 8.4, MariaDB 11.4 and PostgreSQL 16 it is (table prefix
+included if you set one):
+
+```sql
+ALTER TABLE nowo_contact_form ADD row_version INT DEFAULT 1 NOT NULL;
+ALTER TABLE nowo_contact_form_field ADD row_version INT DEFAULT 1 NOT NULL;
+```
+
+Do not fill it: `1` is the correct value for every existing row. The migration is safe to run before the new code is
+deployed (the old code ignores the column), so run it first on a rolling deploy. A host that maps the entities itself
+with the shipped XML (`doctrine-xml/`) gets the same field there.
+
+What changes:
+
+- **A stale admin page is refused.** Two admins editing the same form or field used to overwrite each other (the later
+  save wrote back every column its page showed). Now the form edit page carries the row version in a hidden field
+  (`rowVersion`) and the field wizard keeps the version of its first page up to the last step (`flowBaseVersion`, hidden
+  on the first step), and the save checks and advances it in the save's transaction. A page opened before another
+  admin's save answers **409** with `X-Error-Code: CONTACT_FORM_STALE_VERSION`: the page is shown again with a "changed
+  by someone else" message (a flash of type `error`; translation key `nowo_contact_form.admin.stale_version`), nothing is
+  written, and the admin reloads and applies the change again. It is a domain answer, not `CONFLICT_001` /
+  `CONFLICT_002`: there is no `Retry-After`. A stale field wizard starts again on the stored field.
+- **Custom templates** that render the admin form fields one by one (`web_ui.templates.*`) must also render the hidden
+  field: `{{ form_row(form.rowVersion) }}` (form edit) or `form_rest(form)`; the wizard's first step renders
+  `flowBaseVersion` with its other fields. The shipped templates already do. Without the field every save is answered
+  as stale (never a silent overwrite).
+- Deleting a form or a field is not versioned (delete by id, idempotent). Creating needs no token.
+- `ContactForm` and `ContactFormField` implement the new `VersionedRowInterface` (`getRowVersion()`, `setRowVersion()`);
+  `ContactFormField` also has a transient `getFlowBaseVersion()` / `setFlowBaseVersion()` that is never persisted.
+- New `ContactFormRepository::saveEdit()` and `ContactFormFieldRepository::saveEdit()` (the admin edit units).
 
 ## To 1.11.1
 

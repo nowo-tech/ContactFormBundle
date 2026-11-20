@@ -60,6 +60,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **Admin edits are checked against a row version (REQ-RUNTIME-003 rule 4, lost update).** New integer column
+  `row_version` (default 1) on `ContactForm` and `ContactFormField` (attribute and XML mapping). The form edit page
+  carries it as a hidden `rowVersion` field, the field wizard keeps the version of its first page to the last step
+  (`flowBaseVersion`), and the save advances it with one atomic compare-and-swap `UPDATE` inside the save's transaction
+  (`RowVersionGuard`, new `ContactFormRepository::saveEdit()` and `ContactFormFieldRepository::saveEdit()`). A page that
+  another admin's save has outdated is answered **409** with `X-Error-Code: CONTACT_FORM_STALE_VERSION`: the page again
+  with a "changed by someone else, reload" message (the typed text is kept on the form edit; a stale wizard starts again
+  on the stored field), nothing written, no `Retry-After` (a domain answer, not `CONFLICT_001` / `CONFLICT_002`).
+  Translation key `nowo_contact_form.admin.stale_version` in the seven catalogues.
+- Real-database race tests (MySQL 8.4, MariaDB 11.4, PostgreSQL 16): two admins on the same form, a simultaneous form
+  edit and field edit against a second process holding the row lock, and a lock timeout that stays `CONFLICT_001`.
+
+### Changed
+
+- **Schema: add `row_version INT DEFAULT 1 NOT NULL` to `nowo_contact_form` and `nowo_contact_form_field` before you
+  deploy** (the bundle ships no migrations; see UPGRADING).
+- Custom admin templates that list the form fields one by one must render `form.rowVersion` (`form_rest()` does).
+- `docs/CONCURRENCY.md`: the "later save wins" residual risk of the admin edits is closed.
+
 ## [1.11.1] - 2026-11-19
 
 ### Fixed

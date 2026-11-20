@@ -58,6 +58,10 @@ description, breadcrumbs mode `own`) and `nowo_ui_content` (the form in the `for
   that extends `@!NowoContactFormBundle/<template>` and overrides a data block (`nowo_ui_list_row`,
   `nowo_ui_form_body`, `nowo_ui_wizard_step`, `nowo_ui_content`, …). Unknown page ids fail the container compilation.
   Prefer theming the UiKit slots (`nowo_ui_kit.theme`) and scaffolds once for every bundle.
+- A template of your own that lists the form fields one by one must render the hidden version field of the edit forms
+  (`{{ form_row(form.rowVersion) }}` on the form edit page, or `form_rest(form)`; the field wizard's first step carries
+  `flowBaseVersion` with its other fields): the save checks it, and a page without it is answered as an outdated page
+  (409, never a silent overwrite; see [CONCURRENCY](CONCURRENCY.md)).
 - Record such overrides in the application's override inventory.
 
 ## Overriding templates (REQ-TWIG-001)

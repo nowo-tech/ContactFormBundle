@@ -7,6 +7,7 @@ nowo_contact_form:
     phone_number_invalid: Enter a valid phone number using digits only.
   admin:
     back: Back to list
+    stale_version: 'This item was changed by someone else after you opened the page. Your changes were not saved. Reload the page and apply them again.'
     nav:
       brand: Contact Form Admin
       locale_switch: Interface language

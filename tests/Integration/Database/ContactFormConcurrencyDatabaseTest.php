@@ -15,6 +15,7 @@ use Doctrine\ORM\ORMSetup;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\ContactFormBundle\Command\CleanupExpiredSubmissionsCommand;
+use Nowo\ContactFormBundle\Concurrency\StaleVersionException;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Entity\ContactFormTranslation;
@@ -41,6 +42,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Tester\CommandTester;
@@ -56,14 +58,24 @@ use Throwable;
 use function array_intersect;
 use function array_map;
 use function dirname;
+use function fgets;
 use function getenv;
+use function hrtime;
+use function is_resource;
 use function is_string;
+use function proc_close;
+use function proc_open;
+use function stream_get_contents;
+use function stream_set_timeout;
+use function trim;
 
+use const PHP_BINARY;
 use const PHP_VERSION_ID;
 
 /**
  * 1.11 (REQ-RUNTIME-003): two connections on real MySQL 8.4, MariaDB 11.4 and PostgreSQL 16 servers, on the bundle's
- * hot write paths: the public submission, the retention purge and two admin edits of one form.
+ * hot write paths: the public submission, the retention purge, two admin edits of one form and (1.12) the lost-update
+ * check of the admin edits (row version), including a second process holding the row lock.
  *
  * Every test session sets a 2 s `innodb_lock_wait_timeout` / `lock_timeout`, so a lock wait fails fast instead of
  * hanging. Set CF_MYSQL_URL, CF_MARIADB_URL and CF_POSTGRES_URL; CI runs the `database` group with `--fail-on-skipped`.
@@ -299,6 +311,144 @@ final class ContactFormConcurrencyDatabaseTest extends TestCase
         self::assertSame(['A'], $a->getConnection()->fetchFirstColumn("SELECT title FROM nowo_contact_form_translation WHERE form_id = ? AND locale = 'es'", [$formId]));
     }
 
+    /**
+     * 1.12 (REQ-RUNTIME-003 rule 4): two admins open the same form; the first save is whole and advances the version, the
+     * second (still on version 1) is refused as stale with nothing written: no lost update. Its connection and manager
+     * stay usable, and after a reload it saves on top of the first.
+     */
+    #[DataProvider('databases')]
+    public function testTwoAdminsOpenTheSameFormTheSecondSaveIsStaleAndTheFirstStaysWhole(?string $url): void
+    {
+        $a      = $this->freshDatabase($url);
+        $b      = $this->manager();
+        $formId = $this->seedForm($a);
+
+        $pageA = $a->find(ContactForm::class, $formId);
+        $pageB = $b->find(ContactForm::class, $formId);
+        self::assertInstanceOf(ContactForm::class, $pageA);
+        self::assertInstanceOf(ContactForm::class, $pageB);
+        self::assertSame($pageA->getRowVersion(), $pageB->getRowVersion(), 'both admins opened the same version');
+
+        $pageA->setName('Renamed by A');
+        $this->formsOn($a)->saveEdit($pageA, $a, $pageA->getRowVersion());
+
+        $pageB->setRetentionDays(7);
+        $stale = null;
+
+        try {
+            $this->formsOn($b)->saveEdit($pageB, $b, 1);
+        } catch (StaleVersionException $caught) {
+            $stale = $caught;
+        }
+
+        self::assertInstanceOf(StaleVersionException::class, $stale, 'a stale save is a domain answer, never a silent overwrite');
+        self::assertSame(['Renamed by A', 30, 2], $this->formRowWithVersion($a, $formId), 'A is whole: name, retention, version');
+        self::assertSame(0, $b->getConnection()->getTransactionNestingLevel());
+        self::assertSame(1, (int) $b->getConnection()->fetchOne('SELECT 1'), 'the connection is still usable');
+        self::assertTrue($b->isOpen(), 'the manager was not closed by the refused save');
+
+        // The second admin reloads and applies the change again on the current page.
+        $b->refresh($pageB);
+        $pageB->setRetentionDays(7);
+        $this->formsOn($b)->saveEdit($pageB, $b, $pageB->getRowVersion());
+        self::assertSame(['Renamed by A', 7, 3], $this->formRowWithVersion($a, $formId), 'both changes kept');
+    }
+
+    /**
+     * Both pages were opened at version 1 and the saves overlap: the other process saves first and keeps the row locked
+     * for a while. The loser waits for the winner's commit (a lock wait, not a conflict), then finds the version moved: stale.
+     * The stored row is the winner's whole.
+     */
+    #[DataProvider('databases')]
+    public function testASimultaneousFormEditWaitsForTheWinnerAndThenIsStale(?string $url): void
+    {
+        $a      = $this->freshDatabase($url);
+        $b      = $this->manager();
+        $formId = $this->seedForm($a);
+        $page   = $b->find(ContactForm::class, $formId);
+        self::assertInstanceOf(ContactForm::class, $page);
+
+        $child   = $this->startSaveEdit($url, 'form', $formId, 1, 1200, 'Winner');
+        $started = hrtime(true);
+        $page->setName('Loser');
+        $stale = null;
+
+        try {
+            $this->formsOn($b)->saveEdit($page, $b, 1);
+        } catch (StaleVersionException $caught) {
+            $stale = $caught;
+        }
+        $waited = (hrtime(true) - $started) / 1e9;
+        self::assertSame("DONE\n", $this->finish($child));
+
+        self::assertGreaterThan(0.3, $waited, 'the loser waited for the winner\'s row lock, then found the version moved');
+        self::assertInstanceOf(StaleVersionException::class, $stale);
+        self::assertSame(['Winner', 30, 2], $this->formRowWithVersion($a, $formId), 'no lost update: the winner\'s save is the stored row');
+        self::assertSame(0, $b->getConnection()->getTransactionNestingLevel());
+        self::assertTrue($b->isOpen());
+    }
+
+    #[DataProvider('databases')]
+    public function testASimultaneousFieldEditWaitsForTheWinnerAndThenIsStale(?string $url): void
+    {
+        $a       = $this->freshDatabase($url);
+        $b       = $this->manager();
+        $formId  = $this->seedForm($a);
+        $fieldId = (int) $a->getConnection()->fetchOne('SELECT id FROM nowo_contact_form_field WHERE form_id = ?', [$formId]);
+        $page    = $b->find(ContactFormField::class, $fieldId);
+        self::assertInstanceOf(ContactFormField::class, $page);
+
+        $child   = $this->startSaveEdit($url, 'field', $fieldId, 1, 1200, 'winner_field');
+        $started = hrtime(true);
+        $page->setName('loser_field');
+        $stale = null;
+
+        try {
+            (new ContactFormFieldRepository($this->registry($b)))->saveEdit($page, $b, 1);
+        } catch (StaleVersionException $caught) {
+            $stale = $caught;
+        }
+        $waited = (hrtime(true) - $started) / 1e9;
+        self::assertSame("DONE\n", $this->finish($child));
+
+        self::assertGreaterThan(0.3, $waited, 'the loser waited for the winner\'s row lock');
+        self::assertInstanceOf(StaleVersionException::class, $stale);
+        $row = $a->getConnection()->fetchAssociative('SELECT name, row_version FROM nowo_contact_form_field WHERE id = ?', [$fieldId]);
+        self::assertSame(['winner_field', 2], [$row['name'] ?? null, (int) ($row['row_version'] ?? 0)], 'no lost update');
+        self::assertSame(0, $b->getConnection()->getTransactionNestingLevel());
+        self::assertTrue($b->isOpen());
+    }
+
+    /**
+     * A save that meets the winner's lock past its wait timeout is not stale: it is the lock conflict of before (409 +
+     * CONFLICT_001, retry is safe), mapped by the same listener. Nothing is stored and the connection stays usable.
+     */
+    #[DataProvider('databases')]
+    public function testAnEditThatMeetsTheWinnersLockPastItsTimeoutIsAConflictNotAStaleAnswer(?string $url): void
+    {
+        $a      = $this->freshDatabase($url);
+        $b      = $this->manager();
+        $formId = $this->seedForm($a);
+        $page   = $b->find(ContactForm::class, $formId);
+        self::assertInstanceOf(ContactForm::class, $page);
+
+        $child = $this->startSaveEdit($url, 'form', $formId, 1, 4500, 'Winner');
+        $page->setName('Loser');
+        $failure = $this->failureOf(function () use ($b, $page): int {
+            $this->formsOn($b)->saveEdit($page, $b, 1);
+
+            return 0;
+        });
+        self::assertSame("DONE\n", $this->finish($child));
+
+        $answer = $this->answer($failure, new ContactFormConflictListener(), $this->request(self::ADMIN_CONTROLLER));
+        self::assertSame(409, $answer->getStatusCode());
+        self::assertSame(['X-Conflict-Code' => ConflictCode::RETRY_SAFE, 'Retry-After' => '1'], $answer->getHeaders());
+        self::assertSame(['Winner', 30, 2], $this->formRowWithVersion($a, $formId), 'nothing of the loser');
+        self::assertSame(0, $b->getConnection()->getTransactionNestingLevel());
+        self::assertSame(1, (int) $b->getConnection()->fetchOne('SELECT 1'), 'the connection is still usable');
+    }
+
     private function freshDatabase(?string $url): EntityManagerInterface
     {
         if ($url === null) {
@@ -441,6 +591,61 @@ final class ContactFormConcurrencyDatabaseTest extends TestCase
     private function rowCount(EntityManagerInterface $manager, string $table): int
     {
         return (int) $manager->getConnection()->fetchOne('SELECT COUNT(*) FROM ' . $table);
+    }
+
+    private function formsOn(EntityManagerInterface $manager): ContactFormRepository
+    {
+        return new ContactFormRepository($this->registry($manager));
+    }
+
+    /**
+     * @return array{0: string, 1: int, 2: int} name, retention days and row version of a form
+     */
+    private function formRowWithVersion(EntityManagerInterface $manager, int $formId): array
+    {
+        $row = $manager->getConnection()->fetchAssociative('SELECT name, retention_days, row_version FROM nowo_contact_form WHERE id = ?', [$formId]);
+        self::assertIsArray($row);
+
+        return [(string) $row['name'], (int) $row['retention_days'], (int) $row['row_version']];
+    }
+
+    /**
+     * @return array{0: resource, 1: array<int, resource>}
+     */
+    private function startSaveEdit(?string $url, string $kind, int $id, int $token, int $holdMs, string $name): array
+    {
+        // @phpstan-ignore frankenphp.classic.noUnlimitedIoTimeout (test-only child process; pipes read with stream_set_timeout)
+        $process = proc_open(
+            [PHP_BINARY, dirname(__DIR__, 2) . '/Fixtures/concurrency/save-edit.php', (string) $url, $kind, (string) $id, (string) $token, (string) $holdMs, $name],
+            [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+            $pipes,
+            null,
+            ['PATH' => (string) getenv('PATH')],
+        );
+        self::assertTrue(is_resource($process));
+        // Bounded: the child holds its locks for $holdMs and its own session has a lock timeout.
+        stream_set_timeout($pipes[1], 30);
+        stream_set_timeout($pipes[2], 30);
+        $line = fgets($pipes[1]);
+        if ($line !== "LOCKED\n") {
+            throw new RuntimeException('The second process did not take its locks: ' . trim((string) $line) . ' ' . stream_get_contents($pipes[2]));
+        }
+
+        return [$process, $pipes];
+    }
+
+    /**
+     * @param array{0: resource, 1: array<int, resource>} $child
+     */
+    private function finish(array $child): string
+    {
+        [$process, $pipes] = $child;
+        $out               = (string) stream_get_contents($pipes[1]);
+        $err               = (string) stream_get_contents($pipes[2]);
+        $code              = proc_close($process);
+        self::assertSame(0, $code, $err);
+
+        return $out;
     }
 
     /**
