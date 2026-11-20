@@ -33,6 +33,7 @@ use Nowo\ContactFormBundle\Service\SubmissionRetentionCleanupService;
 use Nowo\ContactFormBundle\Tests\Integration\EntityManager\Entity\HostNote;
 use Nowo\TransactionDoctrine\WriteUnit\CommitLedger;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -74,12 +75,16 @@ final class DedicatedEntityManagerTest extends TestCase
         }
     }
 
+    /**
+     * Host mode (1.x default; 1.13 notice at container build, 2.0 removes it).
+     */
+    #[IgnoreDeprecations]
     public function testStandardHostKeepsTheDefaultManager(): void
     {
         $this->boot([
             'dbal' => ['url' => 'sqlite:///' . $this->database('standard')],
             'orm'  => ['auto_mapping' => true],
-        ]);
+        ], ['doctrine' => ['private_entity_manager' => null]]);
         $default = $this->registry()->getManager();
 
         self::assertSame(['default'], array_keys((array) $this->container()->getParameter('doctrine.entity_managers')));
@@ -88,7 +93,7 @@ final class DedicatedEntityManagerTest extends TestCase
 
         // LI-CF-L2: the collation listener is wired on the schema tool events of the manager.
         self::assertInstanceOf(EntityManagerInterface::class, $default);
-        $listeners = $default->getEventManager()->getListeners(ToolEvents::postGenerateSchemaTable);
+        $listeners = $default->getEventManager()->getListeners(ToolEvents::postGenerateSchema);
         self::assertContains(ClientReferenceCollationListener::class, array_map(static fn (object $l): string => $l::class, $listeners));
     }
 

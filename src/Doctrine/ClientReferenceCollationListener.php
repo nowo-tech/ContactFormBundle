@@ -10,7 +10,9 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\MySQL80Platform;
 use Doctrine\DBAL\Schema\ColumnEditor;
+use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
+use Doctrine\ORM\Tools\Event\GenerateSchemaEventArgs;
 use Doctrine\ORM\Tools\Event\GenerateSchemaTableEventArgs;
 use Doctrine\ORM\Tools\ToolEvents;
 use Nowo\ContactFormBundle\Entity\ContactSubmission;
@@ -32,16 +34,31 @@ use function method_exists;
  * Other platforms (PostgreSQL, SQLite) already compare exactly and are left untouched; the collation cannot be put
  * in the mapping itself because they reject MySQL collation names. Applied to the generated schema (schema tool,
  * `doctrine:migrations:diff`), so migrations carry it.
+ *
+ * 1.13 (audit XH-1): applied on `postGenerateSchema`, once the schema tool has added every foreign key, by table name.
+ * 1.7.0–1.12.1 replaced the table on `postGenerateSchemaTable` (`setClassTable()`, DBAL 4.5+), and the ORM schema tool
+ * then added the submission's foreign keys to the table it had replaced: on MySQL / MariaDB the generated schema lost
+ * `nowo_contact_submission.form_id → nowo_contact_form (ON DELETE CASCADE)` and its index. Now:
+ *
+ * - DBAL 4.5+: the table is rebuilt with its table editor (foreign keys and indexes included) and swapped into a new
+ *   schema given back with `GenerateSchemaEventArgs::setSchema()`;
+ * - older DBAL: the column's platform options are set in place (no editor exists there).
  */
-#[AsDoctrineListener(event: ToolEvents::postGenerateSchemaTable)]
+#[AsDoctrineListener(event: ToolEvents::postGenerateSchema)]
 final readonly class ClientReferenceCollationListener
 {
     public const FIELD = 'clientReference';
 
+    /**
+     * @param ContactFormEntityManagerResolver|null $entityManagerResolver unused since 1.13 (the platform comes from the
+     *                                                                     schema tool's entity manager); kept for BC
+     * @param AbstractPlatform|null $platform a fixed platform (tests); null: the platform of the schema tool's connection
+     */
     public function __construct(
-        private ?ContactFormEntityManagerResolver $entityManagerResolver = null,
+        ?ContactFormEntityManagerResolver $entityManagerResolver = null,
         private ?AbstractPlatform $platform = null,
     ) {
+        unset($entityManagerResolver);
     }
 
     /**
@@ -59,25 +76,43 @@ final readonly class ClientReferenceCollationListener
         };
     }
 
+    /**
+     * Gives `client_reference` its exact-match collation in the generated schema, keeping every foreign key and index of
+     * the table.
+     */
+    public function postGenerateSchema(GenerateSchemaEventArgs $args): void
+    {
+        $entityManager = $args->getEntityManager();
+        if ($entityManager->getMetadataFactory()->isTransient(ContactSubmission::class)) {
+            return;
+        }
+
+        $platform  = $this->platform ?? $entityManager->getConnection()->getDatabasePlatform();
+        $collation = self::collationFor($platform);
+        $metadata  = $entityManager->getClassMetadata(ContactSubmission::class);
+        $schema    = $args->getSchema();
+        $tableName = $metadata->getTableName();
+        if ($collation === null || $tableName === '' || !$schema->hasTable($tableName)) {
+            return;
+        }
+
+        // Table::edit() and Schema::edit() exist only from DBAL 4.5; ORM 3 allows DBAL 3.8.
+        // @phpstan-ignore function.alreadyNarrowedType, function.alreadyNarrowedType
+        $editor = method_exists(Table::class, 'edit') && method_exists(Schema::class, 'edit');
+        $edited = self::collate($schema->getTable($tableName), $metadata->getColumnName(self::FIELD), $collation, $editor);
+        if ($edited instanceof Table) {
+            $args->setSchema($schema->edit()->dropTableByUnquotedName($tableName)->addTable($edited)->create());
+        }
+    }
+
+    /**
+     * No longer subscribed (1.13, audit XH-1): replacing the table there lost its foreign keys. Kept for BC; does nothing.
+     *
+     * @deprecated since 1.13, the collation is applied on postGenerateSchema ({@see self::postGenerateSchema()})
+     */
     public function postGenerateSchemaTable(GenerateSchemaTableEventArgs $args): void
     {
-        $metadata = $args->getClassMetadata();
-        if ($metadata->getName() !== ContactSubmission::class) {
-            return;
-        }
-
-        $platform  = $this->platform ?? $this->entityManagerResolver?->get()->getConnection()->getDatabasePlatform();
-        $collation = $platform instanceof AbstractPlatform ? self::collationFor($platform) : null;
-        if ($collation === null) {
-            return;
-        }
-
-        $column = $metadata->getColumnName(self::FIELD);
-        // @phpstan-ignore function.alreadyNarrowedType (Table::edit() exists only from DBAL 4.5; ORM 3 allows DBAL 3.8)
-        $edited = self::collate($args->getClassTable(), $column, $collation, method_exists(Table::class, 'edit'));
-        if ($edited instanceof Table) {
-            $args->setClassTable($edited);
-        }
+        unset($args);
     }
 
     /**

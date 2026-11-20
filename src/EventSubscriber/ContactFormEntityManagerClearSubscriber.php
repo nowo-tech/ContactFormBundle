@@ -26,6 +26,7 @@ use Symfony\Component\Messenger\Event\WorkerMessageSkipEvent;
 use Symfony\Component\Messenger\Event\WorkerRunningEvent;
 use Symfony\Component\Messenger\Event\WorkerStartedEvent;
 use Symfony\Component\Messenger\Event\WorkerStoppedEvent;
+use Symfony\Contracts\Service\ResetInterface;
 use WeakMap;
 use WeakReference;
 
@@ -93,7 +94,11 @@ use const PHP_INT_MIN;
  *   (the compiler pass wires nothing otherwise). Without that option the bundle entities live on the application's
  *   manager, which the bundle never clears (REQ-RUNTIME-002 rule 7: the host clears its own managers);
  * - the manager and the registry arrive as iterators of IGNORE_ON_UNINITIALIZED_REFERENCE references, so a boundary
- *   only touches a manager the unit of work already built and never builds one itself.
+ *   only touches a manager the unit of work already built and never builds one itself;
+ * - 1.13: the same boundaries reset the bundle's per-unit services (`$resettables`, IGNORE_ON_UNINITIALIZED_REFERENCE
+ *   too): the private entity manager of `doctrine.private_entity_manager: true` is dropped (the next use creates a
+ *   fresh one; changes still pending are logged and discarded) and the host-flush reporter forgets the classes it
+ *   reported, so nothing of a request, message or command survives into the next one with the kernel reset off.
  *
  * The Messenger events are subscribed by name, so symfony/messenger stays optional.
  *
@@ -158,12 +163,14 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
      * @param string|null $managerName `doctrine.entity_manager`
      * @param RequestStack|null $requestStack the HTTP kernel's request stack (read only): tells a nested main request
      *                                        from one left in flight by a request whose end never came
+     * @param iterable<ResetInterface> $resettables 1.13: the private entity manager and the host-flush reporter
      */
     public function __construct(
         private readonly iterable $entityManagers = [],
         private readonly iterable $registries = [],
         private readonly ?string $managerName = null,
         private readonly ?RequestStack $requestStack = null,
+        private readonly iterable $resettables = [],
     ) {
         $this->requests = new SplObjectStorage();
         $this->verdicts = new WeakMap();
@@ -478,6 +485,10 @@ final class ContactFormEntityManagerClearSubscriber implements EventSubscriberIn
      */
     public function clearState(): void
     {
+        foreach ($this->resettables as $resettable) {
+            $resettable->reset();
+        }
+
         foreach ($this->entityManagers as $entityManager) {
             if ($entityManager->isOpen()) {
                 $entityManager->clear();

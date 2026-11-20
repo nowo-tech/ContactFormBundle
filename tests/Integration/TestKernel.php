@@ -22,7 +22,9 @@ use Symfony\Component\Security\Csrf\TokenGenerator\UriSafeTokenGenerator;
 use Symfony\Component\Security\Csrf\TokenStorage\SessionTokenStorage;
 use Twig\Extra\TwigExtraBundle\TwigExtraBundle;
 
+use function array_key_exists;
 use function dirname;
+use function is_array;
 use function is_dir;
 use function mkdir;
 
@@ -81,7 +83,14 @@ class TestKernel extends Kernel
                 ],
             ],
         ]);
-        $container->loadFromExtension('nowo_contact_form', $this->contactFormConfig() + [
+        $contactForm = $this->contactFormConfig();
+        // 1.13: the private entity manager by default (the 2.0 behaviour, no notice); a test of the host mode sets the
+        // key to null or false itself (and ignores the notice the container build triggers).
+        $doctrine = is_array($contactForm['doctrine'] ?? null) ? $contactForm['doctrine'] : [];
+        if (!array_key_exists('private_entity_manager', $doctrine) && !array_key_exists('entity_manager', $doctrine)) {
+            $contactForm['doctrine'] = $doctrine + ['private_entity_manager' => true];
+        }
+        $container->loadFromExtension('nowo_contact_form', $contactForm + [
             'notifications' => ['enabled' => false],
             'security'      => [
                 'allow_unauthenticated' => true,

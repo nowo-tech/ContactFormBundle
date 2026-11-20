@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[1.13.0] - 2026-11-20](#1130---2026-11-20)
 - [[1.12.1] - 2026-11-20](#1121---2026-11-20)
 - [[1.12.0] - 2026-11-20](#1120---2026-11-20)
 - [[1.11.1] - 2026-11-19](#1111---2026-11-19)
@@ -62,9 +63,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-11-20
+
+### Added
+
+- `doctrine.private_entity_manager` (REQ-ARCH-001 rule 6, zero-config): `true` makes the bundle read and write its
+  entities through a private entity manager of its own, created on the connection, mapping and event manager of
+  `doctrine.entity_manager` (else the default entity manager). Same tables, no other configuration. A contact form
+  write (public submission, `ContactSubmissionRecorderInterface::record()`, admin save or delete, retention cleanup)
+  then never flushes the application's pending changes, and a failed bundle write closes only the private manager
+  (replaced on the next use). The private manager is dropped at every request, Messenger message and console command
+  boundary (FrankenPHP worker mode with the kernel reset off included) and at `kernel.reset`. Built on the private
+  entity manager kit of `nowo-tech/transaction-doctrine` 1.9. Submission ids stay database identities.
+- Host-flush probe: while the bundle flushes the application's manager (`doctrine.private_entity_manager` unset or
+  false, and `doctrine.entity_manager` unset or naming the default manager), each bundle flush first reports every application entity class with pending changes in the flushed manager, once per class and
+  request / message / command: *"Your pending changes to App\X were flushed by NowoContactFormBundle; 2.0 no longer
+  does."* (`E_USER_DEPRECATED`). Read-only: nothing is flushed, cleared or reset by it.
+
+### Deprecated
+
+- Without `doctrine.entity_manager` (or with it naming the default entity manager), leaving
+  `doctrine.private_entity_manager` unset or setting it to `false` triggers a deprecation notice when the container is built (one text for each). 2.0 removes the option: the private entity
+  manager is the only mode unless `doctrine.entity_manager` is set. Set it to `true` to opt in now. See UPGRADING
+  "To 1.13.0".
+
 ### Changed
 
+- Requires `nowo-tech/transaction-doctrine` ^1.9.1 (host-flush probe and private entity manager kit).
 - Demo: aligned with UiKit. The masthead menu uses `nowo-ui-menu` / `nowo-ui-link` with `demo-nav-*` test ids, the home page uses the UiKit page header, and `public/css/demo.css` is down to the layout of the bundle's own phone widget (the unused `.demo-code` rule is gone).
+
+### Fixed
+
+- The generated schema keeps the `nowo_contact_submission.form_id → nowo_contact_form` foreign key (`ON DELETE
+  CASCADE`) and its index on MySQL and MariaDB. From 1.7.0 to 1.12.1, with `doctrine/dbal` 4.5 or later, the
+  `client_reference` collation listener replaced the submission table during schema generation and the ORM schema tool
+  then added the table's foreign keys to the replaced one, so `doctrine:schema:update` / `doctrine:migrations:diff`
+  dropped them: deleting a form left its submissions and values behind, out of reach of the retention cleanup. The
+  listener now applies the collation on `postGenerateSchema`, once every foreign key exists. PostgreSQL and SQLite
+  were not affected. See UPGRADING "To 1.13.0" to find orphaned submissions and add the key back.
+- Demo: a migration adds the `row_version` columns of 1.12 (`nowo_contact_form`, `nowo_contact_form_field`); a fresh
+  `make up` failed at `app:seed-contact-demo` with "Unknown column 't0.row_version'".
 
 ## [1.12.1] - 2026-11-20
 
@@ -680,6 +718,7 @@ Allows nowo-tech/ui-kit-bundle 2.x (^1.4 || ^2.2) so hosts can move to UiKit 2.2
 
 - **Worker safety (Igor):** justified `// @igor-ignore` annotations and/or `ResetInterface` / request-scoped fixes so `make igor` passes on package `src/`.
 
+[1.13.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.13.0
 [1.12.1]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.12.1
 [1.12.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.12.0
 [1.11.1]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.11.1
