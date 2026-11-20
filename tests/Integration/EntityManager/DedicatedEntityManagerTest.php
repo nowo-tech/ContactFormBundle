@@ -93,7 +93,7 @@ final class DedicatedEntityManagerTest extends TestCase
 
         // LI-CF-L2: the collation listener is wired on the schema tool events of the manager.
         self::assertInstanceOf(EntityManagerInterface::class, $default);
-        $listeners = $default->getEventManager()->getListeners(ToolEvents::postGenerateSchemaTable);
+        $listeners = $default->getEventManager()->getListeners(ToolEvents::postGenerateSchema);
         self::assertContains(ClientReferenceCollationListener::class, array_map(static fn (object $l): string => $l::class, $listeners));
     }
 
