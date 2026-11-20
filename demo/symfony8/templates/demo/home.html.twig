@@ -1,86 +1,52 @@
+{#- Demo home, in the demo platform layout grammar: page header (title, lead, the one primary action), then one
+    section card per topic (demo_platform/_section.html.twig). -#}
 {% extends 'base.html.twig' %}
 
 {% block title %}{{ 'demo.page_title'|trans({}, 'messages') }}{% endblock %}
 
 {% block nowo_ui_page_header %}
-    {{ include(nowo_ui_partial('page_header'), {title: 'demo.page_title'|trans({}, 'messages')}) }}
+    {% set _toolbar %}<a href="{{ path('nowo_contact_form_admin_index') }}" class="nowo-ui-btn nowo-ui-btn--primary" data-testid="demo-home-admin">{{ 'demo.card_admin_cta'|trans({}, 'messages') }}</a>{% endset %}
+    {{ include(nowo_ui_partial('page_header'), {title: 'demo.page_title'|trans({}, 'messages'), intro: 'demo.lead'|trans({}, 'messages')|striptags, toolbar: _toolbar}) }}
 {% endblock %}
 
 {% block body %}
-    <section class="nowo-ui-card">
-        <div class="nowo-ui-card__body">
-            <span class="nowo-ui-badge nowo-ui-badge--primary">{{ 'demo.symfony_badge'|trans({}, 'messages') }}</span>
-            <p class="nowo-ui-muted">{{ 'demo.lead'|trans({}, 'messages')|raw }}</p>
+    {% embed '@NowoUiKit/demo_platform/_section.html.twig' with {title: 'demo.forms_title'|trans({}, 'messages'), intro: 'demo.forms_lead'|trans({}, 'messages'), kind: 'list', empty: contactForms is empty, state_message: 'demo.forms_empty'|trans({}, 'messages') ~ ' php bin/console app:seed-contact-demo', testid: 'demo-forms'} %}
+        {% block section_actions %}<span class="nowo-ui-badge nowo-ui-badge--neutral">{{ contactForms|length }} {{ 'demo.forms_count_label'|trans({}, 'messages') }}</span>{% endblock %}
+        {% block section_body %}
+            <div class="nowo-ui-cards">
+                {% for contactForm in contactForms %}
+                    {% set translation = contactForm.translationForLocale(app.request.locale) %}
+                    {% embed '@NowoUiKit/demo_platform/_section.html.twig' with {title: translation.title, intro: translation.description, heading_level: 3, kind: 'detail'} %}
+                        {% block section_body %}
+                            <p><code class="nowo-ui-code">{{ contactForm.slug }}</code></p>
+                            <div class="nowo-ui-row-actions">
+                                {% for field in contactForm.fields %}
+                                    <span class="nowo-ui-badge nowo-ui-badge--neutral">{{ field.type.value }}</span>
+                                {% endfor %}
+                            </div>
+                        {% endblock %}
+                        {% block section_footer %}
+                            <a href="{{ path('nowo_contact_form_fields_index', {formId: contactForm.id}) }}" class="nowo-ui-btn nowo-ui-btn--sm nowo-ui-btn--outline">{{ 'demo.form_fields'|trans({}, 'messages') }}</a>
+                            <a href="{{ path('nowo_contact_form_public_show', {slug: contactForm.slug, _locale: app.request.locale}) }}" class="nowo-ui-btn nowo-ui-btn--sm nowo-ui-btn--outline">{{ 'demo.form_open'|trans({}, 'messages') }}</a>
+                        {% endblock %}
+                    {% endembed %}
+                {% endfor %}
+            </div>
+        {% endblock %}
+    {% endembed %}
+
+    {% embed '@NowoUiKit/demo_platform/_section.html.twig' with {title: 'demo.field_types_title'|trans({}, 'messages'), intro: 'demo.card_admin_body'|trans({}, 'messages'), kind: 'content'} %}
+        {% block section_body %}
             <div class="nowo-ui-row-actions">
-                <a href="{{ path('nowo_contact_form_admin_index') }}" class="nowo-ui-btn nowo-ui-btn--primary">{{ 'demo.menu_admin'|trans({}, 'messages') }}</a>
+                {% for type in ['text', 'email', 'phone', 'textarea', 'select', 'checkbox', 'number', 'date', 'url', 'file'] %}
+                    <span class="nowo-ui-badge nowo-ui-badge--neutral">{{ type }}</span>
+                {% endfor %}
             </div>
-        </div>
-    </section>
+        {% endblock %}
+    {% endembed %}
 
-    <section>
-        <h2>{{ 'demo.forms_title'|trans({}, 'messages') }}</h2>
-        <p class="nowo-ui-muted">{{ 'demo.forms_lead'|trans({}, 'messages') }}
-            <span class="nowo-ui-badge nowo-ui-badge--neutral">{{ contactForms|length }} {{ 'demo.forms_count_label'|trans({}, 'messages') }}</span>
-        </p>
-
-        <div class="nowo-ui-cards">
-            {% for contactForm in contactForms %}
-                {% set translation = contactForm.translationForLocale(app.request.locale) %}
-                <div class="nowo-ui-card">
-                    <div class="nowo-ui-card__body">
-                        <div class="nowo-ui-row-actions">
-                            {% for field in contactForm.fields %}
-                                <span class="nowo-ui-badge nowo-ui-badge--neutral">{{ field.type.value }}</span>
-                            {% endfor %}
-                        </div>
-                        <h3>{{ translation.title }}</h3>
-                        <p class="nowo-ui-muted"><code class="nowo-ui-code">{{ contactForm.slug }}</code></p>
-                        {% if translation.description %}
-                            <p class="nowo-ui-muted">{{ translation.description }}</p>
-                        {% endif %}
-                        <div class="nowo-ui-row-actions">
-                            <a href="{{ path('nowo_contact_form_public_show', { slug: contactForm.slug, _locale: app.request.locale }) }}" class="nowo-ui-btn nowo-ui-btn--sm nowo-ui-btn--primary">{{ 'demo.form_open'|trans({}, 'messages') }}</a>
-                            <a href="{{ path('nowo_contact_form_fields_index', { formId: contactForm.id }) }}" class="nowo-ui-btn nowo-ui-btn--sm nowo-ui-btn--outline">{{ 'demo.form_fields'|trans({}, 'messages') }}</a>
-                        </div>
-                    </div>
-                </div>
-            {% else %}
-                <div class="nowo-ui-flash nowo-ui-flash--warning">
-                    {{ 'demo.forms_empty'|trans({}, 'messages') }}
-                    <code class="nowo-ui-code">php bin/console app:seed-contact-demo</code>
-                </div>
-            {% endfor %}
-        </div>
-    </section>
-
-    <div class="nowo-ui-cards">
-        <section class="nowo-ui-card">
-            <div class="nowo-ui-card__body">
-                <span class="nowo-ui-badge nowo-ui-badge--neutral">Admin</span>
-                <h2>{{ 'demo.card_admin_title'|trans({}, 'messages') }}</h2>
-                <p class="nowo-ui-muted">{{ 'demo.card_admin_body'|trans({}, 'messages') }}</p>
-                <a href="{{ path('nowo_contact_form_admin_index') }}" class="nowo-ui-btn nowo-ui-btn--sm nowo-ui-btn--outline">{{ 'demo.card_admin_cta'|trans({}, 'messages') }}</a>
-            </div>
-        </section>
-        <section class="nowo-ui-card">
-            <div class="nowo-ui-card__body">
-                <h2>{{ 'demo.field_types_title'|trans({}, 'messages') }}</h2>
-                <p class="nowo-ui-muted">{{ 'demo.field_types_body'|trans({}, 'messages') }}</p>
-                <div class="nowo-ui-row-actions">
-                    {% for type in ['text', 'email', 'phone', 'textarea', 'select', 'checkbox', 'number', 'date', 'url', 'file'] %}
-                        <span class="nowo-ui-badge nowo-ui-badge--neutral">{{ type }}</span>
-                    {% endfor %}
-                </div>
-            </div>
-        </section>
-    </div>
-
-    <section class="nowo-ui-card">
-        <div class="nowo-ui-card__header">
-            <h2>{{ 'demo.notifications_title'|trans({}, 'messages') }}</h2>
-        </div>
-        <div class="nowo-ui-card__body">
-            <p class="nowo-ui-muted">{{ 'demo.notifications_lead'|trans({}, 'messages') }}</p>
+    {% embed '@NowoUiKit/demo_platform/_section.html.twig' with {title: 'demo.notifications_title'|trans({}, 'messages'), intro: 'demo.notifications_lead'|trans({}, 'messages'), kind: 'list'} %}
+        {% block section_body %}
             <ul class="nowo-ui-list">
                 <li class="nowo-ui-list-item"><strong>FileContactSubmissionNotifier</strong> <code class="nowo-ui-code">var/log/contact-submissions-demo.log</code></li>
                 <li class="nowo-ui-list-item"><strong>WebhookContactSubmissionNotifier</strong> <code class="nowo-ui-code">var/log/contact-submissions-webhook-demo.log</code></li>
@@ -89,6 +55,6 @@
             </ul>
             <p class="nowo-ui-muted">{{ 'demo.notifications_composite'|trans({}, 'messages') }}</p>
             <p class="nowo-ui-muted">{{ 'demo.notifications_mailer'|trans({}, 'messages') }}</p>
-        </div>
-    </section>
+        {% endblock %}
+    {% endembed %}
 {% endblock %}
