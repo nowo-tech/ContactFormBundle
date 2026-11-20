@@ -7,6 +7,7 @@ namespace Nowo\ContactFormBundle\Controller;
 use Doctrine\ORM\EntityManagerInterface;
 use Nowo\ContactFormBundle\Concurrency\RowVersionGuard;
 use Nowo\ContactFormBundle\Concurrency\StaleVersionException;
+use Nowo\ContactFormBundle\Doctrine\ContactFormHostFlushReporter;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormTranslation;
 use Nowo\ContactFormBundle\Form\ContactFormType;
@@ -53,6 +54,8 @@ class ContactFormAdminController extends AbstractController
         private readonly ContactFormEnabledLocales $enabledLocales,
         private readonly ContactFormPageFactory $pages,
         private readonly CsrfOnlyFormFactory $csrfOnlyForms,
+        // 1.13: reports the application's pending changes a flush in host mode writes (see UPGRADING "To 1.13.0").
+        private readonly ?ContactFormHostFlushReporter $hostFlushReporter = null,
     ) {
     }
 
@@ -132,6 +135,7 @@ class ContactFormAdminController extends AbstractController
         }
 
         $entityManager->remove($form);
+        $this->hostFlushReporter?->beforeFlush($entityManager);
         $entityManager->flush();
 
         $this->addFlash('success', $this->translator->trans('nowo_contact_form.admin.form.deleted', [], 'NowoContactFormBundle'));
@@ -152,11 +156,13 @@ class ContactFormAdminController extends AbstractController
         if ($symfonyForm->isSubmitted() && $symfonyForm->isValid()) {
             if ($isNew) {
                 $entityManager->persist($contactForm);
+                $this->hostFlushReporter?->beforeFlush($entityManager);
                 $entityManager->flush();
             } else {
                 // 1.12 (REQ-RUNTIME-003 rule 4): the page's row version is checked and advanced in the save's
                 // transaction; a form saved by someone else since the page was opened is not overwritten.
                 try {
+                    $this->hostFlushReporter?->beforeFlush($entityManager);
                     $this->formRepository->saveEdit($contactForm, $entityManager, RowVersionField::read($symfonyForm));
                 } catch (StaleVersionException) {
                     $stale = true;

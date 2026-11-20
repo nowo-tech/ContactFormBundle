@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Nowo\ContactFormBundle\Doctrine\ContactFormHostFlushReporter;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactSubmission;
 use Nowo\ContactFormBundle\Event\ContactSubmissionsDeletedEvent;
@@ -45,6 +46,8 @@ class ContactSubmissionAdminController extends AbstractController
         private readonly ContactFormPageFactory $pages,
         private readonly CsrfOnlyFormFactory $csrfOnlyForms,
         private readonly ?EventDispatcherInterface $eventDispatcher = null,
+        // 1.13: reports the application's pending changes a flush in host mode writes (see UPGRADING "To 1.13.0").
+        private readonly ?ContactFormHostFlushReporter $hostFlushReporter = null,
     ) {
     }
 
@@ -102,6 +105,7 @@ class ContactSubmissionAdminController extends AbstractController
 
         $submissionId = (int) $submission->getId();
         $entityManager->remove($submission);
+        $this->hostFlushReporter?->beforeFlush($entityManager);
         $entityManager->flush();
         $this->eventDispatcher?->dispatch(new ContactSubmissionsDeletedEvent([$submissionId], ContactSubmissionsDeletedEvent::REASON_ADMIN));
 

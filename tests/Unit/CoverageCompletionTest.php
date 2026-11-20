@@ -593,6 +593,7 @@ PHP);
             'ip_anonymization_salt'  => 'salt',
             'default_retention_days' => 365,
             'phone_prefixes'         => ['+34' => 'ES (+34)'],
+            'doctrine'               => ['private_entity_manager' => false],
             'phone_input'            => [
                 'value_format'            => 'CONCATENATED',
                 'default_country'         => 'ES',

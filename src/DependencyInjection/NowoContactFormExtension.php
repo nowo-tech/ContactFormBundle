@@ -12,7 +12,11 @@ use Nowo\ContactFormBundle\Controller\ContactFormPublicController;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormCommitTrackingPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormFileUploaderPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
+use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormPrivateEntityManagerPass;
+use Nowo\ContactFormBundle\Doctrine\ContactFormHostFlushReporter;
+use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\EventSubscriber\ContactFormConflictListener;
+use Nowo\ContactFormBundle\EventSubscriber\ContactFormEntityManagerClearSubscriber;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Notification\MailerContactSubmissionNotifier;
 use Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier;
@@ -27,10 +31,15 @@ use Nowo\ContactFormBundle\Service\ContactSubmissionProcessor;
 use Nowo\ContactFormBundle\Service\IpAnonymizer;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
 use Nowo\ContactFormBundle\Twig\ContactFormAdminTwigExtension;
+use Nowo\TransactionDoctrine\HostFlushProbe;
+use Nowo\TransactionDoctrine\PrivateManager\PrivateEntityManager;
+use Nowo\TransactionDoctrine\PrivateManager\PrivateEntityManagerMiddleware;
+use Nowo\TransactionDoctrine\PrivateManager\PrivateManagerRegistry;
 use Nowo\TransactionDoctrine\Symfony\Conflict\ConflictResponsePolicy;
 use Nowo\TransactionDoctrine\WriteUnit\CommitLedger;
 use Nowo\TransactionDoctrine\WriteUnit\Dbal\CommitTrackingMiddleware;
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Definition;
@@ -44,6 +53,8 @@ use Symfony\Component\Mailer\MailerInterface;
 use function array_key_exists;
 use function is_array;
 use function is_string;
+use function str_starts_with;
+use function trigger_deprecation;
 
 /**
  * Loads bundle configuration and service definitions.
@@ -52,6 +63,27 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
 {
     /** Container parameter holding `doctrine.entity_manager` (null: the default entity manager), 1.7. */
     public const ENTITY_MANAGER_PARAMETER = 'nowo_contact_form.doctrine.entity_manager';
+
+    /** Container parameter holding `doctrine.private_entity_manager === true` (1.13). */
+    public const PRIVATE_ENTITY_MANAGER_PARAMETER = 'nowo_contact_form.doctrine.private_entity_manager';
+
+    /**
+     * Container parameter holding the name of the application's manager the private one is created on (1.13):
+     * `doctrine.entity_manager`, else the default entity manager (resolved by {@see ContactFormPrivateEntityManagerPass}).
+     */
+    public const PRIVATE_SOURCE_MANAGER_PARAMETER = 'nowo_contact_form.private_entity_manager.source_manager';
+
+    /** 1.13: the bundle's private entity manager (`doctrine.private_entity_manager: true`). */
+    public const PRIVATE_ENTITY_MANAGER_SERVICE = 'nowo_contact_form.private_entity_manager';
+
+    /** 1.13: the registry the bundle's repositories get in private mode (bundle entities → the private manager). */
+    public const PRIVATE_REGISTRY_SERVICE = 'nowo_contact_form.private_manager_registry';
+
+    /** 1.13: tells the private manager how the connection's transactions end (tagged by {@see ContactFormPrivateEntityManagerPass}). */
+    public const PRIVATE_MIDDLEWARE_SERVICE = 'nowo_contact_form.private_entity_manager_middleware';
+
+    /** 1.13: the notice of a host that sets neither `doctrine.private_entity_manager` nor `doctrine.entity_manager`. */
+    public const PRIVATE_ENTITY_MANAGER_UNSET_DEPRECATION = 'Not setting "nowo_contact_form.doctrine.private_entity_manager" is deprecated: contact form writes flush the application\'s entity manager, including its own pending changes. 2.0 defaults to true: a private entity manager on the same connection and tables that never flushes them. Opt in now with "nowo_contact_form: { doctrine: { private_entity_manager: true } }", or set it to false to keep the current behaviour (see UPGRADING.md "To 1.13.0").';
 
     /** Container parameter holding `doctrine.mapping_type` (`attribute` or `xml`), 1.9. */
     public const MAPPING_TYPE_PARAMETER = 'nowo_contact_form.doctrine.mapping_type';
@@ -253,6 +285,8 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
         $entityManagerName = is_string($entityManagerName) && $entityManagerName !== '' ? $entityManagerName : null;
         $container->setParameter(self::ENTITY_MANAGER_PARAMETER, $entityManagerName);
         $container->setParameter(self::MAPPING_TYPE_PARAMETER, ($config['doctrine']['mapping_type'] ?? 'attribute') === 'xml' ? 'xml' : 'attribute');
+        $privateEntityManager = $config['doctrine']['private_entity_manager'] ?? null;
+        $this->registerPrivateEntityManager($container, $privateEntityManager === null ? null : (bool) $privateEntityManager, $entityManagerName);
 
         $container->getDefinition(ContactSubmissionProcessor::class)
             ->setArgument('$clock', new Reference('clock'))
@@ -311,6 +345,82 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
         ]))
             ->addTag('kernel.event_listener', ['event' => KernelEvents::REQUEST, 'method' => 'onRequest', 'priority' => ContactFormConflictListener::REQUEST_PRIORITY])
             ->addTag('kernel.event_listener', ['event' => KernelEvents::EXCEPTION, 'method' => 'onException', 'priority' => ContactFormConflictListener::PRIORITY]));
+    }
+
+    /**
+     * 1.13 (REQ-ARCH-001 rule 6): `doctrine.private_entity_manager`.
+     *
+     * - true: the bundle's repositories, its entity manager service (`nowo_contact_form.entity_manager`, which the
+     *   controllers and services get) and its resolver work through transaction-doctrine's {@see PrivateEntityManager},
+     *   created on the connection, configuration and event manager of `doctrine.entity_manager` (else the default
+     *   manager). Same tables, no host configuration. It is dropped at every outermost unit-of-work boundary
+     *   ({@see ContactFormEntityManagerClearSubscriber}; also by transaction-doctrine's bundle through the
+     *   {@see PrivateEntityManager::TAG} tag, and at `kernel.reset`) and replaced when closed.
+     * - false or null: the bundle flushes the manager that maps its entities (1.x). Null, with `doctrine.entity_manager`
+     *   unset too, triggers the deprecation notice and enables {@see ContactFormHostFlushReporter}.
+     */
+    private function registerPrivateEntityManager(ContainerBuilder $container, ?bool $private, ?string $entityManagerName): void
+    {
+        $container->setParameter(self::PRIVATE_ENTITY_MANAGER_PARAMETER, $private === true);
+        $container->setParameter(self::PRIVATE_SOURCE_MANAGER_PARAMETER, $entityManagerName ?? '');
+
+        $unset = $private === null && $entityManagerName === null;
+        if ($unset) {
+            trigger_deprecation('nowo-tech/contact-form-bundle', '1.13', self::PRIVATE_ENTITY_MANAGER_UNSET_DEPRECATION);
+        }
+
+        $container->register(ContactFormHostFlushReporter::class, ContactFormHostFlushReporter::class)
+            ->setAutowired(false)
+            ->setAutoconfigured(false)
+            ->setArguments([$unset, new Reference(HostFlushProbe::SERVICE_ID, ContainerInterface::NULL_ON_INVALID_REFERENCE)])
+            ->addTag('kernel.reset', ['method' => 'reset']);
+
+        $resettables = [new Reference(ContactFormHostFlushReporter::class, ContainerInterface::IGNORE_ON_UNINITIALIZED_REFERENCE)];
+
+        if ($private === true) {
+            $source = '%' . self::PRIVATE_SOURCE_MANAGER_PARAMETER . '%';
+            $container->register(self::PRIVATE_ENTITY_MANAGER_SERVICE, PrivateEntityManager::class)
+                ->setAutowired(false)
+                ->setAutoconfigured(false)
+                ->setArguments([
+                    new Reference('doctrine'),
+                    $source,
+                    ContactForm::class,
+                    ContactFormHostFlushReporter::BUNDLE_NAME,
+                    new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE),
+                ])
+                ->addTag(PrivateEntityManager::TAG)
+                ->addTag('kernel.reset', ['method' => 'reset']);
+            $container->register(self::PRIVATE_REGISTRY_SERVICE, PrivateManagerRegistry::class)
+                ->setAutowired(false)
+                ->setAutoconfigured(false)
+                ->setArguments([
+                    new Reference('doctrine'),
+                    new Reference(self::PRIVATE_ENTITY_MANAGER_SERVICE),
+                    ContactFormHostFlushReporter::OWN_NAMESPACES,
+                    $source,
+                ]);
+            // Tagged doctrine.middleware for the source manager's connection by ContactFormPrivateEntityManagerPass.
+            $container->register(self::PRIVATE_MIDDLEWARE_SERVICE, PrivateEntityManagerMiddleware::class)
+                ->setAutowired(false)
+                ->setAutoconfigured(false)
+                ->setArguments([new Reference(self::PRIVATE_ENTITY_MANAGER_SERVICE), 'nowo_contact_form_']);
+
+            // The repositories (service repositories, also served by the application's manager's getRepository()) and
+            // the resolver behind nowo_contact_form.entity_manager resolve the bundle entities to the private manager.
+            $registry = new Reference(self::PRIVATE_REGISTRY_SERVICE);
+            foreach ($container->getDefinitions() as $id => $definition) {
+                $class = $definition->getClass() ?? $id;
+                if (str_starts_with($class, 'Nowo\\ContactFormBundle\\Repository\\') && !$definition->isAbstract()) {
+                    $definition->setArgument('$registry', $registry);
+                }
+            }
+            $container->getDefinition(ContactFormEntityManagerResolver::class)->setArgument('$registry', $registry);
+
+            $resettables[] = new Reference(self::PRIVATE_ENTITY_MANAGER_SERVICE, ContainerInterface::IGNORE_ON_UNINITIALIZED_REFERENCE);
+        }
+
+        $container->getDefinition(ContactFormEntityManagerClearSubscriber::class)->setArgument('$resettables', new IteratorArgument($resettables));
     }
 
     /**

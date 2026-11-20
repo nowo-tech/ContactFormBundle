@@ -7,6 +7,7 @@ namespace Nowo\ContactFormBundle\Controller;
 use Doctrine\ORM\EntityManagerInterface;
 use Nowo\ContactFormBundle\Concurrency\RowVersionGuard;
 use Nowo\ContactFormBundle\Concurrency\StaleVersionException;
+use Nowo\ContactFormBundle\Doctrine\ContactFormHostFlushReporter;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Entity\ContactFormFieldTranslation;
@@ -53,6 +54,8 @@ class ContactFormFieldAdminController extends AbstractController
         private readonly RequestStack $requestStack,
         private readonly ContactFormPageFactory $pages,
         private readonly CsrfOnlyFormFactory $csrfOnlyForms,
+        // 1.13: reports the application's pending changes a flush in host mode writes (see UPGRADING "To 1.13.0").
+        private readonly ?ContactFormHostFlushReporter $hostFlushReporter = null,
     ) {
     }
 
@@ -136,6 +139,7 @@ class ContactFormFieldAdminController extends AbstractController
         }
 
         $entityManager->remove($field);
+        $this->hostFlushReporter?->beforeFlush($entityManager);
         $entityManager->flush();
 
         $this->addFlash('success', $this->translator->trans('nowo_contact_form.admin.field.deleted', [], 'NowoContactFormBundle'));
@@ -178,6 +182,7 @@ class ContactFormFieldAdminController extends AbstractController
                 $entityManager->persist($field);
                 // @igor-ignore - HTTP handler delegates to services; no controller worker state.
                 $field->setFlowStep(null);
+                $this->hostFlushReporter?->beforeFlush($entityManager);
                 $entityManager->flush();
             } else {
                 $expectedVersion = $field->getFlowBaseVersion() ?? RowVersionField::MISSING;
@@ -188,6 +193,7 @@ class ContactFormFieldAdminController extends AbstractController
                 $field->setFlowStep(null);
 
                 try {
+                    $this->hostFlushReporter?->beforeFlush($entityManager);
                     $this->fieldRepository->saveEdit($field, $entityManager, $expectedVersion);
                 } catch (StaleVersionException) {
                     $stale = true;
