@@ -18,9 +18,10 @@ residual risks.
 ## Rules the bundle follows
 
 - **One transaction per write unit.** Every write of the bundle is a single ORM `flush()`, which Doctrine runs in one
-  transaction: the public submission (one submission and its values), each admin save or delete, and each chunk of the
-  retention purge. No path writes with several bare flushes, and no path reads under a lock before it writes, so the
-  bundle does not need a transaction runner.
+  transaction: the public submission (one submission and its values), each admin create or delete, and each chunk of the
+  retention purge. No path writes with several bare flushes. Since 1.12 the admin **edit** of a form and of a field runs
+  in one transaction of transaction-doctrine's runner (`DoctrineTransactionRunner::forConnection()`): the row version
+  check (below), then the flush.
 - **Your entity manager is never cleared or reset while it is open.** The bundle writes on the manager of its entities
   (`doctrine.entity_manager`, else the manager that maps them). A manager closed by a failed flush is replaced
   (`ContactFormEntityManagerResolver::resetClosed()`); an open one is never touched. Only a manager the bundle owns
@@ -38,13 +39,50 @@ residual risks.
 | Write path | Transaction | Control | Conflict answer |
 | --- | --- | --- | --- |
 | Public submission (`ContactFormPublicController::show` POST, `ContactSubmissionRecorderInterface::record()` → `ContactSubmissionProcessor`) | One flush: one `INSERT` of the submission and its values | Insert only, no read-modify-write; the form row is only read (foreign key) | 409 `CONFLICT_001` / `CONFLICT_002` on the bundle's route; the request-free port (`record()`) rethrows the storage error to its caller |
-| Admin form create / edit / delete (`ContactFormAdminController`) | One flush | Unique `slug`; unique `(form_id, locale)` translation per locale; the edit writes only the columns that changed | Lock conflict: 409 `CONFLICT_001` / `CONFLICT_002`. Unique key: 409 `CONTACT_FORM_DUPLICATE_KEY` (domain) |
-| Admin field wizard save / delete (`ContactFormFieldAdminController`) | One flush | Unique `(form_id, name)`; unique `(field_id, locale)` translation | Same as above |
+| Admin form create / delete (`ContactFormAdminController`) | One flush | Create: unique `slug`; unique `(form_id, locale)` translation per locale. Delete by id | Lock conflict: 409 `CONFLICT_001` / `CONFLICT_002`. Unique key: 409 `CONTACT_FORM_DUPLICATE_KEY` (domain) |
+| Admin form edit (`ContactFormAdminController::edit`, `ContactFormRepository::saveEdit()`) | One runner transaction: version check, flush (the form and its translations) | Optimistic `row_version` (compare-and-swap, below); unique `slug`; unique `(form_id, locale)` translation | Lock conflict: 409 `CONFLICT_001` / `CONFLICT_002`. Stale page: 409 `CONTACT_FORM_STALE_VERSION` (domain). Unique key: 409 `CONTACT_FORM_DUPLICATE_KEY` (domain) |
+| Admin field wizard create / delete (`ContactFormFieldAdminController`) | One flush | Create: unique `(form_id, name)`; unique `(field_id, locale)` translation. Delete by id | Same as above |
+| Admin field wizard edit (`ContactFormFieldAdminController::edit`, `ContactFormFieldRepository::saveEdit()`) | One runner transaction: version check, flush (the field and its translations) | Optimistic `row_version` (compare-and-swap, below), carried through the wizard steps; unique `(form_id, name)`; unique `(field_id, locale)` translation | Lock conflict: 409 `CONFLICT_001` / `CONFLICT_002`. Stale wizard: 409 `CONTACT_FORM_STALE_VERSION` (domain). Unique key: 409 `CONTACT_FORM_DUPLICATE_KEY` (domain) |
 | Admin submission delete (`ContactSubmissionAdminController`) | One flush (values deleted by cascade) | Delete by id | Lock conflict: 409 `CONFLICT_001` / `CONFLICT_002` |
 | Retention purge (`nowo:contact-form:cleanup-submissions`, `SubmissionRetentionCleanupService::cleanup()`) | One flush **per chunk** of 500 submissions | Delete by id; only rows past their retention; never the form | Console: exit code 1 and "A lock conflict … Run the command again"; the failed chunk is unchanged, the chunks before it stay deleted |
 
 `flush()` in `src/`: the submission's single flush (`ContactSubmissionProcessor::store()`), the purge's flush per chunk,
-and the admin controllers' single flush per action.
+the admin controllers' single flush for a create or a delete, and the `saveEdit()` flush of the two repositories (inside
+their runner).
+
+### Lost updates: the row version (1.12)
+
+`ContactForm` and `ContactFormField` have an integer column `row_version` (default 1). The edit pages carry the version
+of the page they show:
+
+- the **form edit** has a hidden field `rowVersion` (unmapped);
+- the **field wizard** has a hidden field `flowBaseVersion` on its first step, kept in the wizard's session copy of the
+  field up to the last step (a property that is not persisted), so the check covers the whole wizard, from the page the
+  admin first saw.
+
+On save, inside the save's transaction and before the flush, `RowVersionGuard::advance()` runs one atomic
+`UPDATE … SET row_version = row_version + 1 WHERE id = ? AND row_version = ?`:
+
+- one row matched: the page was current, the row now holds the next version (and the row lock until the commit), and the
+  flush writes the change;
+- no row matched: another admin saved the row after the page was opened (or deleted it). `StaleVersionException` is
+  thrown before anything is flushed; the controller drops the form's changes from the managed entities (`refresh()` of
+  the row and of its managed translations: the manager is never cleared or reset, and a later flush of it writes nothing
+  of the refused page) and re-renders the page with **409**, `X-Error-Code: CONTACT_FORM_STALE_VERSION`, the text the
+  admin typed (form edit) and a "changed by someone else, reload" message. A stale wizard starts again on the stored field
+  (its draft is discarded: the session copy would otherwise stay outdated). No `X-Conflict-Code` and no `Retry-After`: it
+  is not a lock conflict, and repeating the same page can never succeed.
+
+Two admins saving at the same moment: the second `UPDATE` waits for the first one's commit (a lock wait, bounded by the
+database timeout like any other), then matches no row. Only a wait past the timeout is `CONFLICT_001`.
+
+The check reads the database, never the identity map, so a manager that kept a loaded row across requests (worker mode
+with the kernel reset off) cannot make a stale page look current. A missing or non-numeric token is stale (a custom
+template that lists the fields one by one must render `form.rowVersion`; `form_rest()` does).
+
+The version advances on every admin save, also when only a translation changed (the translation rows belong to the
+save of their form or field). Adding or deleting a field does not advance the form's version: they are other rows.
+Deleting a form or a field is not versioned (delete by id, idempotent).
 
 ## Conflict answers and codes
 
@@ -55,6 +93,7 @@ error handling):
 | --- | --- | --- | --- | --- |
 | `CONFLICT_001` | Deadlock, lock wait timeout or serialization failure (MySQL 1213 / 1205, MariaDB 1020, PostgreSQL 40001 / 40P01 / 55P03, anywhere in the exception chain) and nothing committed since the request started | 409 (`conflict_response.status`) | Yes: `conflict_response.retry_after`, else 1 s | Retry |
 | `CONFLICT_002` | The same after a commit earlier in the request (transaction-doctrine's request mark and ledger, `ConflictCode::forRequest()`, when its bundle is registered with `commit_detection`; otherwise the bundle's own ledger, fed by transaction-doctrine's commit-tracking middleware on the bundle's connection, see `conflict_response.commit_tracking`), a `ConcurrencyConflict` that committed, or a lost savepoint with no deadlock behind it (outcome unknown) | 409 (`conflict_response.status`) | No | Reload, do not repeat blindly |
+| `CONTACT_FORM_STALE_VERSION` (`X-Error-Code`) | An admin save of a form or a field made on a page that another admin's save has outdated (1.12) | 409 (the page again with the message) | No | Reload the page and apply the change again |
 | `CONTACT_FORM_DUPLICATE_KEY` (`X-Error-Code`) | An admin save refused by a unique key: two admins adding the same missing translation, or the same slug or field name, at once (or a slug / name that is already used) | 409 | No | Reload the page and apply the change again |
 
 - The `CONFLICT_*` code is in the `X-Conflict-Code` header, which only ever holds `CONFLICT_001` or `CONFLICT_002`. The
@@ -72,6 +111,8 @@ error handling):
   public form (the submission tables have no unique key) and in your code they stay a real error.
 - **Lost connections** are never mapped: the outcome of the write is unknown and nothing tells it was a lock.
 - Validation errors stay form errors (422).
+- A **stale admin page** is not a conflict either (see the row version above): its own domain answer, never
+  `CONFLICT_001` / `CONFLICT_002`.
 
 ## Host options
 
@@ -130,8 +171,19 @@ nowo_contact_form:
     bundle when its `commit_detection` is on;
   - two admin edits of one form: the second meets the first's lock and answers `CONFLICT_001`, the row is the first
     edit whole, and a retry that reads the form again and changes one column keeps both changes;
+  - two admins open the same form (1.12): the first save is whole (`row_version` 2), the second is refused as stale with
+    nothing written, its connection and manager stay usable, and after a reload it saves on top of the first;
+  - a simultaneous form edit and a simultaneous field edit (a second PHP process holding the row lock): the loser waits,
+    then is refused as stale, and the stored row is the winner's whole (no lost update); a save that meets the winner's
+    lock past the timeout is `CONFLICT_001` (409 + `Retry-After`), not a stale answer;
   - two admin edits adding the same missing translation keep one translation and answer the domain 409; the same
     failure on the public route is not mapped.
+- `tests/Integration/Repository/RowVersionRepositoryTest.php` (SQLite): the guard advances once and refuses the same token
+  twice, a missing token and a deleted row are stale, the form and field edits advance the version (a translation-only
+  change too), a stale edit writes nothing and a later flush of the manager writes nothing of it.
+- `tests/Integration/Controller/ContactFormStaleEditTest.php`: the form edit page and the field wizard carry the token; a
+  stale form edit and a stale wizard answer 409 with `CONTACT_FORM_STALE_VERSION` and the message, store nothing, and
+  save after a reload; a submission or a wizard without a valid token is refused; a new field needs no token.
 - `tests/Unit/EventSubscriber/ContactFormConflictListenerTest.php` maps every case: `CONFLICT_001` for each vendor
   code, `CONFLICT_002` (own ledger, transaction-doctrine's mark, committed `ConcurrencyConflict`, lost savepoint),
   503, a runner's hint, the duplicate key on each admin controller, lost connections and other errors left alone,
@@ -148,12 +200,10 @@ make down-db
 
 ## Residual risks
 
-- **Two admins editing the same form or field: the later save wins whole.** There is no version column, and the
-  admin edit page posts every field. When admin B saves a page opened before admin A saved, B's request writes the
-  values of B's page for every field, so every column A changed in between goes back to what B's page showed, without a
-  warning. The lock makes each save whole, never a mix inside one row. Admin-only path; a version column needs a
-  schema change and is left for a later minor. (Only a write that changes some fields of a freshly read entity, as the
-  race test's retry does, keeps the other admin's columns.)
+- **Nothing accepted for the admin edits of a form or a field** since 1.12: a stale page is refused (see the row version
+  above). The version is per row: two admins editing the same form (or the same field) conflict, whatever the columns
+  they changed. A host's own template that drops the hidden `rowVersion` field gets the stale answer on every save, never
+  a silent overwrite.
 - **The request-free port inside your transaction.** `ContactSubmissionRecorderInterface::record()` called while your
   connection is in a transaction flushes inside it; the created event and the notification then run before your
   commit, and a rollback of yours leaves a mail for a submission that is not stored. Call it outside your transaction,

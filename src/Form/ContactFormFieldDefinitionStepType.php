@@ -12,6 +12,8 @@ use Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface;
 use Nowo\FormKitBundle\Attribute\FormKitConfig;
 use Nowo\FormKitBundle\Form\FormOptionsTrait;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\CallbackTransformer;
+use Symfony\Component\Form\Extension\Core\Type\HiddenType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormEvent;
@@ -19,7 +21,9 @@ use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
+use function ctype_digit;
 use function in_array;
+use function is_string;
 use function preg_match;
 
 /**
@@ -76,6 +80,14 @@ class ContactFormFieldDefinitionStepType extends AbstractType
                 'help'  => $prefix . 'sort_order_help',
             ]);
         });
+
+        // 1.12 (REQ-RUNTIME-003 rule 4): the row version of the page the wizard was opened on, kept by the wizard's
+        // session copy of the field up to the last step. Mapped to a property that is not persisted.
+        $builder->add('flowBaseVersion', HiddenType::class, ['required' => false, 'label' => false]);
+        $builder->get('flowBaseVersion')->addModelTransformer(new CallbackTransformer(
+            static fn (?int $version): string => $version === null ? '' : (string) $version,
+            static fn (?string $token): ?int => is_string($token) && $token !== '' && ctype_digit($token) ? (int) $token : null,
+        ));
 
         $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event): void {
             $form      = $event->getForm();

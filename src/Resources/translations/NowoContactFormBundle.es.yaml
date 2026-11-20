@@ -7,6 +7,7 @@ nowo_contact_form:
     phone_number_invalid: Introduce un número de teléfono válido usando solo dígitos.
   admin:
     back: Volver al listado
+    stale_version: 'Otra persona ha modificado este elemento después de que abrieras la página. Tus cambios no se han guardado. Recarga la página y vuelve a aplicarlos.'
     nav:
       brand: Admin formularios de contacto
       locale_switch: Idioma de la interfaz

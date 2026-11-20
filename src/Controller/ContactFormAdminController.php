@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Nowo\ContactFormBundle\Concurrency\RowVersionGuard;
+use Nowo\ContactFormBundle\Concurrency\StaleVersionException;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormTranslation;
 use Nowo\ContactFormBundle\Form\ContactFormType;
+use Nowo\ContactFormBundle\Form\RowVersionField;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Security\SafeRelativePath;
 use Nowo\ContactFormBundle\Service\ContactFormEnabledLocales;
@@ -145,30 +148,58 @@ class ContactFormAdminController extends AbstractController
         $symfonyForm = $this->createForm(ContactFormType::class, $contactForm);
         $symfonyForm->handleRequest($request);
 
+        $stale = false;
         if ($symfonyForm->isSubmitted() && $symfonyForm->isValid()) {
             if ($isNew) {
                 $entityManager->persist($contactForm);
+                $entityManager->flush();
+            } else {
+                // 1.12 (REQ-RUNTIME-003 rule 4): the page's row version is checked and advanced in the save's
+                // transaction; a form saved by someone else since the page was opened is not overwritten.
+                try {
+                    $this->formRepository->saveEdit($contactForm, $entityManager, RowVersionField::read($symfonyForm));
+                } catch (StaleVersionException) {
+                    $stale = true;
+                    // Drop the form's unsaved changes from the managed entities (refresh only: the manager is never
+                    // cleared or reset), so no later flush of the manager can write them over the other admin's save.
+                    RowVersionGuard::discard($entityManager, $contactForm, $contactForm->getTranslations()->toArray());
+                    // The UiKit layout prints the flashes of every type above the page.
+                    $this->addFlash('error', $this->translator->trans(StaleVersionException::MESSAGE_KEY, [], 'NowoContactFormBundle'));
+                }
             }
 
-            $entityManager->flush();
+            if (!$stale) {
+                $this->addFlash(
+                    'success',
+                    $this->translator->trans(
+                        $isNew ? 'nowo_contact_form.admin.form.created' : 'nowo_contact_form.admin.form.updated',
+                        [],
+                        'NowoContactFormBundle',
+                    ),
+                );
 
-            $this->addFlash(
-                'success',
-                $this->translator->trans(
-                    $isNew ? 'nowo_contact_form.admin.form.created' : 'nowo_contact_form.admin.form.updated',
-                    [],
-                    'NowoContactFormBundle',
-                ),
-            );
-
-            return $this->redirectToRoute('nowo_contact_form_admin_index');
+                return $this->redirectToRoute('nowo_contact_form_admin_index');
+            }
         }
 
         return $this->render($this->pages->template('form_form'), $this->pages->context([
             'page'        => $this->pages->formForm($symfonyForm->createView(), $contactForm, $isNew, $isNew ? null : $this->deleteForm($contactForm)->createView()),
             'contactForm' => $contactForm,
             'isNew'       => $isNew,
-        ]), new Response(null, $symfonyForm->isSubmitted() ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
+        ]), $this->answer($symfonyForm->isSubmitted(), $stale));
+    }
+
+    /**
+     * The status of the re-rendered page: 409 + `X-Error-Code: CONTACT_FORM_STALE_VERSION` for a stale edit (a domain
+     * answer, never CONFLICT_001 / CONFLICT_002: retrying the same page cannot succeed), 422 for a form error.
+     */
+    private function answer(bool $submitted, bool $stale): Response
+    {
+        if ($stale) {
+            return new Response(null, Response::HTTP_CONFLICT, ['X-Error-Code' => StaleVersionException::ERROR_CODE]);
+        }
+
+        return new Response(null, $submitted ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK);
     }
 
     /**
