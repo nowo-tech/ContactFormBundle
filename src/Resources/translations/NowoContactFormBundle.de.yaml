@@ -5,6 +5,8 @@ nowo_contact_form:
     consent_required: Sie müssen das Einwilligungsfeld aktivieren, um das Formular abzusenden.
     field_required: 'Das Feld „%field%“ ist erforderlich.'
     phone_number_invalid: Geben Sie eine gültige Telefonnummer nur mit Ziffern ein.
+    phone_prefix: Ländervorwahl
+    phone_number: Telefonnummer
   admin:
     back: Zurück zur Liste
     stale_version: 'Dieses Element wurde von jemand anderem geändert, nachdem Sie die Seite geöffnet haben. Ihre Änderungen wurden nicht gespeichert. Laden Sie die Seite neu und wenden Sie sie erneut an.'

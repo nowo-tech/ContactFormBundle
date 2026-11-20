@@ -62,6 +62,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Accessibility: the `ContactPhoneType` widget names its group (the field label) and both controls
+  (`nowo_contact_form.public.phone_prefix` / `phone_number`, 7 locales), so the prefix select and the number input
+  are no longer unlabelled (axe `label` / `select-name`, WCAG 1.3.1 / 4.1.2).
+
 ### Changed
 
 - Demo: aligned with UiKit. The masthead menu uses `nowo-ui-menu` / `nowo-ui-link` with `demo-nav-*` test ids, the home page uses the UiKit page header, and `public/css/demo.css` is down to the layout of the bundle's own phone widget (the unused `.demo-code` rule is gone).

@@ -5,6 +5,8 @@ nowo_contact_form:
     consent_required: Vous devez accepter la case de consentement pour envoyer le formulaire.
     field_required: 'Le champ « %field% » est obligatoire.'
     phone_number_invalid: Saisissez un numéro de téléphone valide en utilisant uniquement des chiffres.
+    phone_prefix: Indicatif du pays
+    phone_number: Numéro de téléphone
   admin:
     back: Retour à la liste
     stale_version: 'Cet élément a été modifié par quelqu''un d''autre après l''ouverture de la page. Vos modifications n''ont pas été enregistrées. Rechargez la page et appliquez-les à nouveau.'

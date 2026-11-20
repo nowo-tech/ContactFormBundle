@@ -1,10 +1,13 @@
 {#
   Form theme of ContactPhoneType (Symfony widget: prefix select + number). Framework neutral: the semantic hook
   `nowo-contact-form-phone` (role group) lets the host lay out the two controls (e.g. display: flex).
+  The group is named by the field label (aria-labelledby the row label when it exists, else aria-label) and each
+  control has its own accessible name (the rows render no <label> for them): WCAG 1.3.1 / 4.1.2.
 #}
 {% block contact_phone_widget %}
-    <div class="nowo-contact-form-phone" role="group">
-        {{ form_widget(form.prefix) }}
-        {{ form_widget(form.number) }}
+    {%- set _group_label = label is not same as(false) ? (label is empty ? name|humanize : (translation_domain is same as(false) ? label : label|trans(label_translation_parameters|default({}), translation_domain))) : null -%}
+    <div class="nowo-contact-form-phone" role="group"{% if _group_label %} aria-label="{{ _group_label }}"{% endif %}>
+        {{ form_widget(form.prefix, {attr: form.prefix.vars.attr|merge({'aria-label': 'nowo_contact_form.public.phone_prefix'|trans({}, 'NowoContactFormBundle')})}) }}
+        {{ form_widget(form.number, {attr: form.number.vars.attr|merge({'aria-label': 'nowo_contact_form.public.phone_number'|trans({}, 'NowoContactFormBundle')})}) }}
     </div>
 {% endblock %}
