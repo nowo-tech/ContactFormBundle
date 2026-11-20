@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Service;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Nowo\ContactFormBundle\Doctrine\ContactFormHostFlushReporter;
 use Nowo\ContactFormBundle\Event\ContactSubmissionsDeletedEvent;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Repository\ContactSubmissionRepository;
@@ -30,6 +31,8 @@ final readonly class SubmissionRetentionCleanupService implements SubmissionRete
         private ClockInterface $clock,
         private ?ContactFormEntityManagerResolver $entityManagerResolver = null,
         private ?EventDispatcherInterface $eventDispatcher = null,
+        // 1.13: reports the application's pending changes a flush in host mode writes (see UPGRADING "To 1.13.0").
+        private ?ContactFormHostFlushReporter $hostFlushReporter = null,
     ) {
     }
 
@@ -80,6 +83,7 @@ final readonly class SubmissionRetentionCleanupService implements SubmissionRete
             // rolls back whole (the chunks before it stay deleted) and a manager it closed is recovered before the
             // failure is rethrown (never swallowed: the command reports it, a host caller sees it).
             try {
+                $this->hostFlushReporter?->beforeFlush($entityManager);
                 $entityManager->flush();
             } catch (Throwable $exception) {
                 $this->entityManagerResolver?->resetClosed();

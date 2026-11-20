@@ -8,6 +8,7 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Nowo\ContactFormBundle\Client\ClientReference;
 use Nowo\ContactFormBundle\Client\ObjectClientReferenceResolver;
+use Nowo\ContactFormBundle\Doctrine\ContactFormHostFlushReporter;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactSubmission;
 use Nowo\ContactFormBundle\Entity\ContactSubmissionValue;
@@ -59,6 +60,8 @@ final readonly class ContactSubmissionProcessor implements ContactSubmissionReco
         private ?ContactFormEntityManagerResolver $entityManagerResolver = null,
         private ?LoggerInterface $logger = null,
         private ?ContactFormRepository $formRepository = null,
+        // 1.13: reports the application's pending changes a flush in host mode writes (see UPGRADING "To 1.13.0").
+        private ?ContactFormHostFlushReporter $hostFlushReporter = null,
     ) {
     }
 
@@ -173,6 +176,7 @@ final readonly class ContactSubmissionProcessor implements ContactSubmissionReco
 
         try {
             $entityManager->persist($submission);
+            $this->hostFlushReporter?->beforeFlush($entityManager);
             $entityManager->flush();
         } catch (Throwable $exception) {
             $this->entityManagerResolver?->resetClosed();

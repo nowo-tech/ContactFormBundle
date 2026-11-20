@@ -194,7 +194,10 @@ final class FileUploadEquivalenceTest extends TestCase
                 $status = $client->getResponse()->getStatusCode();
                 $seen   = $recorder->seen[$before] ?? null;
 
-                $em = $this->manager($container);
+                // The bundle's manager (1.13: the private one by default): the stored submission is read and removed
+                // through the manager that owns it.
+                $em = $container->get('nowo_contact_form.entity_manager');
+                self::assertInstanceOf(EntityManagerInterface::class, $em);
                 $em->clear();
                 $last   = $em->getRepository(ContactSubmission::class)->findOneBy([], ['id' => 'DESC']);
                 $stored = null;
