@@ -63,6 +63,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Accessibility: the `ContactPhoneType` widget names its group (the field label) and both controls
+  (`nowo_contact_form.public.phone_prefix` / `phone_number`, 7 locales), so the prefix select and the number input
+  are no longer unlabelled (axe `label` / `select-name`, WCAG 1.3.1 / 4.1.2).
+
 ## [1.13.0] - 2026-11-20
 
 ### Added

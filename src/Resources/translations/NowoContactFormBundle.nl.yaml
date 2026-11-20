@@ -5,6 +5,8 @@ nowo_contact_form:
     consent_required: U moet het toestemmingsvakje accepteren om het formulier te verzenden.
     field_required: 'Het veld "%field%" is verplicht.'
     phone_number_invalid: Voer een geldig telefoonnummer in met alleen cijfers.
+    phone_prefix: Landcode
+    phone_number: Telefoonnummer
   admin:
     back: Terug naar lijst
     stale_version: 'Dit item is door iemand anders gewijzigd nadat u de pagina opende. Uw wijzigingen zijn niet opgeslagen. Laad de pagina opnieuw en pas ze nogmaals toe.'
