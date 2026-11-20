@@ -73,8 +73,8 @@ final class SchemaForeignKeysDatabaseTest extends TestCase
         $classes = static fn (EntityManagerInterface $manager): array => $manager->getMetadataFactory()->getAllMetadata();
 
         self::assertSame(
-            self::shape((new SchemaTool($without))->getSchemaFromMetadata($classes($without))),
-            self::shape((new SchemaTool($with))->getSchemaFromMetadata($classes($with))),
+            $this->shape((new SchemaTool($without))->getSchemaFromMetadata($classes($without))),
+            $this->shape((new SchemaTool($with))->getSchemaFromMetadata($classes($with))),
         );
         $without->getConnection()->close();
     }
@@ -91,7 +91,7 @@ final class SchemaForeignKeysDatabaseTest extends TestCase
         $schemaManager = $connection->createSchemaManager();
         // @phpstan-ignore function.alreadyNarrowedType (introspectTableByUnquotedName() exists from DBAL 4.3; DBAL 3 has introspectTable())
         $table = method_exists($schemaManager, 'introspectTableByUnquotedName') ? $schemaManager->introspectTableByUnquotedName('nowo_contact_submission') : $schemaManager->introspectTable('nowo_contact_submission');
-        self::assertContains('form_id->nowo_contact_form(id) CASCADE', self::shape(self::schemaOf($table))['nowo_contact_submission']['fks']);
+        self::assertContains('form_id->nowo_contact_form(id) CASCADE', $this->shape($this->schemaOf($table))['nowo_contact_submission']['fks']);
         if ($connection->getDatabasePlatform() instanceof AbstractMySQLPlatform) {
             self::assertSame(
                 ClientReferenceCollationListener::collationFor($connection->getDatabasePlatform()),
@@ -136,7 +136,7 @@ final class SchemaForeignKeysDatabaseTest extends TestCase
         return $manager;
     }
 
-    private static function schemaOf(Table $table): Schema
+    private function schemaOf(Table $table): Schema
     {
         return new Schema([$table]);
     }
@@ -146,7 +146,7 @@ final class SchemaForeignKeysDatabaseTest extends TestCase
      *
      * @return array<string, array{fks: list<string>, indexes: list<string>}>
      */
-    private static function shape(Schema $schema): array
+    private function shape(Schema $schema): array
     {
         $shape = [];
         foreach ($schema->getTables() as $table) {

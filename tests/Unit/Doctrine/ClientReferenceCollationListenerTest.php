@@ -122,8 +122,8 @@ final class ClientReferenceCollationListenerTest extends TestCase
     #[DataProvider('platforms')]
     public function testEveryForeignKeyAndIndexIsKept(array $params, ?string $collation): void
     {
-        $with    = self::shape($this->schema($params, true));
-        $without = self::shape($this->schema($params, false));
+        $with    = $this->shape($this->schema($params, true));
+        $without = $this->shape($this->schema($params, false));
 
         self::assertSame($without, $with);
         self::assertContains('form_id->nowo_contact_form(id) CASCADE', $with['nowo_contact_submission']['fks']);
@@ -163,7 +163,7 @@ final class ClientReferenceCollationListenerTest extends TestCase
     /**
      * @return array<string, array{fks: list<string>, indexes: list<string>}>
      */
-    private static function shape(Schema $schema): array
+    private function shape(Schema $schema): array
     {
         $shape = [];
         foreach ($schema->getTables() as $table) {
