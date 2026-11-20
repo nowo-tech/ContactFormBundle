@@ -36,7 +36,7 @@
         "nowo-tech/form-kit-bundle": "^2.13.3",
         "nowo-tech/migrations-kit-contracts": "^1.0",
         "nowo-tech/transaction-contract": "^1.0",
-        "nowo-tech/transaction-doctrine": "^1.7.1",
+        "nowo-tech/transaction-doctrine": "^1.8.1",
         "nowo-tech/ui-kit-bundle": "^2.15.3",
         "psr/clock": "^1.0",
         "psr/log": "^1.1 || ^2.0 || ^3.0",
