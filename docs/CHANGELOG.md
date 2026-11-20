@@ -89,6 +89,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Requires `nowo-tech/transaction-doctrine` ^1.9 (host-flush probe and private entity manager kit).
 - Demo: aligned with UiKit. The masthead menu uses `nowo-ui-menu` / `nowo-ui-link` with `demo-nav-*` test ids, the home page uses the UiKit page header, and `public/css/demo.css` is down to the layout of the bundle's own phone widget (the unused `.demo-code` rule is gone).
 
+### Fixed
+
+- Demo: a migration adds the `row_version` columns of 1.12 (`nowo_contact_form`, `nowo_contact_form_field`); a fresh
+  `make up` failed at `app:seed-contact-demo` with "Unknown column 't0.row_version'".
+
 ## [1.12.1] - 2026-11-20
 
 ### Fixed
