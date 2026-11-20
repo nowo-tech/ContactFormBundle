@@ -2,6 +2,9 @@
 # framework, no CDN); the demo shell serves as the admin and guest layout of every bundle page.
 nowo_ui_kit:
     css_framework: custom
+    # UiKit's default theme (css/nowo-ui-base.css) on every page, the error pages included; the demo platform shell
+    # (@NowoUiKit/demo_platform/layout.html.twig, extended by templates/base.html.twig) links it anyway.
+    base_stylesheet: true
     row_actions_display: icon_text
     layouts:
         admin: 'layouts/admin.html.twig'

@@ -1,6 +1,21 @@
-{#- REQ-DEMO-014: the demo shell is UiKit's admin layout with UiKit's default theme (nowo-ui.css from the bundle's own
-    asset package, no CSS framework, no CDN). Bundle pages render through the same shell (nowo_ui_kit.layouts). -#}
-{% extends '@NowoUiKit/layout/admin.html.twig' %}
+{#- REQ-DEMO-014: the demo runs inside UiKit's shared demo platform shell (@NowoUiKit/demo_platform/layout.html.twig):
+    the same top bar, aside, content width, theme and footer as every other nowo-tech bundle demo. This file only
+    declares the demo (nowo_ui_demo_platform). Bundle pages render through the same shell (nowo_ui_kit.layouts). -#}
+{% extends '@NowoUiKit/demo_platform/layout.html.twig' %}
+{% set nowo_ui_demo_platform = {
+    bundle: 'Contact Form',
+    home_route: 'demo_home',
+    repository: 'https://github.com/nowo-tech/ContactFormBundle',
+    translation_domain: 'messages',
+    locales: ['en', 'es'],
+    nav: [
+        {label: 'demo.menu_home', route: 'demo_home'},
+        {label: 'demo.form_contact', route: 'nowo_contact_form_public_show', params: {slug: 'contact'}, section: 'demo.menu_public_forms', testid: 'demo-nav-nowo_contact_form_public_show-contact'},
+        {label: 'demo.form_job', route: 'nowo_contact_form_public_show', params: {slug: 'job-application'}, section: 'demo.menu_public_forms', testid: 'demo-nav-nowo_contact_form_public_show-job-application'},
+        {label: 'demo.form_partner', route: 'nowo_contact_form_public_show', params: {slug: 'partner-inquiry'}, section: 'demo.menu_public_forms', testid: 'demo-nav-nowo_contact_form_public_show-partner-inquiry'},
+        {label: 'demo.menu_forms', route: 'nowo_contact_form_admin_index', active: ['nowo_contact_form_admin_*', 'nowo_contact_form_fields_*', 'nowo_contact_form_submissions_*'], section: 'demo.menu_admin'},
+    ],
+} %}
 
 {% block nowo_ui_document_title %}{% block title %}{{ 'demo.title'|trans({}, 'messages') }}{% endblock %} — Symfony 8{% endblock %}
 
@@ -8,33 +23,4 @@
     {{ parent() }}
     <link rel="stylesheet" href="{{ asset('bundles/nowophoneinput/css/flag-icons.min.css') }}">
     <link rel="stylesheet" href="{{ asset('bundles/nowophoneinput/css/phone_input.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/demo.css') }}">
 {% endblock %}
-
-{% block nowo_ui_navigation %}
-    {% set _locale = app.request.locale %}
-    {% set _current_route = app.request.attributes.get('_route') ?? 'demo_home' %}
-    {% set _route_params = app.request.attributes.get('_route_params')|default({}) %}
-    <header class="nowo-ui-header" data-testid="demo-masthead">
-        <a class="nowo-ui-brand" href="{{ path('demo_home', { _locale: _locale }) }}">{{ 'demo.title'|trans({}, 'messages') }}</a>
-        <nav class="nowo-ui-menu" aria-label="{{ 'demo.nav_toggle'|trans({}, 'messages') }}">
-            <a class="nowo-ui-link" href="{{ path('demo_home', { _locale: _locale }) }}"{% if _current_route == 'demo_home' %} aria-current="page"{% endif %} data-testid="demo-nav-demo_home">{{ 'demo.menu_home'|trans({}, 'messages') }}</a>
-            <a class="nowo-ui-link" href="{{ path('nowo_contact_form_public_show', { slug: 'contact', _locale: _locale }) }}" data-testid="demo-nav-nowo_contact_form_public_show-contact">{{ 'demo.form_contact'|trans({}, 'messages') }}</a>
-            <a class="nowo-ui-link" href="{{ path('nowo_contact_form_public_show', { slug: 'job-application', _locale: _locale }) }}" data-testid="demo-nav-nowo_contact_form_public_show-job-application">{{ 'demo.form_job'|trans({}, 'messages') }}</a>
-            <a class="nowo-ui-link" href="{{ path('nowo_contact_form_public_show', { slug: 'partner-inquiry', _locale: _locale }) }}" data-testid="demo-nav-nowo_contact_form_public_show-partner-inquiry">{{ 'demo.form_partner'|trans({}, 'messages') }}</a>
-            <a class="nowo-ui-link" href="{{ path('nowo_contact_form_admin_index') }}"{% if _current_route starts with 'nowo_contact_form_admin' or _current_route starts with 'nowo_contact_form_fields' or _current_route starts with 'nowo_contact_form_submissions' %} aria-current="page"{% endif %} data-testid="demo-nav-nowo_contact_form_admin_index">{{ 'demo.menu_admin'|trans({}, 'messages') }}</a>
-        </nav>
-        <div class="nowo-ui-header__end">
-            <nav class="nowo-ui-row-actions" aria-label="Locale">
-                {% for l in ['en', 'es'] %}
-                    <a href="{{ path(_current_route, _route_params|merge({ _locale: l })|filter((value, key) => key != '_fragment')) }}"
-                       class="nowo-ui-btn nowo-ui-btn--sm {{ _locale == l ? 'nowo-ui-btn--primary' : 'nowo-ui-btn--outline' }}"
-                       hreflang="{{ l }}" lang="{{ l }}">{{ l == 'es' ? 'Español' : 'English' }}</a>
-                {% endfor %}
-            </nav>
-            {{ include('@NowoUiKitBundle/partials/_theme_toggle.html.twig', { compact: true }, false) }}
-        </div>
-    </header>
-{% endblock %}
-
-{% block nowo_ui_content %}{% block body %}{% endblock %}{% endblock %}

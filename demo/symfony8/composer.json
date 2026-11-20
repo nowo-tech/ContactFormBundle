@@ -10,7 +10,7 @@
         "nowo-tech/contact-form-bundle": "@dev",
         "nowo-tech/form-kit-bundle": "^2.13",
         "nowo-tech/phone-input-bundle": "^1.1",
-        "nowo-tech/ui-kit-bundle": "^2.53",
+        "nowo-tech/ui-kit-bundle": "^2.60",
         "php": ">=8.4",
         "symfony/asset": "^8.0",
         "symfony/console": "^8.0",
