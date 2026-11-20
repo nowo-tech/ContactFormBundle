@@ -1141,7 +1141,7 @@
             "dist": {
                 "type": "path",
                 "url": "/var/contact-form-bundle",
-                "reference": "9da9f3f7b584409cc6eb3b95af1e7307848892e3"
+                "reference": "36332ea30cbe182917cdcd1ec77805348384ceba"
             },
             "require": {
                 "doctrine/doctrine-bundle": "^2.13 || ^3.0",
@@ -1149,7 +1149,7 @@
                 "nowo-tech/form-kit-bundle": "^2.13.3",
                 "nowo-tech/migrations-kit-contracts": "^1.0",
                 "nowo-tech/transaction-contract": "^1.0",
-                "nowo-tech/transaction-doctrine": "^1.9",
+                "nowo-tech/transaction-doctrine": "^1.9.1",
                 "nowo-tech/ui-kit-bundle": "^2.15.3",
                 "php": ">=8.2 <8.6",
                 "psr/clock": "^1.0",
@@ -1644,16 +1644,16 @@
         },
         {
             "name": "nowo-tech/transaction-doctrine",
-            "version": "v1.9.0",
+            "version": "v1.9.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/nowo-tech/transaction-doctrine.git",
-                "reference": "08a61ada85176c760acd223f1222a955d9a95eb1"
+                "reference": "b38708cc394acf814ce0f96b0ad4f47208c40665"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/transaction-doctrine/zipball/08a61ada85176c760acd223f1222a955d9a95eb1",
-                "reference": "08a61ada85176c760acd223f1222a955d9a95eb1",
+                "url": "https://api.github.com/repos/nowo-tech/transaction-doctrine/zipball/b38708cc394acf814ce0f96b0ad4f47208c40665",
+                "reference": "b38708cc394acf814ce0f96b0ad4f47208c40665",
                 "shasum": ""
             },
             "require": {
@@ -1750,8 +1750,8 @@
                 "issues": "https://github.com/nowo-tech/transaction-doctrine/issues",
                 "source": "https://github.com/nowo-tech/transaction-doctrine"
             },
-            "time": "2026-11-20T13:46:37+00:00",
-            "published-time": "2026-11-20T13:50:08+00:00"
+            "time": "2026-11-20T17:53:15+00:00",
+            "published-time": "2026-11-20T17:57:11+00:00"
         },
         {
             "name": "nowo-tech/ui-kit-bundle",

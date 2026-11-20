@@ -86,7 +86,7 @@ composer update nowo-tech/contact-form-bundle nowo-tech/transaction-doctrine
 
 1.13.0 is the last 1.x minor before 2.0. Without configuration it behaves as 1.12. It adds the
 `doctrine.private_entity_manager` opt-in, a deprecation notice for the default that 2.0 flips, and a host-flush probe
-that lists what that flip would change for your application. It requires `nowo-tech/transaction-doctrine` ^1.9.
+that lists what that flip would change for your application. It requires `nowo-tech/transaction-doctrine` ^1.9.1.
 
 ### The private entity manager notice
 
