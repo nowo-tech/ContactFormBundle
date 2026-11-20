@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.12.1](#to-1121)
 - [To 1.12.0](#to-1120)
   - [Admin edits: row version (REQ-RUNTIME-003 rule 4)](#admin-edits-row-version-req-runtime-003-rule-4)
 - [To 1.11.1](#to-1111)
@@ -69,6 +70,14 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## To 1.12.1
+
+From **1.12.0**:
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
 
 ## To 1.12.0
 
