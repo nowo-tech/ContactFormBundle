@@ -66,6 +66,10 @@ All of them take scalars and bundle VOs (`ClientReference`, `ContactSubmissionNo
 
 - Every read, write, flush and recovery reset of the bundle goes through `nowo_contact_form.entity_manager`: the
   manager named by `doctrine.entity_manager`, else the default entity manager.
+- 1.13: with `doctrine.private_entity_manager: true` that is a private manager of the bundle (transaction-doctrine's
+  `PrivateManager\PrivateEntityManager`) on the same connection, mapping and tables; the repositories get a
+  `PrivateManagerRegistry` that resolves the bundle entities to it. It is dropped at every boundary and replaced when
+  closed, and the bundle never flushes, clears or resets your managers. 2.0 makes it the default.
 - With `doctrine.entity_manager` set, the entities are mapped on that manager only (also with `auto_mapping` or a
   default metadata driver on the others), and the bundle never flushes, clears or resets your managers.
 - Kept-alive workers (FrankenPHP, kernel reset off): the bundle clears its own manager at the request, message and
@@ -116,7 +120,7 @@ dedicated manager) and records through the port.
 | 3. No framework types in ports, events, VOs | ✅ since 1.8 | deprecated upload handler kept until 2.0 |
 | 4. Events carry ids | ✅ since 1.7 | entity getter kept for standard hosts |
 | 5. SPI documented | ✅ | this page |
-| 6. Never flush the host EM | ⚠️ default until 2.0 | without `doctrine.entity_manager` the bundle's manager is the host default one |
+| 6. Never flush the host EM | ⚠️ default until 2.0 | opt-in since 1.13 (`doctrine.private_entity_manager: true`, zero-config) or `doctrine.entity_manager`; unset, the bundle flushes the host default manager, with a notice and the host-flush probe |
 | 7. Events after commit | ✅ | dispatched after the bundle's flush (see USAGE, LI-CF-L1, for a host transaction) |
 | 8. Config through provider ports | ✅ | config tree and the SPI above; no InstanceSettings |
 
@@ -128,5 +132,7 @@ Tracked in [UPGRADING.md](UPGRADING.md#to-190):
   cleanup flush the default entity manager, which also commits the host's pending changes. A dedicated manager by
   default would move the tables to another manager (and connection) for every existing host, so 1.x keeps the default
   and offers `doctrine.entity_manager` (1.7). A "no flush" mode is not offered: submission ids are database
-  identities, known only after the bundle's flush.
+  identities, known only after the bundle's flush. 1.13 adds the zero-config `doctrine.private_entity_manager: true`
+  (a private manager on the same connection and tables), a notice when neither option is set, and the host-flush
+  probe; 2.0 makes `true` the default ([UPGRADING](UPGRADING.md#to-1130)).
 - **Removal of the deprecated APIs.** `ContactFormFileUploadHandlerInterface` (and its service alias).

@@ -5,6 +5,11 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 1.13.0](#to-1130)
+  - [The private entity manager notice](#the-private-entity-manager-notice)
+  - [Reading the host-flush probe](#reading-the-host-flush-probe)
+  - [Opting in: what changes](#opting-in-what-changes)
+  - [Preparing for 2.0](#preparing-for-20)
 - [To 1.12.1](#to-1121)
 - [To 1.12.0](#to-1120)
   - [Admin edits: row version (REQ-RUNTIME-003 rule 4)](#admin-edits-row-version-req-runtime-003-rule-4)
@@ -70,6 +75,104 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## To 1.13.0
+
+From **1.12.x**:
+
+```bash
+composer update nowo-tech/contact-form-bundle nowo-tech/transaction-doctrine
+```
+
+1.13.0 is the last 1.x minor before 2.0. Without configuration it behaves as 1.12. It adds the
+`doctrine.private_entity_manager` opt-in, a deprecation notice for the default that 2.0 flips, and a host-flush probe
+that lists what that flip would change for your application. It requires `nowo-tech/transaction-doctrine` ^1.9.
+
+### The private entity manager notice
+
+With neither `doctrine.private_entity_manager` nor `doctrine.entity_manager` set, building the container now logs:
+
+> Not setting "nowo_contact_form.doctrine.private_entity_manager" is deprecated: contact form writes flush the
+> application's entity manager, including its own pending changes. 2.0 defaults to true: a private entity manager on
+> the same connection and tables that never flushes them. Opt in now with "nowo_contact_form: { doctrine: {
+> private_entity_manager: true } }", or set it to false to keep the current behaviour (see UPGRADING.md "To 1.13.0").
+
+What it means: today every contact form write (a public submission, `ContactSubmissionRecorderInterface::record()`,
+an admin save or delete, the retention cleanup) flushes your default entity manager. Anything your code had left
+pending there is written by that flush too. In 2.0 the bundle writes its rows through a private manager and never
+flushes your pending changes.
+
+To opt in now (the tables, the connection and the mapping do not change; no migration):
+
+```yaml
+nowo_contact_form:
+    doctrine:
+        private_entity_manager: true
+```
+
+`private_entity_manager: false` keeps the 1.x behaviour and silences the notice and the probe. A host with
+`doctrine.entity_manager` set (a dedicated manager, the DDD option) gets neither: the bundle already never flushes your
+default manager, and that option stays in 2.0.
+
+### Reading the host-flush probe
+
+While both options are unset, the bundle calls the host-flush probe of nowo-tech/transaction-doctrine right before
+each of its flushes. Every entity class outside `Nowo\ContactFormBundle\Entity` with pending changes in the flushed
+manager (a scheduled insert or delete, a changed field, association or collection) triggers one deprecation per
+request, message or command:
+
+> Your pending changes to App\Entity\Order were flushed by NowoContactFormBundle; 2.0 no longer does.
+
+The bundle never changes your entities itself, so every class listed is your application's own work that relies on a
+contact form write to reach the database. Read the collected messages as your migration list:
+
+1. Run your usual traffic and test suite on 1.13 with deprecations logged (the Symfony profiler, the `deprecation`
+   log channel, or PHPUnit's deprecation report).
+2. For each class listed, find the code that changes it without flushing: typically a listener of
+   `ContactSubmissionCreatedEvent` or `ContactSubmissionsDeletedEvent`, a notifier or file uploader of yours, or code
+   that calls `record()` in the middle of its own changes. Make it flush its own changes (or run it in your own
+   transaction).
+3. When no message is left, set `private_entity_manager: true`. The probe is silent in that mode.
+
+The probe is read-only: it flushes, clears, closes or resets nothing. It is NowoTransactionDoctrineBundle's shared
+`nowo_transaction_doctrine.host_flush_probe` when you register that bundle, otherwise one of the bundle's own; both are
+reset at every request, message and command boundary (FrankenPHP worker mode with the kernel reset off included).
+
+### Opting in: what changes
+
+With `private_entity_manager: true`:
+
+- The bundle's repositories, `nowo_contact_form.entity_manager` (which its controllers and services get) and
+  `record()` use the private manager. It is created on the connection, configuration (mapping, metadata cache) and
+  event manager (your Doctrine listeners) of `doctrine.entity_manager`, else of your default entity manager. The SQL
+  filters enabled on that manager are mirrored.
+- A bundle flush writes only the bundle's entities. A failed bundle write closes only the private manager, which is
+  replaced on the next use; your manager stays open.
+- Submission ids are still database identities, known after the bundle's flush; `record()` returns them as before.
+- The private manager is dropped at every request, message and command boundary (and at `kernel.reset`): the bundle's
+  entities never stay managed from one unit to the next. Changes the bundle left unflushed then are discarded and
+  logged as a warning (classes and counts only).
+- `getRepository(ContactForm::class)` on your own manager (or the `ContactFormRepository` service) returns the bundle's
+  repository, which reads through the private manager: entities you load that way belong to the private manager. Do
+  not `persist()` or `flush()` them through your manager; change them through the bundle's admin, or flush them
+  through `nowo_contact_form.entity_manager`.
+- The connection is shared: a transaction you open around `record()` includes the submission (the private flush then
+  uses a savepoint), and your rollback undoes it. The created event and the notification still run right after the
+  bundle's flush, before your commit (see USAGE, "Standard host and your own transaction").
+- DBAL 3 with `use_savepoints` off: a failed private flush inside your transaction marks your transaction
+  rollback-only. Turn savepoints on (always on in DBAL 4).
+
+### Preparing for 2.0
+
+2.0 contains only the deprecations announced in 1.x:
+
+- `doctrine.private_entity_manager` defaults to `true` (the private manager above). `false` and
+  `doctrine.entity_manager` stay.
+- `ContactFormFileUploadHandlerInterface` and its service alias, `ContactSubmissionNotification::getSubmission()` and
+  the legacy admin layout bridge are removed (see [To 1.8.0](#to-180) and [To 1.6.0](#to-160)).
+
+After 2.0.0 is tagged, the 1.x line gets security fixes for 6 months: Moderate and higher are backported to the last
+1.x minor; Low ones are fixed in 2.x only, with the advice to upgrade.
 
 ## To 1.12.1
 
