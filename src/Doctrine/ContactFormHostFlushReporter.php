@@ -12,8 +12,8 @@ use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * 1.13 (REQ-ARCH-001 rule 6 deprecation layer): reports the application's pending changes that a contact form write
- * flushes in host mode — `doctrine.private_entity_manager` unset or false, without `doctrine.entity_manager` (2.0
- * writes through a private entity manager and no longer flushes them).
+ * flushes in host mode — `doctrine.private_entity_manager` unset or false, and `doctrine.entity_manager` unset or
+ * naming the application's default manager (2.0 writes through a private entity manager and no longer flushes them).
  *
  * Called right before each flush of the bundle (admin saves and deletes, public submissions, the retention cleanup).
  * For each entity class outside `Nowo\ContactFormBundle\Entity` with pending work in the flushed manager, the
@@ -22,7 +22,7 @@ use Symfony\Contracts\Service\ResetInterface;
  * The bundle itself never changes an application entity, so every class reported is the application's own work.
  *
  * Disabled (nothing is inspected) with `private_entity_manager: true` (the private manager holds no application
- * change) and with `doctrine.entity_manager` (a dedicated manager, which 2.0 keeps). A {@see PrivateEntityManager} is
+ * change) and with `doctrine.entity_manager` naming a dedicated manager (which 2.0 keeps). A {@see PrivateEntityManager} is
  * never inspected.
  *
  * Read-only: it never flushes, clears, closes or resets a manager (REQ-RUNTIME-003). The probe is the shared
@@ -44,7 +44,7 @@ final readonly class ContactFormHostFlushReporter implements ResetInterface
     private HostFlushProbe $probe;
 
     /**
-     * @param bool $enabled true in host mode (`doctrine.private_entity_manager` unset or false, no `doctrine.entity_manager`)
+     * @param bool $enabled true in host mode (decided by ContactFormPrivateEntityManagerPass)
      * @param HostFlushProbe|null $probe transaction-doctrine's shared probe (null: one of its own)
      */
     public function __construct(

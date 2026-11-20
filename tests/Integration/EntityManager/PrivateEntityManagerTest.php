@@ -294,6 +294,26 @@ final class PrivateEntityManagerTest extends TestCase
         self::assertSame(1, $this->rows('host_note'), 'the 1.x behaviour until 2.0');
     }
 
+    /**
+     * Audit XH-2: doctrine.entity_manager naming the application's default manager is host mode too.
+     */
+    #[IgnoreDeprecations]
+    public function testEntityManagerNamingTheDefaultManagerIsHostMode(): void
+    {
+        $this->expectUserDeprecationMessage('Since nowo-tech/contact-form-bundle 1.13: ' . NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_UNSET_DEPRECATION);
+        $this->boot(['entity_manager' => 'default'], fresh: true);
+        $host = $this->hostManager();
+        self::assertSame($host, $this->container()->get('nowo_contact_form.entity_manager'));
+        $this->seedForm($host);
+        $host->persist(new HostNote('pending'));
+        $recorder = $this->container()->get(ContactSubmissionRecorderInterface::class);
+        self::assertInstanceOf(ContactSubmissionRecorderInterface::class, $recorder);
+
+        self::assertSame([sprintf('Your pending changes to %s were flushed by %s; 2.0 no longer does.', self::NOTE_CLASS, ContactFormHostFlushReporter::BUNDLE_NAME)], $this->deprecations(static function () use ($recorder): void {
+            $recorder->record('support', ['email' => 'a@example.com'], 'en');
+        }));
+    }
+
     private function assertHostPending(EntityManagerInterface $host, HostNote $note, string $when): void
     {
         self::assertTrue($host->isOpen(), $when . ': the host manager is open');

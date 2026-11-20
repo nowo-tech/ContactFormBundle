@@ -33,7 +33,6 @@ use Nowo\TransactionDoctrine\PrivateManager\PrivateManagerRegistry;
 use Nowo\TransactionDoctrine\Symfony\Conflict\ConflictResponsePolicy;
 use Nowo\TransactionDoctrine\WriteUnit\Dbal\CommitTrackingMiddleware;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -396,56 +395,29 @@ final class NowoContactFormExtensionTest extends TestCase
     }
 
     /**
-     * 1.13: neither doctrine.private_entity_manager nor doctrine.entity_manager set: the notice (once, at load) and an
-     * enabled host-flush reporter; no private manager.
+     * 1.13: load() records the setting as given (null, true, false) and registers the reporter disabled; host mode, the
+     * notice and the probe are decided by ContactFormPrivateEntityManagerPass (it knows the default manager's name).
      */
-    #[IgnoreDeprecations]
-    public function testUnsetPrivateEntityManagerTriggersTheNoticeAndEnablesTheProbe(): void
+    public function testLoadRecordsTheSettingAndLeavesHostModeToThePass(): void
     {
-        $this->expectUserDeprecationMessage('Since nowo-tech/contact-form-bundle 1.13: ' . NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_UNSET_DEPRECATION);
-        $container = new ContainerBuilder();
-        (new NowoContactFormExtension())->load([array_merge($this->baseConfig(), ['doctrine' => []])], $container);
-
-        $reporter = $container->getDefinition(ContactFormHostFlushReporter::class);
-        self::assertTrue($reporter->getArgument(0), 'the probe runs in host mode while unset');
-        self::assertSame(HostFlushProbe::SERVICE_ID, (string) $reporter->getArgument(1));
-        self::assertSame([['method' => 'reset']], $reporter->getTag('kernel.reset'));
-        self::assertFalse($container->getParameter(NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_PARAMETER));
-        self::assertFalse($container->hasDefinition(NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_SERVICE));
-        self::assertStringContainsString('private_entity_manager: true', NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_UNSET_DEPRECATION);
-    }
-
-    /**
-     * 1.13: false without a dedicated manager is host mode too (2.0 removes the option): its own notice and the probe.
-     */
-    #[IgnoreDeprecations]
-    public function testFalseTriggersItsOwnNoticeAndEnablesTheProbe(): void
-    {
-        $this->expectUserDeprecationMessage('Since nowo-tech/contact-form-bundle 1.13: ' . NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_FALSE_DEPRECATION);
-        $container = new ContainerBuilder();
-        (new NowoContactFormExtension())->load([array_merge($this->baseConfig(), ['doctrine' => ['private_entity_manager' => false]])], $container);
-
-        self::assertTrue($container->getDefinition(ContactFormHostFlushReporter::class)->getArgument(0));
-        self::assertFalse($container->hasDefinition(NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_SERVICE));
-        self::assertStringContainsString('2.0 removes the option', NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_FALSE_DEPRECATION);
-    }
-
-    /**
-     * 1.13: a dedicated manager (the DDD option, kept in 2.0) never flushes the application's manager: no notice, no
-     * probe, whether private_entity_manager is unset or false.
-     */
-    public function testADedicatedManagerSilencesTheNoticeAndTheProbe(): void
-    {
-        foreach ([['entity_manager' => 'contact_form'], ['entity_manager' => 'contact_form', 'private_entity_manager' => false]] as $doctrine) {
+        foreach ([[[], null], [['private_entity_manager' => false], false], [['entity_manager' => 'contact_form'], null]] as [$doctrine, $setting]) {
             $container = new ContainerBuilder();
             (new NowoContactFormExtension())->load([array_merge($this->baseConfig(), ['doctrine' => $doctrine])], $container);
 
-            self::assertFalse($container->getDefinition(ContactFormHostFlushReporter::class)->getArgument(0));
+            self::assertSame($setting, $container->getParameter(NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_SETTING_PARAMETER));
+            self::assertFalse($container->getParameter(NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_PARAMETER));
+            $reporter = $container->getDefinition(ContactFormHostFlushReporter::class);
+            self::assertFalse($reporter->getArgument(0), 'enabled by the pass in host mode');
+            self::assertSame(HostFlushProbe::SERVICE_ID, (string) $reporter->getArgument(1));
+            self::assertSame([['method' => 'reset']], $reporter->getTag('kernel.reset'));
             self::assertFalse($container->hasDefinition(NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_SERVICE));
             $resettables = $container->getDefinition(ContactFormEntityManagerClearSubscriber::class)->getArgument('$resettables');
             self::assertInstanceOf(IteratorArgument::class, $resettables);
             self::assertSame([ContactFormHostFlushReporter::class], array_map(strval(...), $resettables->getValues()));
         }
+
+        self::assertStringContainsString('private_entity_manager: true', NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_UNSET_DEPRECATION);
+        self::assertStringContainsString('2.0 removes the option', NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_FALSE_DEPRECATION);
     }
 
     /**
