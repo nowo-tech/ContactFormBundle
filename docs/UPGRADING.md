@@ -6,6 +6,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 
 - [Unreleased](#unreleased)
 - [To 1.13.0](#to-1130)
+- [To 1.13.0](#to-1130-1)
   - [The submission → form foreign key (MySQL / MariaDB)](#the-submission--form-foreign-key-mysql--mariadb)
   - [The private entity manager notice](#the-private-entity-manager-notice)
   - [Reading the host-flush probe](#reading-the-host-flush-probe)
@@ -76,6 +77,14 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## To 1.13.0
+
+From **1.12.1**:
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
 
 ## To 1.13.0
 
