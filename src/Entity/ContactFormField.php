@@ -8,6 +8,8 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Nowo\ContactFormBundle\Concurrency\RowVersionGuard;
+use Nowo\ContactFormBundle\Concurrency\VersionedRowInterface;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
 use Nowo\ContactFormBundle\Repository\ContactFormFieldRepository;
 
@@ -17,13 +19,20 @@ use Nowo\ContactFormBundle\Repository\ContactFormFieldRepository;
 /**
  * Customizable field definition belonging to a contact form.
  */
-class ContactFormField
+class ContactFormField implements VersionedRowInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: Types::INTEGER)]
     /** @phpstan-ignore property.unusedType */
     private ?int $id = null;
+
+    /**
+     * Row version for the admin edits (REQ-RUNTIME-003 rule 4): advanced by one on every admin save, in the save's
+     * transaction, and checked against the version the edit page was built from ({@see RowVersionGuard}).
+     */
+    #[ORM\Column(name: 'row_version', type: Types::INTEGER, options: ['default' => 1])]
+    private int $rowVersion = 1;
 
     #[ORM\Column(length: 120)]
     private string $name = '';
@@ -51,6 +60,12 @@ class ContactFormField
 
     private ?string $flowStep = null;
 
+    /**
+     * Not persisted: the row version the wizard was started on (the first step carries it as a hidden field, the session
+     * copy of the field keeps it to the last step), checked when the wizard saves an existing field.
+     */
+    private ?int $flowBaseVersion = null;
+
     public function __construct()
     {
         $this->translations = new ArrayCollection();
@@ -59,6 +74,25 @@ class ContactFormField
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    /**
+     * The row version this process last read or wrote (carried by the edit form as its base token).
+     */
+    public function getRowVersion(): int
+    {
+        return $this->rowVersion;
+    }
+
+    /**
+     * Records the row version after the admin save advanced it (set by {@see RowVersionGuard}, not by forms).
+     */
+    public function setRowVersion(int $rowVersion): static
+    {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
+        $this->rowVersion = $rowVersion;
+
+        return $this;
     }
 
     public function getName(): string
@@ -221,6 +255,19 @@ class ContactFormField
     {
         // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
         $this->flowStep = $flowStep;
+
+        return $this;
+    }
+
+    public function getFlowBaseVersion(): ?int
+    {
+        return $this->flowBaseVersion;
+    }
+
+    public function setFlowBaseVersion(?int $flowBaseVersion): self
+    {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
+        $this->flowBaseVersion = $flowBaseVersion;
 
         return $this;
     }

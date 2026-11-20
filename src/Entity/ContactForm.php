@@ -8,6 +8,8 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Nowo\ContactFormBundle\Concurrency\RowVersionGuard;
+use Nowo\ContactFormBundle\Concurrency\VersionedRowInterface;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -17,7 +19,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 /**
  * Configurable multilingual contact form definition.
  */
-class ContactForm
+class ContactForm implements VersionedRowInterface
 {
     /** Retention bounds in days; 0 keeps the submissions forever (no automatic cleanup). */
     public const RETENTION_DAYS_MIN = 0;
@@ -29,6 +31,13 @@ class ContactForm
     #[ORM\Column(type: Types::INTEGER)]
     /** @phpstan-ignore property.unusedType */
     private ?int $id = null;
+
+    /**
+     * Row version for the admin edits (REQ-RUNTIME-003 rule 4): advanced by one on every admin save, in the save's
+     * transaction, and checked against the version the edit page was built from ({@see RowVersionGuard}).
+     */
+    #[ORM\Column(name: 'row_version', type: Types::INTEGER, options: ['default' => 1])]
+    private int $rowVersion = 1;
 
     #[ORM\Column(length: 120)]
     private string $name = '';
@@ -70,6 +79,25 @@ class ContactForm
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    /**
+     * The row version this process last read or wrote (carried by the edit form as its base token).
+     */
+    public function getRowVersion(): int
+    {
+        return $this->rowVersion;
+    }
+
+    /**
+     * Records the row version after the admin save advanced it (set by {@see RowVersionGuard}, not by forms).
+     */
+    public function setRowVersion(int $rowVersion): static
+    {
+        // @igor-ignore - Doctrine entity field; instance-scoped, not a shared service.
+        $this->rowVersion = $rowVersion;
+
+        return $this;
     }
 
     public function getName(): string

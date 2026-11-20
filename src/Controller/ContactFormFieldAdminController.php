@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
+use Nowo\ContactFormBundle\Concurrency\RowVersionGuard;
+use Nowo\ContactFormBundle\Concurrency\StaleVersionException;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Entity\ContactFormFieldTranslation;
 use Nowo\ContactFormBundle\Form\ContactFormFieldFlowType;
+use Nowo\ContactFormBundle\Form\RowVersionField;
 use Nowo\ContactFormBundle\Repository\ContactFormFieldRepository;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Service\ContactFormEnabledLocales;
@@ -153,6 +156,12 @@ class ContactFormFieldAdminController extends AbstractController
         $managedField = $field;
         $storageKey   = $this->buildFieldFlowStorageKey($contactForm, $field, $isNew);
         $field        = $this->syncFieldFlowStepFromUrl($storageKey, $field, $step, $request);
+        if (!$isNew && $field->getFlowBaseVersion() === null) {
+            // 1.12 (REQ-RUNTIME-003 rule 4): the wizard starts on the field's current version; the first step carries
+            // it as a hidden field and the session copy keeps it to the last step.
+            // @igor-ignore - HTTP handler delegates to services; no controller worker state.
+            $field->setFlowBaseVersion($field->getRowVersion());
+        }
 
         $flow = $this->createFieldFlow($storageKey, $field);
         $flow->handleRequest($request);
@@ -162,30 +171,52 @@ class ContactFormFieldAdminController extends AbstractController
 
         $this->ensureTranslationsForEnabledLocales($field);
 
+        $stale = false;
         if ($flow->isSubmitted() && $flow->isValid() && $flow->isFinished()) {
             if ($isNew) {
                 $contactForm->addField($field);
                 $entityManager->persist($field);
+                // @igor-ignore - HTTP handler delegates to services; no controller worker state.
+                $field->setFlowStep(null);
+                $entityManager->flush();
             } else {
+                $expectedVersion = $field->getFlowBaseVersion() ?? RowVersionField::MISSING;
                 // The flow data comes back from the session storage as a detached copy: apply it to the managed
-                // field so the flush below persists the edit.
+                // field so the save below persists the edit.
                 $field = $this->applyWizardResult($managedField, $field);
+                // @igor-ignore - HTTP handler delegates to services; no controller worker state.
+                $field->setFlowStep(null);
+
+                try {
+                    $this->fieldRepository->saveEdit($field, $entityManager, $expectedVersion);
+                } catch (StaleVersionException) {
+                    $stale = true;
+                    // Drop the wizard's unsaved changes from the managed entities (refresh only: the manager is never
+                    // cleared or reset) and start the wizard again on the stored field.
+                    RowVersionGuard::discard($entityManager, $managedField, $managedField->getTranslations()->toArray());
+                    $flow->reset();
+                    // The UiKit layout prints the flashes of every type above the page.
+                    $this->addFlash('error', $this->translator->trans(StaleVersionException::MESSAGE_KEY, [], 'NowoContactFormBundle'));
+                    // @igor-ignore - HTTP handler delegates to services; no controller worker state.
+                    $managedField->setFlowBaseVersion($managedField->getRowVersion())->setFlowStep(ContactFormFieldFlowType::STEP_DEFINITION);
+                    $this->ensureTranslationsForEnabledLocales($managedField);
+                    $flow  = $this->createFieldFlow($storageKey, $managedField);
+                    $field = $managedField;
+                }
             }
 
-            // @igor-ignore - HTTP handler delegates to services; no controller worker state.
-            $field->setFlowStep(null);
-            $entityManager->flush();
+            if (!$stale) {
+                $this->addFlash(
+                    'success',
+                    $this->translator->trans(
+                        $isNew ? 'nowo_contact_form.admin.field.created' : 'nowo_contact_form.admin.field.updated',
+                        [],
+                        'NowoContactFormBundle',
+                    ),
+                );
 
-            $this->addFlash(
-                'success',
-                $this->translator->trans(
-                    $isNew ? 'nowo_contact_form.admin.field.created' : 'nowo_contact_form.admin.field.updated',
-                    [],
-                    'NowoContactFormBundle',
-                ),
-            );
-
-            return $this->redirectToRoute('nowo_contact_form_fields_index', ['formId' => $contactForm->getId()]);
+                return $this->redirectToRoute('nowo_contact_form_fields_index', ['formId' => $contactForm->getId()]);
+            }
         }
 
         if ($flow->isSubmitted() && $flow->isValid() && !$flow->isFinished()) {
@@ -217,7 +248,20 @@ class ContactFormFieldAdminController extends AbstractController
             'field'       => $field,
             'isNew'       => $isNew,
             'currentStep' => $currentStep,
-        ]), new Response(null, $flow->isSubmitted() ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK));
+        ]), $this->answer($flow->isSubmitted(), $stale));
+    }
+
+    /**
+     * The status of the re-rendered page: 409 + `X-Error-Code: CONTACT_FORM_STALE_VERSION` for a stale edit (a domain
+     * answer, never CONFLICT_001 / CONFLICT_002: retrying the same page cannot succeed), 422 for a form error.
+     */
+    private function answer(bool $submitted, bool $stale): Response
+    {
+        if ($stale) {
+            return new Response(null, Response::HTTP_CONFLICT, ['X-Error-Code' => StaleVersionException::ERROR_CODE]);
+        }
+
+        return new Response(null, $submitted ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_OK);
     }
 
     /**
