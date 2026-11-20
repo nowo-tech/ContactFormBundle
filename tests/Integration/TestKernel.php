@@ -84,11 +84,11 @@ class TestKernel extends Kernel
             ],
         ]);
         $contactForm = $this->contactFormConfig();
-        // 1.13: the host mode is explicit by default (no "private_entity_manager unset" notice); a test that wants the
-        // unset behaviour sets the key to null, one that wants the private manager sets it to true.
+        // 1.13: the private entity manager by default (the 2.0 behaviour, no notice); a test of the host mode sets the
+        // key to null or false itself (and ignores the notice the container build triggers).
         $doctrine = is_array($contactForm['doctrine'] ?? null) ? $contactForm['doctrine'] : [];
         if (!array_key_exists('private_entity_manager', $doctrine) && !array_key_exists('entity_manager', $doctrine)) {
-            $contactForm['doctrine'] = $doctrine + ['private_entity_manager' => false];
+            $contactForm['doctrine'] = $doctrine + ['private_entity_manager' => true];
         }
         $container->loadFromExtension('nowo_contact_form', $contactForm + [
             'notifications' => ['enabled' => false],

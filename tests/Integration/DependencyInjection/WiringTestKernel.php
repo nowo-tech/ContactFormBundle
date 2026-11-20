@@ -132,10 +132,10 @@ final class WiringTestKernel extends Kernel
             ]);
         }
         $contactForm = $this->contactFormConfig;
-        // 1.13: explicit host mode by default (no "private_entity_manager unset" notice), as in TestKernel.
+        // 1.13: the private entity manager by default (no notice), as in TestKernel.
         $doctrine = is_array($contactForm['doctrine'] ?? null) ? $contactForm['doctrine'] : [];
         if (!array_key_exists('private_entity_manager', $doctrine) && !array_key_exists('entity_manager', $doctrine)) {
-            $contactForm['doctrine'] = $doctrine + ['private_entity_manager' => false];
+            $contactForm['doctrine'] = $doctrine + ['private_entity_manager' => true];
         }
         $container->loadFromExtension('nowo_contact_form', $contactForm);
         // Keep expected 403/404 responses out of the test output (default logger writes to stderr).

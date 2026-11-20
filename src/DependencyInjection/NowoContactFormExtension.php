@@ -83,7 +83,10 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
     public const PRIVATE_MIDDLEWARE_SERVICE = 'nowo_contact_form.private_entity_manager_middleware';
 
     /** 1.13: the notice of a host that sets neither `doctrine.private_entity_manager` nor `doctrine.entity_manager`. */
-    public const PRIVATE_ENTITY_MANAGER_UNSET_DEPRECATION = 'Not setting "nowo_contact_form.doctrine.private_entity_manager" is deprecated: contact form writes flush the application\'s entity manager, including its own pending changes. 2.0 defaults to true: a private entity manager on the same connection and tables that never flushes them. Opt in now with "nowo_contact_form: { doctrine: { private_entity_manager: true } }", or set it to false to keep the current behaviour (see UPGRADING.md "To 1.13.0").';
+    public const PRIVATE_ENTITY_MANAGER_UNSET_DEPRECATION = 'Not setting "nowo_contact_form.doctrine.private_entity_manager" is deprecated: contact form writes flush the application\'s entity manager, including its own pending changes. 2.0 defaults to true: a private entity manager on the same connection and tables that never flushes them. Opt in now with "nowo_contact_form: { doctrine: { private_entity_manager: true } }", or set doctrine.entity_manager to a dedicated manager (see UPGRADING.md "To 1.13.0").';
+
+    /** 1.13: the notice of a host that sets `doctrine.private_entity_manager: false` without `doctrine.entity_manager`. */
+    public const PRIVATE_ENTITY_MANAGER_FALSE_DEPRECATION = 'Setting "nowo_contact_form.doctrine.private_entity_manager" to false is deprecated: contact form writes flush the application\'s entity manager, including its own pending changes. 2.0 removes the option; the private entity manager (same connection and tables) becomes the only mode unless you set doctrine.entity_manager. Opt in now with "nowo_contact_form: { doctrine: { private_entity_manager: true } }" (see UPGRADING.md "To 1.13.0").';
 
     /** Container parameter holding `doctrine.mapping_type` (`attribute` or `xml`), 1.9. */
     public const MAPPING_TYPE_PARAMETER = 'nowo_contact_form.doctrine.mapping_type';
@@ -356,23 +359,25 @@ final class NowoContactFormExtension extends Extension implements PrependExtensi
      *   manager). Same tables, no host configuration. It is dropped at every outermost unit-of-work boundary
      *   ({@see ContactFormEntityManagerClearSubscriber}; also by transaction-doctrine's bundle through the
      *   {@see PrivateEntityManager::TAG} tag, and at `kernel.reset`) and replaced when closed.
-     * - false or null: the bundle flushes the manager that maps its entities (1.x). Null, with `doctrine.entity_manager`
-     *   unset too, triggers the deprecation notice and enables {@see ContactFormHostFlushReporter}.
+     * - false or null: the bundle flushes the manager that maps its entities (1.x). Without `doctrine.entity_manager`
+     *   that is the application's manager (host mode): a deprecation notice (one text for unset, one for false, which
+     *   2.0 removes) and {@see ContactFormHostFlushReporter} enabled.
      */
     private function registerPrivateEntityManager(ContainerBuilder $container, ?bool $private, ?string $entityManagerName): void
     {
         $container->setParameter(self::PRIVATE_ENTITY_MANAGER_PARAMETER, $private === true);
         $container->setParameter(self::PRIVATE_SOURCE_MANAGER_PARAMETER, $entityManagerName ?? '');
 
-        $unset = $private === null && $entityManagerName === null;
-        if ($unset) {
-            trigger_deprecation('nowo-tech/contact-form-bundle', '1.13', self::PRIVATE_ENTITY_MANAGER_UNSET_DEPRECATION);
+        // Host mode: the bundle flushes the application's manager (2.0 never does).
+        $hostMode = $private !== true && $entityManagerName === null;
+        if ($hostMode) {
+            trigger_deprecation('nowo-tech/contact-form-bundle', '1.13', $private === null ? self::PRIVATE_ENTITY_MANAGER_UNSET_DEPRECATION : self::PRIVATE_ENTITY_MANAGER_FALSE_DEPRECATION);
         }
 
         $container->register(ContactFormHostFlushReporter::class, ContactFormHostFlushReporter::class)
             ->setAutowired(false)
             ->setAutoconfigured(false)
-            ->setArguments([$unset, new Reference(HostFlushProbe::SERVICE_ID, ContainerInterface::NULL_ON_INVALID_REFERENCE)])
+            ->setArguments([$hostMode, new Reference(HostFlushProbe::SERVICE_ID, ContainerInterface::NULL_ON_INVALID_REFERENCE)])
             ->addTag('kernel.reset', ['method' => 'reset']);
 
         $resettables = [new Reference(ContactFormHostFlushReporter::class, ContainerInterface::IGNORE_ON_UNINITIALIZED_REFERENCE)];

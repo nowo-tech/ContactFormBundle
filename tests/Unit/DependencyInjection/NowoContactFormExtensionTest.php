@@ -57,7 +57,7 @@ final class NowoContactFormExtensionTest extends TestCase
             'ip_anonymization_salt'  => 'test-salt',
             'default_retention_days' => 90,
             'admin_route_prefix'     => '/admin/custom',
-            'doctrine'               => ['private_entity_manager' => false],
+            'doctrine'               => ['private_entity_manager' => true],
             'notifications'          => [
                 'enabled'           => false,
                 'service'           => null,
@@ -96,7 +96,7 @@ final class NowoContactFormExtensionTest extends TestCase
         $container = new ContainerBuilder();
         $extension = new NowoContactFormExtension();
         $extension->load([array_merge($this->baseConfig(), [
-            'doctrine' => ['table_prefix' => 'cf_', 'mapping_type' => 'xml', 'private_entity_manager' => false],
+            'doctrine' => ['table_prefix' => 'cf_', 'mapping_type' => 'xml', 'private_entity_manager' => true],
         ])], $container);
 
         self::assertSame('cf_', $container->getParameter('nowo_contact_form.doctrine.table_prefix'));
@@ -416,11 +416,27 @@ final class NowoContactFormExtensionTest extends TestCase
     }
 
     /**
-     * 1.13: an explicit choice (false, or a dedicated manager) silences the notice and disables the probe.
+     * 1.13: false without a dedicated manager is host mode too (2.0 removes the option): its own notice and the probe.
      */
-    public function testAnExplicitChoiceSilencesTheNoticeAndTheProbe(): void
+    #[IgnoreDeprecations]
+    public function testFalseTriggersItsOwnNoticeAndEnablesTheProbe(): void
     {
-        foreach ([['private_entity_manager' => false], ['entity_manager' => 'contact_form']] as $doctrine) {
+        $this->expectUserDeprecationMessage('Since nowo-tech/contact-form-bundle 1.13: ' . NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_FALSE_DEPRECATION);
+        $container = new ContainerBuilder();
+        (new NowoContactFormExtension())->load([array_merge($this->baseConfig(), ['doctrine' => ['private_entity_manager' => false]])], $container);
+
+        self::assertTrue($container->getDefinition(ContactFormHostFlushReporter::class)->getArgument(0));
+        self::assertFalse($container->hasDefinition(NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_SERVICE));
+        self::assertStringContainsString('2.0 removes the option', NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_FALSE_DEPRECATION);
+    }
+
+    /**
+     * 1.13: a dedicated manager (the DDD option, kept in 2.0) never flushes the application's manager: no notice, no
+     * probe, whether private_entity_manager is unset or false.
+     */
+    public function testADedicatedManagerSilencesTheNoticeAndTheProbe(): void
+    {
+        foreach ([['entity_manager' => 'contact_form'], ['entity_manager' => 'contact_form', 'private_entity_manager' => false]] as $doctrine) {
             $container = new ContainerBuilder();
             (new NowoContactFormExtension())->load([array_merge($this->baseConfig(), ['doctrine' => $doctrine])], $container);
 
@@ -483,8 +499,8 @@ final class NowoContactFormExtensionTest extends TestCase
             'ip_anonymization_salt'  => 'salt',
             'default_retention_days' => 365,
             'admin_route_prefix'     => '/admin/contact-forms',
-            // 1.13: explicit host mode (the unset notice has tests of its own).
-            'doctrine' => ['private_entity_manager' => false],
+            // 1.13: the private entity manager (the notices have tests of their own).
+            'doctrine' => ['private_entity_manager' => true],
         ];
     }
 

@@ -12,8 +12,8 @@ use Symfony\Contracts\Service\ResetInterface;
 
 /**
  * 1.13 (REQ-ARCH-001 rule 6 deprecation layer): reports the application's pending changes that a contact form write
- * flushes while neither `doctrine.private_entity_manager` nor `doctrine.entity_manager` is set (2.0 then writes
- * through a private entity manager and no longer flushes them).
+ * flushes in host mode — `doctrine.private_entity_manager` unset or false, without `doctrine.entity_manager` (2.0
+ * writes through a private entity manager and no longer flushes them).
  *
  * Called right before each flush of the bundle (admin saves and deletes, public submissions, the retention cleanup).
  * For each entity class outside `Nowo\ContactFormBundle\Entity` with pending work in the flushed manager, the
@@ -21,9 +21,9 @@ use Symfony\Contracts\Service\ResetInterface;
  * class and unit of work: "Your pending changes to App\X were flushed by NowoContactFormBundle; 2.0 no longer does."
  * The bundle itself never changes an application entity, so every class reported is the application's own work.
  *
- * Disabled (nothing is inspected) when either option is set: `private_entity_manager: true` writes through the private
- * manager (which holds no application change), and an explicit `false` or `entity_manager` keeps the current
- * behaviour in 2.0 too. A {@see PrivateEntityManager} is never inspected.
+ * Disabled (nothing is inspected) with `private_entity_manager: true` (the private manager holds no application
+ * change) and with `doctrine.entity_manager` (a dedicated manager, which 2.0 keeps). A {@see PrivateEntityManager} is
+ * never inspected.
  *
  * Read-only: it never flushes, clears, closes or resets a manager (REQ-RUNTIME-003). The probe is the shared
  * `nowo_transaction_doctrine.host_flush_probe` when the application registers NowoTransactionDoctrineBundle, else one
@@ -44,7 +44,7 @@ final readonly class ContactFormHostFlushReporter implements ResetInterface
     private HostFlushProbe $probe;
 
     /**
-     * @param bool $enabled true only while neither `doctrine.private_entity_manager` nor `doctrine.entity_manager` is set
+     * @param bool $enabled true in host mode (`doctrine.private_entity_manager` unset or false, no `doctrine.entity_manager`)
      * @param HostFlushProbe|null $probe transaction-doctrine's shared probe (null: one of its own)
      */
     public function __construct(

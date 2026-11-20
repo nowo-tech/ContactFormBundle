@@ -64,7 +64,7 @@ use const E_USER_DEPRECATED;
  *   the private manager is dropped at every request / message / command boundary (kernel kept alive, services resetter
  *   never called) and replaced when closed;
  * - unset: the notice at container build and the host-flush probe, once per class and unit of work;
- * - false: neither (the 1.x behaviour, explicitly).
+ * - false: its own notice (2.0 removes the option) and the probe.
  */
 final class PrivateEntityManagerTest extends TestCase
 {
@@ -276,19 +276,22 @@ final class PrivateEntityManagerTest extends TestCase
         }));
     }
 
-    public function testExplicitFalseKeepsTheHostModeWithoutNoticeOrProbe(): void
+    #[IgnoreDeprecations]
+    public function testFalseKeepsTheHostModeWithItsNoticeAndTheProbe(): void
     {
-        $this->boot(['private_entity_manager' => false]);
+        $this->expectUserDeprecationMessage('Since nowo-tech/contact-form-bundle 1.13: ' . NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_FALSE_DEPRECATION);
+        $this->boot(['private_entity_manager' => false], fresh: true);
         $host = $this->hostManager();
+        self::assertNotInstanceOf(PrivateEntityManager::class, $this->container()->get('nowo_contact_form.entity_manager'));
         $this->seedForm($host);
         $host->persist(new HostNote('pending'));
         $recorder = $this->container()->get(ContactSubmissionRecorderInterface::class);
         self::assertInstanceOf(ContactSubmissionRecorderInterface::class, $recorder);
 
-        self::assertSame([], $this->deprecations(static function () use ($recorder): void {
+        self::assertSame([sprintf('Your pending changes to %s were flushed by %s; 2.0 no longer does.', self::NOTE_CLASS, ContactFormHostFlushReporter::BUNDLE_NAME)], $this->deprecations(static function () use ($recorder): void {
             $recorder->record('support', ['email' => 'a@example.com'], 'en');
         }));
-        self::assertSame(1, $this->rows('host_note'), 'the 1.x behaviour, explicitly chosen');
+        self::assertSame(1, $this->rows('host_note'), 'the 1.x behaviour until 2.0');
     }
 
     private function assertHostPending(EntityManagerInterface $host, HostNote $note, string $when): void
