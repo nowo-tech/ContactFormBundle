@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b25801d52608ed7191835a8755ac5f59",
+    "content-hash": "a9c6cba7be90f3645a076ed63d1b606a",
     "packages": [
         {
             "name": "doctrine/collections",
@@ -1755,16 +1755,16 @@
         },
         {
             "name": "nowo-tech/ui-kit-bundle",
-            "version": "dev-feat/demo-platform-shell",
+            "version": "v2.60.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/nowo-tech/UiKitBundle",
-                "reference": "eb45f2352d47d04d6a6c9b96a432cefc0595c76a"
+                "url": "https://github.com/nowo-tech/UiKitBundle.git",
+                "reference": "cd142ddce9afc51681e85f64d5fc96ef0c14302e"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nowo-tech/UiKitBundle/zipball/eb45f2352d47d04d6a6c9b96a432cefc0595c76a",
-                "reference": "eb45f2352d47d04d6a6c9b96a432cefc0595c76a",
+                "url": "https://api.github.com/repos/nowo-tech/UiKitBundle/zipball/cd142ddce9afc51681e85f64d5fc96ef0c14302e",
+                "reference": "cd142ddce9afc51681e85f64d5fc96ef0c14302e",
                 "shasum": ""
             },
             "require": {
@@ -1820,62 +1820,7 @@
                     "Nowo\\UiKitBundle\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Nowo\\UiKitBundle\\Tests\\": "tests/"
-                }
-            },
-            "archive": {
-                "exclude": [
-                    "/demo",
-                    "/.cursor",
-                    "/.pnpm-store",
-                    "/coverage",
-                    "/node_modules"
-                ]
-            },
-            "scripts": {
-                "test": [
-                    "@php vendor/bin/phpunit --color=always"
-                ],
-                "test-coverage": [
-                    "@php vendor/bin/phpunit --color=always --coverage-html coverage --coverage-clover coverage.xml --coverage-text=coverage-output.txt"
-                ],
-                "coverage-check": [
-                    "@php vendor/bin/phpunit --colors=always --coverage-text=coverage-output.txt --coverage-clover coverage.xml && sh .scripts/coverage-fail-under.sh coverage-output.txt 100"
-                ],
-                "cs-check": [
-                    "@php vendor/bin/php-cs-fixer fix --dry-run --diff"
-                ],
-                "cs-fix": [
-                    "@php vendor/bin/php-cs-fixer fix"
-                ],
-                "rector": [
-                    "@php vendor/bin/rector process"
-                ],
-                "rector-dry": [
-                    "@php vendor/bin/rector process --dry-run --no-progress-bar"
-                ],
-                "phpstan": [
-                    "@php vendor/bin/phpstan analyse --memory-limit=512M"
-                ],
-                "qa": [
-                    "@cs-check",
-                    "@test"
-                ],
-                "twig:lint": [
-                    "twig-cs-fixer lint --config=.twig-cs-fixer.php"
-                ],
-                "twig:fix": [
-                    "twig-cs-fixer fix --config=.twig-cs-fixer.php"
-                ],
-                "twig:fix:check": [
-                    "twig-cs-fixer lint --config=.twig-cs-fixer.php --fix"
-                ],
-                "igor": [
-                    "igor-php --no-agent ."
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -1905,11 +1850,12 @@
                 "ui"
             ],
             "support": {
+                "docs": "https://github.com/nowo-tech/UiKitBundle/tree/main/docs",
                 "issues": "https://github.com/nowo-tech/UiKitBundle/issues",
-                "source": "https://github.com/nowo-tech/UiKitBundle",
-                "docs": "https://github.com/nowo-tech/UiKitBundle/tree/main/docs"
+                "source": "https://github.com/nowo-tech/UiKitBundle"
             },
-            "time": "2026-11-20T19:25:38+00:00"
+            "time": "2026-11-20T20:27:14+00:00",
+            "published-time": "2026-11-20T20:30:01+00:00"
         },
         {
             "name": "psr/cache",
@@ -6870,18 +6816,10 @@
             "published-time": "2026-11-04T11:32:15+00:00"
         }
     ],
-    "aliases": [
-        {
-            "package": "nowo-tech/ui-kit-bundle",
-            "version": "dev-feat/demo-platform-shell",
-            "alias": "2.60.0",
-            "alias_normalized": "2.60.0.0"
-        }
-    ],
+    "aliases": [],
     "minimum-stability": "dev",
     "stability-flags": {
-        "nowo-tech/contact-form-bundle": 20,
-        "nowo-tech/ui-kit-bundle": 20
+        "nowo-tech/contact-form-bundle": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,
