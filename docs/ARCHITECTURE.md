@@ -49,10 +49,9 @@ may alias it to your own service or decorate it.
 | `Upload\ContactFormFileUploaderInterface` (1.8) | `file_upload.service` | file fields refuse uploads |
 | `Security\ContactFormAccessCheckerInterface` | `security.access_checker` | role-based checker |
 | `Service\ClientResolverInterface` | `client_entity_class` / `client_user_accessor` | security user (standard hosts; returns the client object) |
-| `Service\ContactFormFileUploadHandlerInterface` | deprecated since 1.8 (takes `UploadedFile` and entities) | — |
 
 All of them take scalars and bundle VOs (`ClientReference`, `ContactSubmissionNotification`, `UploadedContactFile`,
-`ContactFormFileTarget`), except the deprecated upload handler. The form types (`DynamicContactFormBuilder`,
+`ContactFormFileTarget`). The form types (`DynamicContactFormBuilder`,
 `Form\*`) and `Ui\ContactFormPageFactory` are UI services, not ports; templates are themable (REQ-TWIG-001).
 
 ## Events

@@ -57,7 +57,7 @@ final class Configuration implements ConfigurationInterface
     ];
 
     /** Deprecation of `doctrine.private_entity_manager: true` (2.0; the key is removed in 3.0). */
-    public const PRIVATE_ENTITY_MANAGER_DEPRECATION = 'The "nowo_contact_form.doctrine.private_entity_manager" option has no effect since 2.0 (the private entity manager is the only mode unless doctrine.entity_manager names a dedicated manager); remove it. It is removed in 3.0.';
+    public const PRIVATE_ENTITY_MANAGER_DEPRECATION = 'The "nowo_contact_form.doctrine.private_entity_manager" option has no effect since 2.0 without a dedicated doctrine.entity_manager (the private entity manager is then the only mode): remove it. With a dedicated doctrine.entity_manager, true still selects the private manager on it and removing the key switches that manager to direct flushing (your pending changes on it are flushed too), so keep it until 3.0 unless you want that. The key is removed in 3.0.';
 
     public function getConfigTreeBuilder(): TreeBuilder
     {

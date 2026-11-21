@@ -8,7 +8,11 @@ use LogicException;
 use Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Exception\ParameterNotFoundException;
+use Throwable;
 
+use function class_exists;
+use function is_string;
 use function sprintf;
 use function str_contains;
 
@@ -24,7 +28,11 @@ use function str_contains;
  *   name, quoted as Symfony quotes it, matches: an unrelated missing class keeps its lazy error;
  * - a service or an alias registered under the removed id (for example `#[AsAlias]` of it on a loadable class, or a
  *   `services.yaml` alias): 2.0 never reads that id, so the service is not silently adopted as the uploader either;
- * - a decorator of the removed id (also with `onInvalid: IGNORE`, which Symfony would drop without a word).
+ * - a decorator of the removed id (also with `onInvalid: IGNORE`, which Symfony would drop without a word);
+ * - a class that still implements the removed interface and was re-declared explicitly (YAML after the resource
+ *   import) as a decorator of the new port or as the target of its alias: the explicit declaration replaces the
+ *   autodiscovered definition, so its loading error is gone and only the first upload would fail. Such a class is
+ *   loaded here.
  *
  * Registered twice before optimization: at priority 1000, before any other pass looks at the definitions (loading
  * errors), and at priority 99, after Symfony has turned `#[AsDecorator]` attributes into decorated services. Each
@@ -61,6 +69,42 @@ final class ContactFormRemovedPortsPass implements CompilerPassInterface
 
             if (($definition->getDecoratedService()[0] ?? null) === self::REMOVED_UPLOAD_PORT) {
                 throw new LogicException(sprintf('The service "%s" decorates "%s", which no longer exists. Decorate "%s" instead. %s', $id, self::REMOVED_UPLOAD_PORT, ContactFormFileUploaderInterface::class, self::HINT));
+            }
+
+            if (($definition->getDecoratedService()[0] ?? null) === ContactFormFileUploaderInterface::class) {
+                $this->assertLoadable($container, (string) $id, $definition->getClass());
+            }
+        }
+
+        if ($container->hasAlias(ContactFormFileUploaderInterface::class)) {
+            $target = (string) $container->getAlias(ContactFormFileUploaderInterface::class);
+            if ($container->hasDefinition($target)) {
+                $this->assertLoadable($container, $target, $container->getDefinition($target)->getClass());
+            }
+        }
+    }
+
+    /**
+     * Loads the class of a service that takes the place of the new port: a class still implementing the removed
+     * interface throws "Interface … not found" (an unrelated loading problem is left to the other passes).
+     */
+    private function assertLoadable(ContainerBuilder $container, string $id, ?string $class): void
+    {
+        if (!is_string($class) || $class === '') {
+            return;
+        }
+
+        try {
+            $class = (string) $container->getParameterBag()->resolveValue($class);
+        } catch (ParameterNotFoundException) {
+            return; // reported by the pass that resolves parameters
+        }
+
+        try {
+            class_exists($class);
+        } catch (Throwable $e) {
+            if (str_contains($e->getMessage(), '"' . self::REMOVED_UPLOAD_PORT . '"')) {
+                throw new LogicException(sprintf('The service "%s" (class "%s") cannot be loaded: %s %s', $id, $class, $e->getMessage(), self::HINT), 0, $e);
             }
         }
     }
