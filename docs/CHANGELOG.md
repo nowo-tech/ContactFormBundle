@@ -65,6 +65,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- The build now also fails when a class that still implements the removed `ContactFormFileUploadHandlerInterface` is
+  re-declared explicitly (YAML) as a decorator of `ContactFormFileUploaderInterface` or as the target of its alias;
+  before, the explicit declaration hid the loading error and only the first upload failed.
+- The `private_entity_manager` deprecation notice and the UPGRADING table no longer tell hosts with a dedicated
+  `doctrine.entity_manager` to simply remove the key: with it, `true` still selects the private manager, and removing
+  it switches that manager to direct flushing.
+- `docs/ARCHITECTURE.md` no longer lists the removed upload handler SPI.
+
 ## [2.0.0] - 2026-11-21
 
 2.0.0: a major release that removes only what 1.x deprecated (REQ-ARCH-001, REQ-BC-001). Read UPGRADING "To 2.0.0"

@@ -7,6 +7,8 @@ namespace Nowo\ContactFormBundle\Tests\Unit\DependencyInjection\Compiler;
 use LogicException;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormRemovedPortsPass;
 use Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler;
+use Nowo\ContactFormBundle\Tests\Fixtures\RemovedPorts\ImplementsOnly\LegacyUploadHandler;
+use Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -76,5 +78,49 @@ final class ContactFormRemovedPortsPassTest extends TestCase
         $this->expectExceptionMessage('The service "app.scanning_uploader" decorates "Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface", which no longer exists. Decorate "Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface" instead.');
 
         (new ContactFormRemovedPortsPass())->process($container);
+    }
+
+    /**
+     * YE-1: an explicit re-declaration (YAML) replaces the autodiscovered definition and loses its loading error.
+     */
+    public function testALegacyClassDecoratingTheNewPortFailsTheBuild(): void
+    {
+        $container = new ContainerBuilder();
+        $container->register('app.legacy', LegacyUploadHandler::class)
+            ->setDecoratedService(ContactFormFileUploaderInterface::class);
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('The service "app.legacy" (class "' . LegacyUploadHandler::class . '") cannot be loaded:');
+
+        (new ContactFormRemovedPortsPass())->process($container);
+    }
+
+    public function testALegacyClassAsTargetOfTheNewPortAliasFailsTheBuild(): void
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('app.legacy_class', LegacyUploadHandler::class);
+        $container->register('app.legacy', '%app.legacy_class%');
+        $container->setAlias(ContactFormFileUploaderInterface::class, 'app.legacy');
+
+        $this->expectException(LogicException::class);
+        $this->expectExceptionMessage('The service "app.legacy" (class "' . LegacyUploadHandler::class . '") cannot be loaded:');
+
+        (new ContactFormRemovedPortsPass())->process($container);
+    }
+
+    public function testLoadableOrUnknownUploaderClassesOfTheNewPortAreLeftAlone(): void
+    {
+        $container = new ContainerBuilder();
+        $container->register('app.ok', NullContactFormFileUploadHandler::class)->setDecoratedService(ContactFormFileUploaderInterface::class);
+        $container->register('app.no_class')->setDecoratedService(ContactFormFileUploaderInterface::class, null, 1);
+        $container->register('app.param', '%missing_param_class%')->setDecoratedService(ContactFormFileUploaderInterface::class, null, 2);
+        $container->setAlias(ContactFormFileUploaderInterface::class, 'app.external');
+
+        (new ContactFormRemovedPortsPass())->process($container);
+
+        $container->register('app.external', 'App\\DoesNotExist');
+        (new ContactFormRemovedPortsPass())->process($container);
+
+        $this->addToAssertionCount(1);
     }
 }

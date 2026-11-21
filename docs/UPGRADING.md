@@ -134,6 +134,9 @@ clear every notice of this bundle:
    php bin/console nowo:contact-form:backfill-client-reference
    ```
 
+   On MySQL and MariaDB the single `UPDATE` (no index) locks rows and gaps until it commits, so concurrent form
+   submissions may answer with a lock conflict meanwhile: run it in a quiet moment on large tables.
+
    Both are idempotent: they only fill an empty `client_reference`, never overwrite one, and a second run changes
    nothing. The command runs one `UPDATE` (all rows or, on a failure, none), reports a lock conflict as "run the
    command again", and fails if a row is still left (for example a 1.x process still writing `client_id`): run it
@@ -169,11 +172,11 @@ clear every notice of this bundle:
 | 1.13 setting | 2.0 |
 |---|---|
 | neither `doctrine.private_entity_manager` nor `doctrine.entity_manager` (the bundle flushed your default manager) | the private entity manager on your default manager's connection, mapping and listeners; same tables; your manager is never flushed by the bundle |
-| `private_entity_manager: true` | the same; the key is a deprecated no-op (notice `The "nowo_contact_form.doctrine.private_entity_manager" option has no effect since 2.0 [...]`), removed in 3.0 |
+| `private_entity_manager: true` (no dedicated manager) | the same; the key is a deprecated no-op (notice `The "nowo_contact_form.doctrine.private_entity_manager" option has no effect since 2.0 [...]`): remove it; removed in 3.0 |
 | `private_entity_manager: false` | **container build error**: remove the key |
 | `entity_manager: <a dedicated manager>` (the DDD option) | unchanged: the bundle uses that manager, no notice |
 | `entity_manager: <your default manager's name>` (host mode in 1.x) | the private entity manager on it |
-| `private_entity_manager: true` + `entity_manager: <a dedicated manager>` | unchanged from 1.13: the private manager on the dedicated one (deprecated key) |
+| `private_entity_manager: true` + `entity_manager: <a dedicated manager>` | unchanged from 1.13: the private manager on the dedicated one (deprecated key). **Not a no-op here**: do not remove the key just because of the notice, or that manager is flushed directly, including your pending changes on it. Keep it until 3.0 |
 
 There is no option to keep the 1.x behaviour: no 2.0 setting lets a contact form write flush your manager.
 

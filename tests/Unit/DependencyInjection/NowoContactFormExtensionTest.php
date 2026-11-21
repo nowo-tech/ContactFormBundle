@@ -368,7 +368,7 @@ final class NowoContactFormExtensionTest extends TestCase
     #[IgnoreDeprecations]
     public function testLoadWiresThePrivateManagerForEverySetup(): void
     {
-        $this->expectUserDeprecationMessage('Since nowo-tech/contact-form-bundle 2.0: The "nowo_contact_form.doctrine.private_entity_manager" option has no effect since 2.0 (the private entity manager is the only mode unless doctrine.entity_manager names a dedicated manager); remove it. It is removed in 3.0.');
+        $this->expectUserDeprecationMessage('Since nowo-tech/contact-form-bundle 2.0: The "nowo_contact_form.doctrine.private_entity_manager" option has no effect since 2.0 without a dedicated doctrine.entity_manager (the private entity manager is then the only mode): remove it. With a dedicated doctrine.entity_manager, true still selects the private manager on it and removing the key switches that manager to direct flushing (your pending changes on it are flushed too), so keep it until 3.0 unless you want that. The key is removed in 3.0.');
 
         foreach ([[[], null, ''], [['private_entity_manager' => true], true, ''], [['entity_manager' => 'contact_form'], null, 'contact_form']] as [$doctrine, $setting, $source]) {
             $container = new ContainerBuilder();
