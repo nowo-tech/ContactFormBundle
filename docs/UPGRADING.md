@@ -5,6 +5,7 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+- [To 2.0.0](#to-200)
   - [Before you upgrade](#before-you-upgrade)
   - [The private entity manager is the only mode](#the-private-entity-manager-is-the-only-mode)
   - [Removed](#removed)
@@ -83,6 +84,14 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+## To 2.0.0
+
+From **1.13.1**:
+
+```bash
+composer update nowo-tech/contact-form-bundle
+```
 
 From **1.13.x** (2.0.0):
 

@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## Table of contents
 
 - [[Unreleased]](#unreleased)
+- [[2.0.0] - 2026-11-21](#200---2026-11-21)
 - [[1.13.1] - 2026-11-20](#1131---2026-11-20)
 - [[1.13.0] - 2026-11-20](#1130---2026-11-20)
 - [[1.12.1] - 2026-11-20](#1121---2026-11-20)
@@ -63,6 +64,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - [[1.0.0] - 2026-07-13](#100---2026-07-13)
 
 ## [Unreleased]
+
+## [2.0.0] - 2026-11-21
 
 2.0.0: a major release that removes only what 1.x deprecated (REQ-ARCH-001, REQ-BC-001). Read UPGRADING "To 2.0.0"
 before upgrading: run the `client_id` backfill **before** the schema migration.
@@ -780,6 +783,7 @@ Allows nowo-tech/ui-kit-bundle 2.x (^1.4 || ^2.2) so hosts can move to UiKit 2.2
 
 - **Worker safety (Igor):** justified `// @igor-ignore` annotations and/or `ResetInterface` / request-scoped fixes so `make igor` passes on package `src/`.
 
+[2.0.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v2.0.0
 [1.13.1]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.13.1
 [1.13.0]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.13.0
 [1.12.1]: https://github.com/nowo-tech/ContactFormBundle/releases/tag/v1.12.1

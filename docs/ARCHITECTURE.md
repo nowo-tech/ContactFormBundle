@@ -128,7 +128,7 @@ dedicated manager) and records through the port.
 
 ## Done in 2.0
 
-See [UPGRADING.md](UPGRADING.md#unreleased) (the "To 2.0.0" section once released):
+See [UPGRADING.md](UPGRADING.md#to-200) (the "To 2.0.0" section once released):
 
 - **Rule 6.** The private entity manager is the only mode without a dedicated `doctrine.entity_manager`: no contact
   form write (`record()`, the public form, the admin, the retention cleanup) flushes the application's manager. Submission
