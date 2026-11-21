@@ -11,6 +11,7 @@ use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormFileUploaderP
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormMappingDriverPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormPrivateEntityManagerPass;
+use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormRemovedPortsPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormSecurityPass;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\TwigPathsPass;
 use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
@@ -30,6 +31,10 @@ final class NowoContactFormBundle extends Bundle
         $container->addCompilerPass(new ContactFormSecurityPass());
         $container->addCompilerPass(new ContactFormCsrfProtectionPass());
         $container->addCompilerPass(new ContactFormOptionalServicesPass());
+        // 2.0: the upload port removed in 2.0 fails the build — loading errors first (before any other pass looks at the
+        // definitions), then again once Symfony has turned #[AsDecorator] attributes into decorated services (100).
+        $container->addCompilerPass(new ContactFormRemovedPortsPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 1000);
+        $container->addCompilerPass(new ContactFormRemovedPortsPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 99);
         // 1.8: file_upload.service and the file port the bundle's consumers use (host definitions are loaded here).
         $container->addCompilerPass(new ContactFormFileUploaderPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 0);
 
@@ -43,8 +48,8 @@ final class NowoContactFormBundle extends Bundle
         // After the mapping pass above (and DoctrineBundle's auto_mapping): keep the entities on one manager.
         $container->addCompilerPass(new ContactFormEntityManagerPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, -10);
 
-        // 1.13 (doctrine.private_entity_manager: true): the private manager's source and its DBAL middleware, before
-        // DoctrineBundle's MiddlewaresPass (priority 0).
+        // 2.0 (REQ-ARCH-001 rule 6): the private manager's source and its DBAL middleware, before DoctrineBundle's
+        // MiddlewaresPass (priority 0); removed again for a dedicated doctrine.entity_manager.
         $container->addCompilerPass(new ContactFormPrivateEntityManagerPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 5);
 
         // 1.11 (REQ-RUNTIME-003): scope the commit-tracking middleware before DoctrineBundle's MiddlewaresPass (priority 0).

@@ -10,7 +10,7 @@ use Nowo\ContactFormBundle\Entity\ContactSubmission;
 use Nowo\ContactFormBundle\Entity\ContactSubmissionValue;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use ReflectionProperty;
+use ReflectionClass;
 
 #[CoversClass(ContactSubmission::class)]
 final class ContactSubmissionEntityTest extends TestCase
@@ -22,7 +22,7 @@ final class ContactSubmissionEntityTest extends TestCase
         $consentAt  = new DateTimeImmutable('2024-01-02');
         $submission = (new ContactSubmission())
             ->setForm($form)
-            ->setClientId(42)
+            ->setClientReference('42')
             ->setClientLabel('Acme')
             ->setLocale('es')
             ->setIpHash('hash')
@@ -30,7 +30,7 @@ final class ContactSubmissionEntityTest extends TestCase
             ->setCreatedAt($createdAt);
 
         self::assertSame($form, $submission->getForm());
-        self::assertSame(42, $submission->getClientId());
+        self::assertSame('42', $submission->getClientReference());
         self::assertSame('Acme', $submission->getClientLabel());
         self::assertFalse($submission->isAnonymous());
         self::assertSame('es', $submission->getLocale());
@@ -70,35 +70,29 @@ final class ContactSubmissionEntityTest extends TestCase
     {
         $submission = (new ContactSubmission())->setClientLabel('client@example.com');
 
-        self::assertNull($submission->getClientId());
+        self::assertNull($submission->getClientReference());
         self::assertFalse($submission->isAnonymous());
     }
 
     public function testRemovedClientLinkMakesTheSubmissionAnonymousAgain(): void
     {
-        $submission = (new ContactSubmission())->setClientId(7)->setClientLabel('x');
-        $submission->setClientId(null)->setClientLabel(null);
+        $submission = (new ContactSubmission())->setClientReference('7')->setClientLabel('x');
+        $submission->setClientReference(null)->setClientLabel(null);
 
         self::assertTrue($submission->isAnonymous());
     }
 
-    public function testClientReferenceHoldsAnyIdTypeAndFallsBackToTheIntegerId(): void
+    public function testClientReferenceHoldsAnyIdTypeWithoutTheRemovedIntegerColumn(): void
     {
-        $submission = (new ContactSubmission())->setClientId(42);
-        self::assertSame('42', $submission->getClientReference(), 'setClientId() also sets the reference');
-
-        $submission->setClientReference('01890a5d-ac96-774b-bcce-b302099a8057');
+        $submission = (new ContactSubmission())->setClientReference('01890a5d-ac96-774b-bcce-b302099a8057');
         self::assertSame('01890a5d-ac96-774b-bcce-b302099a8057', $submission->getClientReference());
         self::assertFalse($submission->isAnonymous());
-
-        // A row written before 1.7 (client_id set, client_reference not backfilled yet) reads through the INTEGER id.
-        $legacy = new ContactSubmission();
-        (new ReflectionProperty(ContactSubmission::class, 'clientId'))->setValue($legacy, 9);
-        self::assertSame('9', $legacy->getClientReference());
         self::assertNull((new ContactSubmission())->getClientReference());
 
-        $referenceOnly = (new ContactSubmission())->setClientReference('ref-1');
-        self::assertNull($referenceOnly->getClientId());
-        self::assertFalse($referenceOnly->isAnonymous());
+        // 2.0 removed the INTEGER client_id column and its accessors (deprecated since 1.7).
+        $class = new ReflectionClass(ContactSubmission::class);
+        self::assertFalse($class->hasProperty('clientId'));
+        self::assertFalse($class->hasMethod('getClientId'));
+        self::assertFalse($class->hasMethod('setClientId'));
     }
 }

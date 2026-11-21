@@ -6,7 +6,6 @@ namespace Nowo\ContactFormBundle\Twig;
 
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Twig\Extension\AbstractExtension;
-use Twig\Extension\GlobalsInterface;
 use Twig\TwigFunction;
 
 use function in_array;
@@ -14,28 +13,24 @@ use function is_array;
 use function is_string;
 
 /**
- * Exposes admin helpers (enabled / default content locales) and the deprecated 1.x Web UI globals to Twig templates.
+ * Exposes admin helpers (enabled / default content locales) to Twig templates. 2.0 removed the 1.x Web UI globals
+ * `nowo_contact_form_layout_template`, `nowo_contact_form_css_framework` and `nowo_contact_form_icon_set` (deprecated
+ * since 1.6): read `nowo_ui_layout` and `nowo_ui_kit.*` instead.
  */
-final class ContactFormAdminTwigExtension extends AbstractExtension implements GlobalsInterface
+final class ContactFormAdminTwigExtension extends AbstractExtension
 {
-    /** @deprecated since 1.6 (REQ-UI-003: the pages resolve their layout through the view models) */
-    public const GLOBAL_LAYOUT_TEMPLATE = 'nowo_contact_form_layout_template';
-
-    /** @deprecated since 1.6 (read nowo_ui_kit.css_framework) */
-    public const GLOBAL_CSS_FRAMEWORK = 'nowo_contact_form_css_framework';
-
-    /** @deprecated since 1.6 (read nowo_ui_kit.icon_set) */
-    public const GLOBAL_ICON_SET = 'nowo_contact_form_icon_set';
-
-    /** Value of the deprecated layout global when web_ui.layout_template is null. */
-    public const DEFAULT_LAYOUT_TEMPLATE = '@NowoUiKit/layout/admin.html.twig';
-
-    public function __construct(
+    /**
+     * @param string|null $layoutTemplate deprecated since 2.0, ignored (it fed a removed global); removed in 3.0
+     * @param string|null $cssFramework deprecated since 2.0, ignored (it fed a removed global); removed in 3.0
+     * @param string|null $iconSet deprecated since 2.0, ignored (it fed a removed global); removed in 3.0
+     */
+    public function __construct(// @phpstan-ignore constructor.unusedParameter, constructor.unusedParameter, constructor.unusedParameter (BC: kept until 3.0)
         private readonly ParameterBagInterface $parameterBag,
-        private readonly ?string $layoutTemplate = null,
-        private readonly ?string $cssFramework = null,
-        private readonly ?string $iconSet = null,
+        ?string $layoutTemplate = null,
+        ?string $cssFramework = null,
+        ?string $iconSet = null,
     ) {
+        unset($layoutTemplate, $cssFramework, $iconSet);
     }
 
     public function getFunctions(): array
@@ -43,22 +38,6 @@ final class ContactFormAdminTwigExtension extends AbstractExtension implements G
         return [
             new TwigFunction('contact_form_admin_locales', $this->getEnabledLocales(...)),
             new TwigFunction('contact_form_admin_default_locale', $this->getDefaultLocale(...)),
-        ];
-    }
-
-    /**
-     * Deprecated since 1.6, removed in 2.0 (REQ-UI-003: bundles must not add layout globals; the bundle pages do not
-     * read them): `nowo_contact_form_layout_template` (web_ui.layout_template, else the UiKit admin layout),
-     * `nowo_contact_form_css_framework` / `nowo_contact_form_icon_set` (null unless the deprecated web_ui keys are set).
-     *
-     * @return array<string, mixed>
-     */
-    public function getGlobals(): array
-    {
-        return [
-            self::GLOBAL_LAYOUT_TEMPLATE => $this->layoutTemplate ?? self::DEFAULT_LAYOUT_TEMPLATE,
-            self::GLOBAL_CSS_FRAMEWORK   => $this->cssFramework,
-            self::GLOBAL_ICON_SET        => $this->iconSet,
         ];
     }
 

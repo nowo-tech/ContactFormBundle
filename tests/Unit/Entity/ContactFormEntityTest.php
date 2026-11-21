@@ -50,7 +50,7 @@ final class ContactFormEntityTest extends TestCase
     public function testSubmissionAnonymousFlag(): void
     {
         $anonymous = new ContactSubmission();
-        $linked    = (new ContactSubmission())->setClientId(5)->setClientLabel('Client');
+        $linked    = (new ContactSubmission())->setClientReference('5')->setClientLabel('Client');
 
         self::assertTrue($anonymous->isAnonymous());
         self::assertFalse($linked->isAnonymous());

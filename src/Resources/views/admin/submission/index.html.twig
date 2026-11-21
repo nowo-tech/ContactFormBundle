@@ -16,7 +16,7 @@
         {% if row.anonymous %}
             <span class="{{ nowo_ui_class('muted', _b) }}">{{ 'nowo_contact_form.admin.submission.anonymous'|trans }}</span>
         {% else %}
-            {{ row.clientLabel ?? row.clientId }}
+            {{ row.clientLabel ?? row.clientReference }}
         {% endif %}
     </td>
     <td class="{{ _cell }}" data-label="{{ 'nowo_contact_form.admin.submission.columns.locale'|trans }}" data-nowo-ui-priority="2">

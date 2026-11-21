@@ -21,6 +21,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 use function array_key_exists;
 use function in_array;
@@ -34,6 +35,8 @@ final class SeedContactDemoCommand extends Command
 {
     public function __construct(
         private readonly ContactFormRepository $formRepository,
+        // Bundle 2.0: the bundle's entities are written through its own (private) entity manager, never the app's.
+        #[Autowire(service: 'nowo_contact_form.entity_manager')]
         private readonly EntityManagerInterface $entityManager,
         private readonly ContactSubmissionRepository $submissionRepository,
     ) {
@@ -108,7 +111,7 @@ final class SeedContactDemoCommand extends Command
                 ->setConsentGivenAt($createdAt);
 
             if ($client !== null) {
-                $submission->setClientId(1001 + $index)->setClientLabel($client);
+                $submission->setClientReference((string) (1001 + $index))->setClientLabel($client);
             }
 
             foreach (['email' => $email, 'subject' => $subject, 'topic' => $topic, 'message' => $message] as $name => $value) {

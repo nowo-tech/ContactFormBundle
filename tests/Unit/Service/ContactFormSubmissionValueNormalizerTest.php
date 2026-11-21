@@ -8,13 +8,11 @@ use DateTimeImmutable;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
-use Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface;
 use Nowo\ContactFormBundle\Service\ContactFormSubmissionValueNormalizer;
 use Nowo\ContactFormBundle\Upload\ContactFormFileTarget;
 use Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface;
 use Nowo\ContactFormBundle\Upload\UploadedContactFile;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -28,10 +26,10 @@ final class ContactFormSubmissionValueNormalizerTest extends TestCase
 
     protected function setUp(): void
     {
-        $handler = $this->createMock(ContactFormFileUploadHandlerInterface::class);
-        $handler->method('upload')->willReturn('uploads/file.pdf');
+        $uploader = $this->createMock(ContactFormFileUploaderInterface::class);
+        $uploader->method('store')->willReturn('uploads/file.pdf');
 
-        $this->normalizer = new ContactFormSubmissionValueNormalizer($handler);
+        $this->normalizer = new ContactFormSubmissionValueNormalizer($uploader);
     }
 
     public function testNormalizeCheckboxValues(): void
@@ -54,14 +52,12 @@ final class ContactFormSubmissionValueNormalizerTest extends TestCase
         self::assertSame('2024-06-01', $this->normalizer->normalize($field, '2024-06-01', $form));
     }
 
-    #[IgnoreDeprecations]
-    public function testNormalizeFileUploadThroughTheDeprecatedHandler(): void
+    public function testNormalizeFileUploadWithoutAFileIsEmpty(): void
     {
         $field = (new ContactFormField())->setType(ContactFieldType::File);
         $form  = new ContactForm();
         $file  = new UploadedFile(__FILE__, 'test.php', null, null, true);
 
-        $this->expectUserDeprecationMessageMatches('/ContactFormFileUploadHandlerInterface" is deprecated/');
         self::assertSame('uploads/file.pdf', $this->normalizer->normalize($field, $file, $form));
         self::assertSame('', $this->normalizer->normalize($field, null, $form));
     }

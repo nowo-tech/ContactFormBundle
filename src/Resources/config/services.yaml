@@ -98,20 +98,10 @@ services:
     Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface:
         alias: Nowo\ContactFormBundle\Notification\NullContactSubmissionNotifier
 
-    # 1.8 file port (REQ-ARCH-001 rule 3). Alias or decorate it (or set file_upload.service) to store uploads: the
-    # bundle then uses your service (ContactFormFileUploaderPass).
+    # 1.8 file port (REQ-ARCH-001 rule 3), the only one since 2.0. Alias or decorate it (or set file_upload.service) to
+    # store uploads: the bundle then uses your service (ContactFormFileUploaderPass).
     Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface:
         alias: Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler
-
-    # Deprecated since 1.8 (removed in 2.0). NullContactFormFileUploadHandler implements it; a host that re-aliases it
-    # must point it at a service that implements it (Symfony's lint:container checks this). The bundle injects it only
-    # for a host whose service implements this port and not the 1.8 one (ContactFormFileUploaderPass).
-    Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface:
-        alias: Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler
-        deprecated:
-            package: nowo-tech/contact-form-bundle
-            version: '1.8'
-            message: 'The "%alias_id%" service alias is deprecated, use "Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface" instead.'
 
     # Form Kit injects FormOptionsMerger into tagged form types (FormOptionsMergerInjectorCompilerPass).
     Nowo\ContactFormBundle\Form\:

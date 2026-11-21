@@ -5,6 +5,8 @@ parameters:
         - tests
     excludePaths:
         - demo/*
+        # W1-1 fixtures: host classes still tied to the upload port removed in 2.0 (they cannot be loaded on purpose).
+        - tests/Fixtures/RemovedPorts/*
     bootstrapFiles:
         - vendor/autoload.php
     reportUnmatchedIgnoredErrors: false

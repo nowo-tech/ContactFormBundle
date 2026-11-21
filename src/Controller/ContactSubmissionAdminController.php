@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Controller;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Nowo\ContactFormBundle\Doctrine\ContactFormHostFlushReporter;
+use Nowo\ContactFormBundle\Doctrine\ContactFormWrites;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactSubmission;
 use Nowo\ContactFormBundle\Event\ContactSubmissionsDeletedEvent;
@@ -18,6 +18,7 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -29,14 +30,14 @@ use function max;
 /**
  * Admin controller for viewing and managing contact submissions.
  *
- * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
+ * Final since 2.0 (announced with `@final` since 1.5): decorate or replace the service instead of extending it.
  */
 #[Route(
     '/{formId}/submissions',
     name: 'nowo_contact_form_submissions_',
     requirements: ['formId' => '\d+'],
 )]
-class ContactSubmissionAdminController extends AbstractController
+final class ContactSubmissionAdminController extends AbstractController
 {
     public function __construct(
         private readonly ContactFormRepository $formRepository,
@@ -46,9 +47,12 @@ class ContactSubmissionAdminController extends AbstractController
         private readonly ContactFormPageFactory $pages,
         private readonly CsrfOnlyFormFactory $csrfOnlyForms,
         private readonly ?EventDispatcherInterface $eventDispatcher = null,
-        // 1.13: reports the application's pending changes a flush in host mode writes (see UPGRADING "To 1.13.0").
-        private readonly ?ContactFormHostFlushReporter $hostFlushReporter = null,
+        /*
+         * @deprecated since 2.0, ignored; removed in 3.0 (1.13's host-flush reporter, removed with the host mode)
+         */
+        ?object $hostFlushReporter = null,
     ) {
+        unset($hostFlushReporter);
     }
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -94,7 +98,7 @@ class ContactSubmissionAdminController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function delete(int $formId, int $id, Request $request, EntityManagerInterface $entityManager): Response
+    public function delete(int $formId, int $id, Request $request, EntityManagerInterface $entityManager): RedirectResponse
     {
         $form       = $this->getContactForm($formId);
         $submission = $this->getSubmission($form, $id);
@@ -105,7 +109,7 @@ class ContactSubmissionAdminController extends AbstractController
 
         $submissionId = (int) $submission->getId();
         $entityManager->remove($submission);
-        $this->hostFlushReporter?->beforeFlush($entityManager);
+        ContactFormWrites::assertOnlyBundleEntities($entityManager);
         $entityManager->flush();
         $this->eventDispatcher?->dispatch(new ContactSubmissionsDeletedEvent([$submissionId], ContactSubmissionsDeletedEvent::REASON_ADMIN));
 

@@ -90,8 +90,9 @@ nowo_contact_form:
   never reaches it. `ContactSubmissionRecorderInterface::record()` does not validate values as files: validate them
   yourself before recording.
 - You may also alias or decorate `ContactFormFileUploaderInterface` in your services: the bundle uses your service.
-- `ContactFormFileUploadHandlerInterface::upload(UploadedFile, ContactForm, ContactFormField)` is **deprecated** since
-  1.8 (removed in 2.0); a service that implements only it keeps working (see [UPGRADING](UPGRADING.md#to-180)).
+- `ContactFormFileUploaderInterface` is the only upload port since 2.0: the 1.x `ContactFormFileUploadHandlerInterface`
+  (deprecated since 1.8) was removed, and a service still tied to it (implementing it, aliasing or decorating its id)
+  fails the container build (see [UPGRADING](UPGRADING.md#removed)).
 
 ## Custom notification (Slack, API, etc.)
 
@@ -122,7 +123,7 @@ nowo_contact_form:
 
 Since 1.8 the notification carries scalars for everything a notifier needs: `getSubmissionId()`, `getLocale()`,
 `getClientReference()`, `getClientLabel()`, `isAnonymous()`, `getCreatedAt()`, `getFormName()`, `getFormSlug()`,
-`getFieldValues()`, `getNotificationRecipient()`. `getSubmission()` (the entity) is deprecated and removed in 2.0.
+`getFieldValues()`, `getNotificationRecipient()`. `getSubmission()` (the entity, deprecated since 1.8) was removed in 2.0.
 
 Alternatively, subscribe to `Nowo\ContactFormBundle\Event\ContactSubmissionCreatedEvent`.
 
@@ -160,7 +161,7 @@ nowo_contact_form:
 
 | Event | When | Carries |
 |-------|------|---------|
-| `ContactSubmissionCreatedEvent` | After a submission was flushed (public form or recorder), before the notifier | `getSubmission()` (entity, detached after the dispatch); since 1.7 `getSubmissionId()`, `getFormSlug()`, `getLocale()`, `getClientReference()`, `getFieldValues()`, `getCreatedAt()` |
+| `ContactSubmissionCreatedEvent` | After a submission was flushed (public form or recorder), before the notifier | `getSubmission()` (an entity of the bundle's manager, detached after the dispatch: read it, never persist or flush it through your manager); since 1.7 `getSubmissionId()`, `getFormSlug()`, `getLocale()`, `getClientReference()`, `getFieldValues()`, `getCreatedAt()` |
 | `ContactSubmissionsDeletedEvent` (1.7) | After the admin deleted a submission, and after each flushed chunk of the retention cleanup | `getSubmissionIds()`, `getReason()` (`admin` / `retention`) |
 
 ## Using it from a DDD / hexagonal host
@@ -170,19 +171,18 @@ referenced by id only (`client_reference`, any id type). Both kinds of host are 
 
 ### Standard Symfony host (default)
 
-The entities live on the default entity manager; the client of the public form is your security user (or the entity
-`client_user_accessor` returns, `client_entity_class`); listeners may use `getSubmission()`. A file upload service may
-still implement the deprecated `ContactFormFileUploadHandlerInterface` until 2.0; new code implements
+The entities are mapped on the default entity manager (same tables); the bundle reads and writes them through its
+private entity manager on that manager's connection (2.0, zero-config): a contact form write never flushes your
+pending changes. The client of the public form is your security user (or the entity `client_user_accessor` returns,
+`client_entity_class`); listeners may read `getSubmission()`. A file upload service implements
 `ContactFormFileUploaderInterface` ([File uploads](#file-uploads)).
 
-Since 1.13, set `doctrine.private_entity_manager: true` (the only mode in 2.0, zero-config; see
-[UPGRADING](UPGRADING.md#to-1130)):
+- Flush your own changes yourself: a change you leave pending is not written by a contact form write.
+- Change bundle rows through the bundle's admin and services (or `nowo_contact_form.entity_manager` and flush that),
+  never by loading them through the bundle's repositories and flushing your manager.
+- An entity of yours that points at a `ContactForm` uses `$entityManager->getReference(ContactForm::class, $id)`.
 
-```yaml
-nowo_contact_form:
-    doctrine:
-        private_entity_manager: true   # the bundle's writes never flush your pending changes
-```
+See [UPGRADING](UPGRADING.md#private-manager-only).
 
 ### DDD / hexagonal host (opt-in)
 
@@ -224,21 +224,20 @@ final class SendContactMessageHandler
 
 - `mapping_type: xml` (1.9) maps the six bundle entities from `src/Resources/config/doctrine-xml` (same tables and
   columns as the attributes) for managers that load XML mapping only; the default stays `attribute`. See
-  [ARCHITECTURE.md](ARCHITECTURE.md) for the ports, SPI and what waits for 2.0.
+  [ARCHITECTURE.md](ARCHITECTURE.md) for the ports, SPI and what 2.0 changed.
 - The bundle never flushes, clears or resets your manager: submissions, admin edits and the retention cleanup write to
   `contact_form` only, and a closed `contact_form` manager is recovered on the next request or write (FrankenPHP worker
   mode, no services resetter needed). The entities are not mapped on your managers even with `auto_mapping: true`.
 - `record()` takes plain values (no Symfony form, no request) and returns the submission id; it flushes the bundle's
   manager and dispatches `ContactSubmissionCreatedEvent` after that flush. Listen to the id getters and translate them
   into your own events / outbox rows.
-- **Private entity manager (1.13).** `doctrine.private_entity_manager: true` keeps the bundle's writes off your
-  manager without any other configuration: same connection and tables, a private manager of the bundle that never
-  flushes your pending changes. 2.0 makes it the only mode without `doctrine.entity_manager`; see
-  [UPGRADING](UPGRADING.md#to-1130).
-- **Standard host and your own transaction (LI-CF-L1).** Without `doctrine.entity_manager` (and without
-  `doctrine.private_entity_manager: true`), the bundle's manager *is* your default entity manager: `record()` flushes
-  it (your pending changes too), and the created event and the
-  notification (e-mail) run right after that flush — **before** your transaction commits. If your transaction then
+- **Private entity manager (2.0, the only mode without `doctrine.entity_manager`).** The bundle's writes stay off
+  your manager without any configuration: same connection and tables, a private manager of the bundle that never
+  flushes your pending changes; see [UPGRADING](UPGRADING.md#private-manager-only).
+- **Standard host and your own transaction (LI-CF-L1).** Without `doctrine.entity_manager`, the private manager shares
+  your connection: a transaction you open around `record()` includes the submission (savepoint) and your rollback
+  undoes it, but the created event and the notification (e-mail) run right after the bundle's flush — **before** your
+  transaction commits. If your transaction then
   rolls back, the submission is gone but the event and the e-mail already went out. When you call `record()` inside
   your own transaction, either use a dedicated manager (`doctrine.entity_manager`, its own connection) or call it
   after your commit.

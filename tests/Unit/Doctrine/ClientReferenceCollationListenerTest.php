@@ -14,9 +14,7 @@ use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\ORM\EntityManager;
-use Doctrine\ORM\Mapping\ClassMetadata;
 use Doctrine\ORM\ORMSetup;
-use Doctrine\ORM\Tools\Event\GenerateSchemaTableEventArgs;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\ORM\Tools\ToolEvents;
 use Doctrine\Persistence\ManagerRegistry;
@@ -26,6 +24,7 @@ use Nowo\ContactFormBundle\Service\ContactFormEntityManagerResolver;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 
 use function array_map;
 use function array_values;
@@ -148,16 +147,10 @@ final class ClientReferenceCollationListenerTest extends TestCase
         self::assertSame(['host_note'], array_map(static fn (Table $table): string => $table->getName(), array_values($schema->getTables())));
     }
 
-    public function testTheFormerTableEventDoesNothing(): void
+    public function testTheFormerTableEventIsGone(): void
     {
-        $table = new Table('nowo_contact_submission');
-        $table->addColumn('client_reference', 'string', ['length' => 64, 'notnull' => false]);
-        $args = new GenerateSchemaTableEventArgs(new ClassMetadata(ContactSubmission::class), new Schema(), $table);
-
-        (new ClientReferenceCollationListener(null, new MySQL80Platform()))->postGenerateSchemaTable($args);
-
-        self::assertSame($table, $args->getClassTable());
-        self::assertSame([], $table->getColumn('client_reference')->getPlatformOptions());
+        // Deprecated since 1.13 (an @internal no-op since the FK fix), removed in 2.0 with its event tag.
+        self::assertFalse((new ReflectionClass(ClientReferenceCollationListener::class))->hasMethod('postGenerateSchemaTable'));
     }
 
     /**

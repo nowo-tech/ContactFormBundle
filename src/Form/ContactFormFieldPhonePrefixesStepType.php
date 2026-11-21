@@ -27,10 +27,10 @@ use function count;
  *
  * @extends AbstractType<ContactFormField>
  *
- * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
+ * Final since 2.0 (announced with `@final` since 1.5): decorate or replace the service instead of extending it.
  */
 #[FormKitConfig('contact_form')]
-class ContactFormFieldPhonePrefixesStepType extends AbstractType implements ContactFormFieldStepDataInterface
+final class ContactFormFieldPhonePrefixesStepType extends AbstractType implements ContactFormFieldStepDataInterface
 {
     use ContactFormFieldWizardStepTrait;
     use FormOptionsTrait;

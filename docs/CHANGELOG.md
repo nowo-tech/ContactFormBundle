@@ -64,6 +64,59 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+2.0.0: a major release that removes only what 1.x deprecated (REQ-ARCH-001, REQ-BC-001). Read UPGRADING "To 2.0.0"
+before upgrading: run the `client_id` backfill **before** the schema migration.
+
+### Removed
+
+- **BREAKING:** the 1.x host mode, in which contact form writes flushed the application's entity manager (deprecated
+  since 1.13): the private entity manager is the only mode without `doctrine.entity_manager`. Removed with it: the two
+  1.13 notices, the host-flush probe and `Doctrine\ContactFormHostFlushReporter` (internal). The trailing
+  `$hostFlushReporter` constructor argument of `ContactSubmissionProcessor`, `SubmissionRetentionCleanupService` and
+  the three admin controllers stays as an ignored `?object` (deprecated, removed in 3.0).
+- **BREAKING:** `doctrine.private_entity_manager: false` fails the container build (the key is deprecated: `true` is a
+  no-op, removed in 3.0).
+- **BREAKING:** `Service\ContactFormFileUploadHandlerInterface`, its service alias and
+  `NullContactFormFileUploadHandler::upload()` (deprecated since 1.8). `Upload\ContactFormFileUploaderInterface` is the
+  only upload port. A configured `file_upload.service` that does not implement it, and any host service still tied to
+  the removed interface (a class implementing it, an `#[AsAlias]` or alias of its id, an `#[AsDecorator]` of it, also
+  with `onInvalid: IGNORE`), fail the container build with a message naming the service and the replacement.
+- **BREAKING:** `ContactSubmissionNotification::getSubmission()` (deprecated since 1.8); the id and scalar accessors stay.
+- **BREAKING:** the legacy admin layout bridge (`admin/_legacy_layout.html.twig`, `ContactFormPages::LEGACY_ADMIN_BRIDGE`,
+  deprecated since 1.6): a `web_ui.layout_template` that does not render the UiKit canonical blocks fails with a
+  `LogicException` naming the layout and what to do.
+- **BREAKING:** the `admin_route_prefix`, `web_ui.css_framework` and `web_ui.icon_set` keys (deprecated since 1.6; a
+  leftover key fails the build with what to set instead) and the Twig globals `nowo_contact_form_layout_template`,
+  `nowo_contact_form_css_framework`, `nowo_contact_form_icon_set` (deprecated since 1.6) with the
+  `ContactFormAdminTwigExtension::GLOBAL_*` constants. The container parameter `nowo_contact_form.admin_route_prefix`
+  stays (same value as `web_ui.path_prefix`).
+- **BREAKING:** the INTEGER `client_id` column, `ContactSubmission::getClientId()` / `setClientId()` (deprecated since
+  1.7) and the `client_id` fallback of `getClientReference()`. A submission whose client is only in `client_id` loses its
+  client link when the column is dropped: run the backfill first (new command
+  `nowo:contact-form:backfill-client-reference`, or the SQL in UPGRADING).
+- `ClientReferenceCollationListener::postGenerateSchemaTable()` (internal no-op since 1.13) and its event tag.
+
+### Changed
+
+- **BREAKING:** classes announced `@final` since 1.5 are now `final`: `DependencyInjection\Configuration`, the admin and
+  public controllers and the form types.
+- The bundle re-loads a contact form that another entity manager loaded (the application's `find()`, a route value
+  resolver) by id in its own manager before a submission refers to it, so it is never persisted as a new row; and its
+  private manager refuses to write an application entity that ended up in it (a clear `LogicException`, nothing
+  written).
+- Demo: on the 2.0 APIs (upload port, notifiers on scalar accessors) with a migration that backfills and drops
+  `client_id`.
+
+### Added
+
+- `nowo:contact-form:backfill-client-reference` (`--dry-run`): copies `client_id` into an empty `client_reference`
+  before the 2.0 schema migration drops the column; idempotent, never overwrites a reference.
+
+### Security
+
+- After 2.0.0 the 1.x line receives security fixes for 6 months: Moderate and above are backported to the last 1.x
+  minor; Low ones are fixed in 2.x only (`.github/SECURITY.md`).
+
 ## [1.13.1] - 2026-11-20
 
 ### Fixed

@@ -8,7 +8,7 @@ use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 use Nowo\ContactFormBundle\Client\ClientReference;
 use Nowo\ContactFormBundle\Client\ObjectClientReferenceResolver;
-use Nowo\ContactFormBundle\Doctrine\ContactFormHostFlushReporter;
+use Nowo\ContactFormBundle\Doctrine\ContactFormWrites;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactSubmission;
 use Nowo\ContactFormBundle\Entity\ContactSubmissionValue;
@@ -26,27 +26,19 @@ use Symfony\Component\HttpFoundation\Request;
 use Throwable;
 
 use function array_key_exists;
-use function filter_var;
 use function get_debug_type;
-use function is_int;
-use function is_string;
-use function preg_match;
-
-use const FILTER_VALIDATE_INT;
+use function method_exists;
 
 /**
  * Persists contact form submissions with GDPR metadata and optional client linkage.
  *
  * {@see self::process()} serves the public form (Symfony form + request); {@see self::record()} is the request-free port
- * (1.7). Both flush the bundle's entity manager only ({@see ContactFormEntityManagerResolver}: `doctrine.entity_manager`,
- * else the manager that maps the entities) and dispatch the created event after that flush.
+ * (1.7). Both flush the bundle's entity manager only ({@see ContactFormEntityManagerResolver}: the bundle's private
+ * entity manager, or a dedicated `doctrine.entity_manager`; never the application's) and dispatch the created event after
+ * that flush. A contact form handed to {@see self::process()} that another manager loaded is re-loaded by id first.
  */
 final readonly class ContactSubmissionProcessor implements ContactSubmissionRecorderInterface
 {
-    /** Signed 32-bit range of the INTEGER `client_id` column. */
-    private const CLIENT_ID_MIN = -2147483648;
-    private const CLIENT_ID_MAX = 2147483647;
-
     public function __construct(
         private EntityManagerInterface $entityManager,
         private ContactFormFieldRepository $fieldRepository,
@@ -60,9 +52,12 @@ final readonly class ContactSubmissionProcessor implements ContactSubmissionReco
         private ?ContactFormEntityManagerResolver $entityManagerResolver = null,
         private ?LoggerInterface $logger = null,
         private ?ContactFormRepository $formRepository = null,
-        // 1.13: reports the application's pending changes a flush in host mode writes (see UPGRADING "To 1.13.0").
-        private ?ContactFormHostFlushReporter $hostFlushReporter = null,
+        /*
+         * @deprecated since 2.0, ignored; removed in 3.0 (1.13's host-flush reporter, removed with the host mode)
+         */
+        ?object $hostFlushReporter = null,
     ) {
+        unset($hostFlushReporter);
     }
 
     /**
@@ -75,6 +70,9 @@ final readonly class ContactSubmissionProcessor implements ContactSubmissionReco
         string $locale,
         ?object $client = null,
     ): ContactSubmission {
+        // A form another manager loaded (the application's find(), a host query) is re-loaded in the bundle's manager:
+        // the submission must refer to a row of the manager that flushes it, never persist the form as new.
+        $form       = ContactFormWrites::adoptForm($this->entityManagerResolver?->get() ?? $this->entityManager, $form);
         $submission = new ContactSubmission();
         $submission->setForm($form);
         $submission->setLocale($locale);
@@ -146,13 +144,12 @@ final readonly class ContactSubmissionProcessor implements ContactSubmissionReco
     }
 
     /**
-     * Client linkage: `client_reference` holds any id type (1.7); the deprecated INTEGER `client_id` only a 32-bit
-     * integer id; `client_label` the display label.
+     * Client linkage: `client_reference` holds any id type (1.7), `client_label` the display label. 2.0 removed the
+     * INTEGER `client_id` column (deprecated since 1.7).
      */
     private function applyClient(ContactSubmission $submission, ?object $client): void
     {
         if ($client instanceof ClientReference) {
-            $submission->setClientId($this->int32($client->id));
             $submission->setClientReference($client->id);
             $submission->setClientLabel($client->label);
 
@@ -164,10 +161,31 @@ final readonly class ContactSubmissionProcessor implements ContactSubmissionReco
         }
 
         if (method_exists($client, 'getId')) {
-            $submission->setClientId($this->normalizeClientId($client, $client->getId()));
-            $submission->setClientReference(ObjectClientReferenceResolver::idOf($client));
+            $submission->setClientReference($this->clientReferenceOf($client, $client->getId()));
         }
         $submission->setClientLabel($this->clientLabelResolver->resolveLabel($client));
+    }
+
+    /**
+     * `client_reference` keeps any integer, string or Stringable id up to 64 characters; any other id is stored as null
+     * (only `client_label` then links the submission to the client) and a warning is logged.
+     */
+    private function clientReferenceOf(object $client, mixed $id): ?string
+    {
+        $reference = ObjectClientReferenceResolver::idOf($client);
+        if ($reference !== null || $id === null) {
+            return $reference;
+        }
+
+        $this->logger?->warning(
+            'Contact form submission: the client id ({id_type}) of {client_class} is not an integer nor a string of at most 64 characters; client_reference is stored as null and only client_label links the submission to the client.',
+            [
+                'id_type'      => get_debug_type($id),
+                'client_class' => $client::class,
+            ],
+        );
+
+        return null;
     }
 
     private function store(ContactSubmission $submission): ContactSubmission
@@ -176,7 +194,7 @@ final readonly class ContactSubmissionProcessor implements ContactSubmissionReco
 
         try {
             $entityManager->persist($submission);
-            $this->hostFlushReporter?->beforeFlush($entityManager);
+            ContactFormWrites::assertOnlyBundleEntities($entityManager);
             $entityManager->flush();
         } catch (Throwable $exception) {
             $this->entityManagerResolver?->resetClosed();
@@ -195,56 +213,6 @@ final readonly class ContactSubmissionProcessor implements ContactSubmissionReco
         }
 
         return $submission;
-    }
-
-    /**
-     * `client_id` is a 32-bit INTEGER column: only integer ids (or strings holding one) in the signed 32-bit range are
-     * stored. Any other id (UUID, ULID, non-numeric string, object, bigint above the range) used to be cast with
-     * `(int)` and truncated or clamped, so submissions of different clients shared one id; it is now stored as null.
-     * Since 1.7 `client_reference` keeps such ids as strings; a warning is logged only when it cannot either.
-     */
-    private function normalizeClientId(object $client, mixed $id): ?int
-    {
-        if ($id === null) {
-            return null;
-        }
-
-        if (is_int($id) && $id >= self::CLIENT_ID_MIN && $id <= self::CLIENT_ID_MAX) {
-            return $id;
-        }
-
-        if (is_string($id) && ($int = $this->int32($id)) !== null) {
-            return $int;
-        }
-
-        // 1.7: client_reference holds any integer, string or Stringable id up to 64 characters; only other ids are lost.
-        if (ObjectClientReferenceResolver::idOf($client) !== null) {
-            return null;
-        }
-
-        $this->logger?->warning(
-            'Contact form submission: the client id ({id_type}) of {client_class} is not a 32-bit integer nor a string of at most 64 characters; client_id and client_reference are stored as null and only client_label links the submission to the client.',
-            [
-                'id_type'      => get_debug_type($id),
-                'client_class' => $client::class,
-            ],
-        );
-
-        return null;
-    }
-
-    /**
-     * The id as a signed 32-bit integer when it is one (string form), else null.
-     */
-    private function int32(string $id): ?int
-    {
-        if (preg_match('/^-?(?:0|[1-9]\d{0,9})$/', $id) !== 1) {
-            return null;
-        }
-
-        $int = filter_var($id, FILTER_VALIDATE_INT, ['options' => ['min_range' => self::CLIENT_ID_MIN, 'max_range' => self::CLIENT_ID_MAX]]);
-
-        return is_int($int) ? $int : null;
     }
 
     /**

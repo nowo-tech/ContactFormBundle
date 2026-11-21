@@ -15,7 +15,7 @@ Configuration keys are in [CONFIGURATION.md](CONFIGURATION.md); examples in [USA
   - [Standard Symfony host](#standard-symfony-host)
   - [DDD / hexagonal host](#ddd--hexagonal-host)
 - [REQ-ARCH-001 status](#req-arch-001-status)
-- [Deferred to 2.0](#deferred-to-20)
+- [Done in 2.0](#done-in-20)
 
 ## Bounded context
 
@@ -59,18 +59,19 @@ All of them take scalars and bundle VOs (`ClientReference`, `ContactSubmissionNo
 
 | Event | When | Carries |
 |-------|------|---------|
-| `Event\ContactSubmissionCreatedEvent` | after the submission was flushed, before the notifier | ids and scalars (`getSubmissionId()`, `getFormSlug()`, `getLocale()`, `getClientReference()`, `getFieldValues()`, `getCreatedAt()`); `getSubmission()` (entity) for standard hosts |
+| `Event\ContactSubmissionCreatedEvent` | after the submission was flushed, before the notifier | ids and scalars (`getSubmissionId()`, `getFormSlug()`, `getLocale()`, `getClientReference()`, `getFieldValues()`, `getCreatedAt()`); `getSubmission()` (an entity of the bundle's manager: read it, never persist or flush it through yours) for standard hosts |
 | `Event\ContactSubmissionsDeletedEvent` (1.7) | after the admin delete and each flushed retention chunk | `getSubmissionIds()`, `getReason()` |
 
 ## Persistence
 
 - Every read, write, flush and recovery reset of the bundle goes through `nowo_contact_form.entity_manager`: the
-  manager named by `doctrine.entity_manager`, else the default entity manager.
-- 1.13: with `doctrine.private_entity_manager: true` that is a private manager of the bundle (transaction-doctrine's
-  `PrivateManager\PrivateEntityManager`) on the same connection, mapping and tables; the repositories get a
-  `PrivateManagerRegistry` that resolves the bundle entities to it. It is dropped at every boundary and replaced when
-  closed, and the bundle never flushes, clears or resets your managers. 2.0 makes it the only mode without
-  `doctrine.entity_manager` (the option and its `false` value are removed).
+  manager named by `doctrine.entity_manager` (a dedicated manager), else the bundle's private entity manager.
+- 2.0: without a dedicated `doctrine.entity_manager` (or with it naming the default manager), that is a private
+  manager of the bundle (transaction-doctrine's `PrivateManager\PrivateEntityManager`) on the default manager's
+  connection, mapping and tables; the repositories get a `PrivateManagerRegistry` that resolves the bundle entities to
+  it. It is dropped at every boundary and replaced when closed, writes only the bundle's entities, and the bundle never
+  flushes, clears or resets your managers. A contact form another manager loaded is re-loaded by id before a
+  submission refers to it. The 1.x host mode (the bundle flushing your manager) was removed.
 - With `doctrine.entity_manager` set, the entities are mapped on that manager only (also with `auto_mapping` or a
   default metadata driver on the others), and the bundle never flushes, clears or resets your managers.
 - Kept-alive workers (FrankenPHP, kernel reset off): the bundle clears its own manager at the request, message and
@@ -118,23 +119,22 @@ dedicated manager) and records through the port.
 |------|--------|-------|
 | 1. Interfaces + VOs | ✅ | ports and SPI above |
 | 2. No forced base class / trait | ✅ | bundle-owned entities referenced by id; XML mapping since 1.9 |
-| 3. No framework types in ports, events, VOs | ✅ since 1.8 | deprecated upload handler kept until 2.0 |
+| 3. No framework types in ports, events, VOs | ✅ since 1.8 | the 1.x upload handler was removed in 2.0; a host service still tied to it fails the build |
 | 4. Events carry ids | ✅ since 1.7 | entity getter kept for standard hosts |
 | 5. SPI documented | ✅ | this page |
-| 6. Never flush the host EM | ⚠️ default until 2.0 | opt-in since 1.13 (`doctrine.private_entity_manager: true`, zero-config) or `doctrine.entity_manager`; unset or `false`, the bundle flushes the host default manager, with a notice and the host-flush probe |
+| 6. Never flush the host EM | ✅ since 2.0 | the private entity manager (zero-config) or a dedicated `doctrine.entity_manager`; `private_entity_manager: false` fails the build |
 | 7. Events after commit | ✅ | dispatched after the bundle's flush (see USAGE, LI-CF-L1, for a host transaction) |
 | 8. Config through provider ports | ✅ | config tree and the SPI above; no InstanceSettings |
 
-## Deferred to 2.0
+## Done in 2.0
 
-Tracked in [UPGRADING.md](UPGRADING.md#to-190):
+See [UPGRADING.md](UPGRADING.md#unreleased) (the "To 2.0.0" section once released):
 
-- **Rule 6 default.** Without `doctrine.entity_manager`, `record()`, the public form, the admin and the retention
-  cleanup flush the default entity manager, which also commits the host's pending changes. A dedicated manager by
-  default would move the tables to another manager (and connection) for every existing host, so 1.x keeps the default
-  and offers `doctrine.entity_manager` (1.7). A "no flush" mode is not offered: submission ids are database
-  identities, known only after the bundle's flush. 1.13 adds the zero-config `doctrine.private_entity_manager: true`
-  (a private manager on the same connection and tables), a notice when neither option is set, and the host-flush
-  probe; 2.0 makes the private manager the only mode without `doctrine.entity_manager` and removes `false`
-  ([UPGRADING](UPGRADING.md#to-1130)).
-- **Removal of the deprecated APIs.** `ContactFormFileUploadHandlerInterface` (and its service alias).
+- **Rule 6.** The private entity manager is the only mode without a dedicated `doctrine.entity_manager`: no contact
+  form write (`record()`, the public form, the admin, the retention cleanup) flushes the application's manager. Submission
+  ids stay database identities, known after the bundle's own flush. `doctrine.private_entity_manager` is a deprecated
+  no-op (`false` fails the build), removed in 3.0.
+- **Removal of the deprecated APIs.** `ContactFormFileUploadHandlerInterface` (and its service alias),
+  `ContactSubmissionNotification::getSubmission()`, the legacy admin layout bridge, the 1.6 Web UI keys and Twig
+  globals, and the INTEGER `client_id` column with its accessors (backfill command
+  `nowo:contact-form:backfill-client-reference`).

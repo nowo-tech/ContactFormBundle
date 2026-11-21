@@ -12,7 +12,7 @@ use function fclose;
 use function stream_get_contents;
 
 /**
- * A 1.8 host uploader: the new port only (VO + target). Same storage rule as {@see LegacyHostFileHandler}.
+ * A 1.8 host uploader: the new port only (VO + target). Stores through {@see UploadRecorder}.
  */
 final readonly class HostFileUploader implements ContactFormFileUploaderInterface
 {

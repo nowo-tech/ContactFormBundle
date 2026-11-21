@@ -11,8 +11,8 @@ use Nowo\ContactFormBundle\Entity\ContactSubmission;
  * Immutable snapshot passed to submission notifiers.
  *
  * 1.8 (REQ-ARCH-001 rule 1): the submission id, locale, client reference / label and creation time are captured as
- * scalars when the snapshot is built ({@see self::fromSubmission()}), so a notifier needs no entity. The entity
- * ({@see self::getSubmission()}) stays for standard hosts until 2.0.
+ * scalars when the snapshot is built ({@see self::fromSubmission()}), so a notifier needs no entity. 2.0 removed the
+ * entity getter `getSubmission()` (deprecated since 1.8); the constructor still takes the submission to read them.
  */
 final readonly class ContactSubmissionNotification
 {
@@ -30,7 +30,7 @@ final readonly class ContactSubmissionNotification
      * @param array<string, string> $fieldValues
      */
     public function __construct(
-        private ContactSubmission $submission,
+        ContactSubmission $submission,
         private string $formName,
         private string $formSlug,
         private array $fieldValues,
@@ -61,16 +61,6 @@ final readonly class ContactSubmissionNotification
             $values,
             $recipient,
         );
-    }
-
-    /**
-     * @deprecated since 1.8, use the id and scalar accessors ({@see self::getSubmissionId()}, {@see self::getLocale()},
-     *             {@see self::getClientReference()}, {@see self::getClientLabel()}, {@see self::getCreatedAt()},
-     *             {@see self::getFieldValues()}); removed in 2.0
-     */
-    public function getSubmission(): ContactSubmission
-    {
-        return $this->submission;
     }
 
     /** Id of the stored submission (1.8). */
