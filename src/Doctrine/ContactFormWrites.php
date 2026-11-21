@@ -35,10 +35,6 @@ final class ContactFormWrites
     /** Namespace of the only classes the private manager may write. */
     public const ENTITY_NAMESPACE = 'Nowo\\ContactFormBundle\\Entity\\';
 
-    private function __construct()
-    {
-    }
-
     /**
      * The contact form as an entity of `$entityManager`: the same object when that manager holds it, else the row
      * re-loaded by id.

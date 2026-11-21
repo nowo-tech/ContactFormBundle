@@ -91,11 +91,10 @@ final class DedicatedEntityManagerTest extends TestCase
         self::assertSame($default, $this->registry()->getManagerForClass(ContactSubmission::class));
         $private = $this->container()->get('nowo_contact_form.entity_manager');
         self::assertInstanceOf(PrivateEntityManager::class, $private);
-        self::assertInstanceOf(EntityManagerInterface::class, $default);
-        self::assertSame($default->getConnection(), $private->getConnection());
 
         // LI-CF-L2: the collation listener is wired on the schema tool events of the manager.
         self::assertInstanceOf(EntityManagerInterface::class, $default);
+        self::assertSame($default->getConnection(), $private->getConnection());
         $listeners = $default->getEventManager()->getListeners(ToolEvents::postGenerateSchema);
         self::assertContains(ClientReferenceCollationListener::class, array_map(static fn (object $l): string => $l::class, $listeners));
     }

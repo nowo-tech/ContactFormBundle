@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver\AbstractException;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\DBAL\Exception\DeadlockException;
+use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\ORMSetup;
@@ -94,6 +95,26 @@ final class BackfillClientReferenceCommandTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('disk full');
         $tester->execute([]);
+    }
+
+    public function testAnotherFailureOfTheColumnProbeIsRethrown(): void
+    {
+        $real       = $this->legacySchema();
+        $failure    = new DriverException(new class('disk I/O error', 'HY000', 10) extends AbstractException {
+        }, null);
+        $connection = $this->createMock(Connection::class);
+        $connection->method('getDatabasePlatform')->willReturn($real->getConnection()->getDatabasePlatform());
+        $connection->method('fetchOne')->willThrowException($failure);
+        $connection->expects(self::never())->method('executeStatement');
+
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->method('getConnection')->willReturn($connection);
+        $entityManager->method('getClassMetadata')->willReturnCallback(static fn (string $class): mixed => $real->getClassMetadata($class));
+        $entityManager->method('getConfiguration')->willReturn($real->getConfiguration());
+        $entityManager->method('isOpen')->willReturn(true);
+
+        $this->expectExceptionObject($failure);
+        (new CommandTester(new BackfillClientReferenceCommand($this->resolver($entityManager))))->execute([]);
     }
 
     public function testRowsLeftAfterTheUpdateFailTheRun(): void
