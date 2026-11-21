@@ -20,7 +20,7 @@ use Symfony\Component\Routing\Attribute\Route;
 /**
  * Public controller for rendering and submitting contact forms.
  *
- * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
+ * Final since 2.0 (announced with `@final` since 1.5): decorate or replace the service instead of extending it.
  */
 #[Route(
     '/{_locale}/contact',
@@ -28,7 +28,7 @@ use Symfony\Component\Routing\Attribute\Route;
     requirements: ['_locale' => '[a-z]{2}'],
     defaults: ['_locale' => 'en'],
 )]
-class ContactFormPublicController extends AbstractController
+final class ContactFormPublicController extends AbstractController
 {
     public function __construct(
         private readonly ContactFormRepository $formRepository,

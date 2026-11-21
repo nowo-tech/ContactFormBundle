@@ -19,21 +19,17 @@ use function in_array;
 use function is_array;
 use function is_object;
 use function is_scalar;
-use function trigger_deprecation;
 
 /**
  * Normalizes submitted form field values into strings for persistence.
  *
- * File values (already validated by the public form) go to the file port the container resolved
- * ({@see ContactFormFileUploaderPass}): the 1.8
- * {@see ContactFormFileUploaderInterface} with an {@see UploadedContactFile} VO, or,
- * for a host that implements only the deprecated {@see ContactFormFileUploadHandlerInterface}, its `upload()` with the
- * `UploadedFile` and the entities, as before 1.8.
+ * File values (already validated by the public form) go to {@see ContactFormFileUploaderInterface} (wired by
+ * {@see ContactFormFileUploaderPass}) as an {@see UploadedContactFile} VO; since 2.0 it is the only upload port.
  */
 final readonly class ContactFormSubmissionValueNormalizer
 {
     public function __construct(
-        private ContactFormFileUploaderInterface|ContactFormFileUploadHandlerInterface $fileUploadHandler,
+        private ContactFormFileUploaderInterface $fileUploadHandler,
     ) {
     }
 
@@ -79,23 +75,17 @@ final readonly class ContactFormSubmissionValueNormalizer
             return '';
         }
 
-        if ($this->fileUploadHandler instanceof ContactFormFileUploaderInterface) {
-            return $this->fileUploadHandler->store(
-                UploadedContactFileData::fromUploadedFile($value),
-                new ContactFormFileTarget(
-                    $form->getId(),
-                    $form->getSlug(),
-                    $field->getId(),
-                    $field->getName(),
-                    $locale,
-                    $field->getOptions() ?? [],
-                ),
-            );
-        }
-
-        trigger_deprecation('nowo-tech/contact-form-bundle', '1.8', 'Storing contact form files through "%s" is deprecated, implement "%s" instead; removed in 2.0.', ContactFormFileUploadHandlerInterface::class, ContactFormFileUploaderInterface::class);
-
-        return $this->fileUploadHandler->upload($value, $form, $field);
+        return $this->fileUploadHandler->store(
+            UploadedContactFileData::fromUploadedFile($value),
+            new ContactFormFileTarget(
+                $form->getId(),
+                $form->getSlug(),
+                $field->getId(),
+                $field->getName(),
+                $locale,
+                $field->getOptions() ?? [],
+            ),
+        );
     }
 
     private function scalarOrEmpty(mixed $value): string

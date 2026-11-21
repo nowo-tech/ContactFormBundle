@@ -9,6 +9,7 @@ use Doctrine\ORM\Query;
 use Doctrine\Persistence\ManagerRegistry;
 use Nowo\ContactFormBundle\Concurrency\RowVersionGuard;
 use Nowo\ContactFormBundle\Concurrency\StaleVersionException;
+use Nowo\ContactFormBundle\Doctrine\ContactFormWrites;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\TransactionDoctrine\DoctrineTransactionRunner;
@@ -42,6 +43,7 @@ class ContactFormFieldRepository extends WorkerSafeServiceEntityRepository
     {
         DoctrineTransactionRunner::forConnection($entityManager->getConnection())->run(static function () use ($field, $entityManager, $expectedVersion): void {
             RowVersionGuard::advance($entityManager, $field, $expectedVersion);
+            ContactFormWrites::assertOnlyBundleEntities($entityManager);
             $entityManager->flush();
         });
     }

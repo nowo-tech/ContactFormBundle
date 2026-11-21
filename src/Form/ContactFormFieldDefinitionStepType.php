@@ -6,7 +6,6 @@ namespace Nowo\ContactFormBundle\Form;
 
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Enum\ContactFieldType;
-use Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface;
 use Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler;
 use Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface;
 use Nowo\FormKitBundle\Attribute\FormKitConfig;
@@ -31,10 +30,10 @@ use function preg_match;
  *
  * @extends AbstractType<ContactFormField>
  *
- * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
+ * Final since 2.0 (announced with `@final` since 1.5): decorate or replace the service instead of extending it.
  */
 #[FormKitConfig('contact_form')]
-class ContactFormFieldDefinitionStepType extends AbstractType
+final class ContactFormFieldDefinitionStepType extends AbstractType
 {
     use FormOptionsTrait;
 
@@ -47,7 +46,7 @@ class ContactFormFieldDefinitionStepType extends AbstractType
     public function __construct(
         private readonly ?TranslatorInterface $translator = null,
         // 1.8: the file port ContactFormFileUploaderPass resolved (the uploader, or a host's deprecated handler).
-        private readonly ContactFormFileUploaderInterface|ContactFormFileUploadHandlerInterface|null $fileUploadHandler = null,
+        private readonly ?ContactFormFileUploaderInterface $fileUploadHandler = null,
     ) {
     }
 

@@ -7,7 +7,9 @@ namespace Nowo\ContactFormBundle\Tests\Unit\DependencyInjection;
 use Nowo\ContactFormBundle\DependencyInjection\Configuration;
 use Nowo\ContactFormBundle\Service\DynamicContactFormBuilder;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\Definition\Processor;
 
@@ -22,14 +24,15 @@ final class ConfigurationTest extends TestCase
         self::assertNull($config['client_entity_class']);
         self::assertSame('email', $config['client_label_property']);
         self::assertSame(365, $config['default_retention_days']);
-        self::assertNull($config['admin_route_prefix']);
+        self::assertArrayNotHasKey('admin_route_prefix', $config);
         self::assertTrue($config['web_ui']['enabled']);
         self::assertNull($config['web_ui']['path_prefix']);
         self::assertNull($config['web_ui']['layout_template']);
         self::assertNull($config['web_ui']['public_layout_template']);
         self::assertSame([], $config['web_ui']['templates']);
-        self::assertNull($config['web_ui']['css_framework']);
-        self::assertNull($config['web_ui']['icon_set']);
+        self::assertArrayNotHasKey('css_framework', $config['web_ui']);
+        self::assertArrayNotHasKey('icon_set', $config['web_ui']);
+        self::assertNull($config['doctrine']['private_entity_manager']);
         self::assertSame(20, $config['web_ui']['list_page_size']);
         self::assertSame(['ROLE_ADMIN'], $config['security']['access_roles']);
         self::assertFalse($config['security']['allow_unauthenticated']);
@@ -128,16 +131,57 @@ final class ConfigurationTest extends TestCase
         ]]);
     }
 
-    public function testDeprecatedKeysStillValidate(): void
+    /**
+     * @return iterable<string, array{0: array<string, mixed>, 1: string}>
+     */
+    public static function removedKeys(): iterable
     {
-        $config = (new Processor())->processConfiguration(new Configuration(), [[
-            'admin_route_prefix' => '/backoffice/contact',
-            'web_ui'             => ['css_framework' => 'tailwind', 'icon_set' => 'none'],
-        ]]);
+        yield 'admin_route_prefix' => [['admin_route_prefix' => '/backoffice/contact'], 'The option "nowo_contact_form.admin_route_prefix" was removed in 2.0 (deprecated since 1.6): set "nowo_contact_form.web_ui.path_prefix" instead. See UPGRADING.md "To 2.0.0".'];
+        yield 'web_ui.css_framework' => [['web_ui' => ['css_framework' => 'tailwind']], 'The option "nowo_contact_form.web_ui.css_framework" was removed in 2.0 (deprecated since 1.6): set "nowo_ui_kit.css_framework" instead'];
+        yield 'web_ui.icon_set' => [['web_ui' => ['icon_set' => 'none']], 'The option "nowo_contact_form.web_ui.icon_set" was removed in 2.0 (deprecated since 1.6): set "nowo_ui_kit.icon_set" instead.'];
+    }
 
-        self::assertSame('/backoffice/contact', $config['admin_route_prefix']);
-        self::assertSame('tailwind', $config['web_ui']['css_framework']);
-        self::assertSame('none', $config['web_ui']['icon_set']);
+    /**
+     * 2.0 (owner decision Q-W4-1): the 1.6 keys are removed; a leftover key fails the build naming its replacement.
+     *
+     * @param array<string, mixed> $config
+     */
+    #[DataProvider('removedKeys')]
+    public function testRemovedKeysFailTheBuild(array $config, string $message): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage($message);
+
+        (new Processor())->processConfiguration(new Configuration(), [$config]);
+    }
+
+    /**
+     * 2.0: `private_entity_manager: true` is accepted (deprecated no-op); `false` fails the build — with a dedicated
+     * manager the message says it keeps working.
+     */
+    public function testPrivateEntityManagerFalseFailsTheBuild(): void
+    {
+        $config = (new Processor())->processConfiguration(new Configuration(), [['doctrine' => ['private_entity_manager' => true]]]);
+        self::assertTrue($config['doctrine']['private_entity_manager']);
+
+        try {
+            (new Processor())->processConfiguration(new Configuration(), [['doctrine' => ['private_entity_manager' => false, 'entity_manager' => 'contact_form']]]);
+            self::fail('false must fail the build');
+        } catch (InvalidConfigurationException $exception) {
+            self::assertStringContainsString('private_entity_manager: false is no longer supported', $exception->getMessage());
+            self::assertStringContainsString('doctrine.entity_manager "contact_form" stays: a dedicated manager keeps working as in 1.x', $exception->getMessage());
+            self::assertStringContainsString('UPGRADING.md "To 2.0.0"', $exception->getMessage());
+        }
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessage('The bundle then writes through its private entity manager');
+        (new Processor())->processConfiguration(new Configuration(), [['doctrine' => ['private_entity_manager' => false]]]);
+    }
+
+    public function testConfigurationIsFinal(): void
+    {
+        self::assertTrue((new ReflectionClass(Configuration::class))->isFinal());
+        self::assertSame(['bootstrap', 'bootstrap4', 'bootstrap5', 'tailwind', 'foundation', 'custom', 'tabler', 'none'], Configuration::CSS_FRAMEWORKS);
     }
 
     public function testConflictResponseDefaultsToNullAndAccepts409Or503(): void

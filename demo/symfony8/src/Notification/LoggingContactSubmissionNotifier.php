@@ -22,9 +22,9 @@ final class LoggingContactSubmissionNotifier implements ContactSubmissionNotifie
     {
         $this->logger->info('Contact form submission received (demo logging notifier).', [
             'form'   => $notification->getFormSlug(),
-            'locale' => $notification->getSubmission()->getLocale(),
+            'locale' => $notification->getLocale(),
             'fields' => $notification->getFieldValues(),
-            'client' => $notification->getSubmission()->getClientLabel(),
+            'client' => $notification->getClientLabel(),
         ]);
     }
 }

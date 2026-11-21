@@ -7,7 +7,6 @@ namespace Nowo\ContactFormBundle\Tests\Unit\DependencyInjection;
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormOptionalServicesPass;
 use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
 use Nowo\ContactFormBundle\DependencyInjection\TablePrefixListener;
-use Nowo\ContactFormBundle\Doctrine\ContactFormHostFlushReporter;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\EventSubscriber\ContactFormConflictListener;
 use Nowo\ContactFormBundle\EventSubscriber\ContactFormEntityManagerClearSubscriber;
@@ -26,13 +25,13 @@ use Nowo\ContactFormBundle\Service\ContactFormSubmissionRateLimiter;
 use Nowo\ContactFormBundle\Service\DynamicContactFormBuilder;
 use Nowo\ContactFormBundle\Service\IpAnonymizer;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
-use Nowo\TransactionDoctrine\HostFlushProbe;
 use Nowo\TransactionDoctrine\PrivateManager\PrivateEntityManager;
 use Nowo\TransactionDoctrine\PrivateManager\PrivateEntityManagerMiddleware;
 use Nowo\TransactionDoctrine\PrivateManager\PrivateManagerRegistry;
 use Nowo\TransactionDoctrine\Symfony\Conflict\ConflictResponsePolicy;
 use Nowo\TransactionDoctrine\WriteUnit\Dbal\CommitTrackingMiddleware;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\Argument\IteratorArgument;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -55,8 +54,7 @@ final class NowoContactFormExtensionTest extends TestCase
             'client_user_accessor'   => 'getClient',
             'ip_anonymization_salt'  => 'test-salt',
             'default_retention_days' => 90,
-            'admin_route_prefix'     => '/admin/custom',
-            'doctrine'               => ['private_entity_manager' => true],
+            'web_ui'                 => ['path_prefix' => '/admin/custom'],
             'notifications'          => [
                 'enabled'           => false,
                 'service'           => null,
@@ -71,7 +69,10 @@ final class NowoContactFormExtensionTest extends TestCase
 
         self::assertSame('App\\Entity\\Client', $container->getParameter('nowo_contact_form.client_entity_class'));
         self::assertSame(90, $container->getParameter('nowo_contact_form.default_retention_days'));
-        self::assertSame('/admin/custom', $container->getParameter('nowo_contact_form.admin_route_prefix'));
+        self::assertSame('/admin/custom', $container->getParameter('nowo_contact_form.web_ui.path_prefix'));
+        self::assertSame('/admin/custom', $container->getParameter('nowo_contact_form.admin_route_prefix'), 'same value under its 1.x name');
+        self::assertFalse($container->hasParameter('nowo_contact_form.web_ui.css_framework'));
+        self::assertFalse($container->hasParameter('nowo_contact_form.web_ui.icon_set'));
         self::assertTrue($container->hasDefinition(IpAnonymizer::class));
         self::assertSame(
             NullContactSubmissionNotifier::class,
@@ -95,7 +96,7 @@ final class NowoContactFormExtensionTest extends TestCase
         $container = new ContainerBuilder();
         $extension = new NowoContactFormExtension();
         $extension->load([array_merge($this->baseConfig(), [
-            'doctrine' => ['table_prefix' => 'cf_', 'mapping_type' => 'xml', 'private_entity_manager' => true],
+            'doctrine' => ['table_prefix' => 'cf_', 'mapping_type' => 'xml'],
         ])], $container);
 
         self::assertSame('cf_', $container->getParameter('nowo_contact_form.doctrine.table_prefix'));
@@ -300,54 +301,18 @@ final class NowoContactFormExtensionTest extends TestCase
         self::assertSame('HostDomain', $first['profiles']['contact_form']['translation_domain'] ?? null);
     }
 
-    public function testPrependSeedsUiKitFromWebUiWhenHostUnset(): void
+    /**
+     * 2.0: the 1.6 web_ui.css_framework / icon_set keys are gone, so nothing is copied to UiKit any more (the host sets
+     * nowo_ui_kit itself).
+     */
+    public function testPrependNeverSeedsUiKit(): void
     {
         $container = new ContainerBuilder();
         $this->registerStubExtension($container, 'nowo_ui_kit');
-        $container->prependExtensionConfig('nowo_contact_form', [
-            'web_ui' => [
-                'css_framework' => 'bootstrap5',
-                'icon_set'      => 'bootstrap-icons',
-            ],
-        ]);
 
         (new NowoContactFormExtension())->prepend($container);
 
-        $found = false;
-        foreach ($container->getExtensionConfig('nowo_ui_kit') as $cfg) {
-            if (($cfg['css_framework'] ?? null) === 'bootstrap5'
-                && ($cfg['icon_set'] ?? null) === 'bootstrap-icons'
-            ) {
-                $found = true;
-                break;
-            }
-        }
-        self::assertTrue($found);
-    }
-
-    public function testPrependDoesNotOverrideExplicitUiKitHostConfig(): void
-    {
-        $container = new ContainerBuilder();
-        $this->registerStubExtension($container, 'nowo_ui_kit');
-        $container->prependExtensionConfig('nowo_ui_kit', [
-            'css_framework' => 'tailwind',
-            'icon_set'      => 'heroicons',
-        ]);
-
-        (new NowoContactFormExtension())->prepend($container);
-
-        foreach ($container->getExtensionConfig('nowo_ui_kit') as $cfg) {
-            if (($cfg['css_framework'] ?? null) === 'bootstrap5') {
-                self::fail('Must not override host UiKit css_framework.');
-            }
-            if (($cfg['icon_set'] ?? null) === 'bootstrap-icons' && !isset($cfg['css_framework'])) {
-                // icon-only seed when framework already set would be ok; both set means skip entirely
-            }
-        }
-        self::assertSame([], array_filter(
-            $container->getExtensionConfig('nowo_ui_kit'),
-            static fn (array $cfg): bool => ($cfg['css_framework'] ?? null) === 'bootstrap5',
-        ));
+        self::assertSame([], $container->getExtensionConfig('nowo_ui_kit'));
     }
 
     /**
@@ -395,68 +360,50 @@ final class NowoContactFormExtensionTest extends TestCase
     }
 
     /**
-     * 1.13: load() records the setting as given (null, true, false) and registers the reporter disabled; host mode, the
-     * notice and the probe are decided by ContactFormPrivateEntityManagerPass (it knows the default manager's name).
+     * 2.0: load() always registers the private manager (transaction-doctrine's kit) and records the deprecated setting
+     * (null or true); ContactFormPrivateEntityManagerPass removes the kit again for a dedicated manager (it knows the
+     * default manager's name). The repositories and the resolver get the private registry; the boundaries reset the
+     * private manager. Nothing of the 1.x host mode (reporter, notices) is registered.
      */
-    public function testLoadRecordsTheSettingAndLeavesHostModeToThePass(): void
+    #[IgnoreDeprecations]
+    public function testLoadWiresThePrivateManagerForEverySetup(): void
     {
-        foreach ([[[], null], [['private_entity_manager' => false], false], [['entity_manager' => 'contact_form'], null]] as [$doctrine, $setting]) {
+        $this->expectUserDeprecationMessage('Since nowo-tech/contact-form-bundle 2.0: The "nowo_contact_form.doctrine.private_entity_manager" option has no effect since 2.0 (the private entity manager is the only mode unless doctrine.entity_manager names a dedicated manager); remove it. It is removed in 3.0.');
+
+        foreach ([[[], null, ''], [['private_entity_manager' => true], true, ''], [['entity_manager' => 'contact_form'], null, 'contact_form']] as [$doctrine, $setting, $source]) {
             $container = new ContainerBuilder();
             (new NowoContactFormExtension())->load([array_merge($this->baseConfig(), ['doctrine' => $doctrine])], $container);
 
             self::assertSame($setting, $container->getParameter(NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_SETTING_PARAMETER));
-            self::assertFalse($container->getParameter(NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_PARAMETER));
-            $reporter = $container->getDefinition(ContactFormHostFlushReporter::class);
-            self::assertFalse($reporter->getArgument(0), 'enabled by the pass in host mode');
-            self::assertSame(HostFlushProbe::SERVICE_ID, (string) $reporter->getArgument(1));
-            self::assertSame([['method' => 'reset']], $reporter->getTag('kernel.reset'));
-            self::assertFalse($container->hasDefinition(NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_SERVICE));
+            self::assertTrue($container->getParameter(NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_PARAMETER), 'decided again by the pass');
+            self::assertSame($source, $container->getParameter(NowoContactFormExtension::PRIVATE_SOURCE_MANAGER_PARAMETER), 'resolved by the pass');
+            self::assertFalse($container->hasDefinition('Nowo\\ContactFormBundle\\Doctrine\\ContactFormHostFlushReporter'));
+
+            $private = $container->getDefinition(NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_SERVICE);
+            self::assertSame(PrivateEntityManager::class, $private->getClass());
+            self::assertTrue($private->hasTag(PrivateEntityManager::TAG));
+            self::assertSame([['method' => 'reset']], $private->getTag('kernel.reset'));
+            self::assertSame('doctrine', (string) $private->getArgument(0));
+            self::assertSame('%' . NowoContactFormExtension::PRIVATE_SOURCE_MANAGER_PARAMETER . '%', $private->getArgument(1));
+            self::assertSame(ContactForm::class, $private->getArgument(2));
+            self::assertSame(NowoContactFormExtension::BUNDLE_NAME, $private->getArgument(3));
+
+            $registry = $container->getDefinition(NowoContactFormExtension::PRIVATE_REGISTRY_SERVICE);
+            self::assertSame(PrivateManagerRegistry::class, $registry->getClass());
+            self::assertSame(NowoContactFormExtension::OWN_NAMESPACES, $registry->getArgument(2));
+
+            $middleware = $container->getDefinition(NowoContactFormExtension::PRIVATE_MIDDLEWARE_SERVICE);
+            self::assertSame(PrivateEntityManagerMiddleware::class, $middleware->getClass());
+            self::assertFalse($middleware->hasTag('doctrine.middleware'), 'tagged by ContactFormPrivateEntityManagerPass');
+
+            foreach ([ContactFormRepository::class, ContactFormFieldRepository::class, ContactSubmissionRepository::class, ContactFormEntityManagerResolver::class] as $id) {
+                self::assertSame(NowoContactFormExtension::PRIVATE_REGISTRY_SERVICE, (string) $container->getDefinition($id)->getArgument('$registry'), $id);
+            }
+
             $resettables = $container->getDefinition(ContactFormEntityManagerClearSubscriber::class)->getArgument('$resettables');
             self::assertInstanceOf(IteratorArgument::class, $resettables);
-            self::assertSame([ContactFormHostFlushReporter::class], array_map(strval(...), $resettables->getValues()));
+            self::assertSame([NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_SERVICE], array_map(strval(...), $resettables->getValues()));
         }
-
-        self::assertStringContainsString('private_entity_manager: true', NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_UNSET_DEPRECATION);
-        self::assertStringContainsString('2.0 removes the option', NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_FALSE_DEPRECATION);
-    }
-
-    /**
-     * 1.13: private_entity_manager true wires transaction-doctrine's kit; the repositories and the resolver get the
-     * private registry; the boundaries reset the private manager.
-     */
-    public function testPrivateEntityManagerTrueWiresTheKit(): void
-    {
-        $container = new ContainerBuilder();
-        (new NowoContactFormExtension())->load([array_merge($this->baseConfig(), ['doctrine' => ['private_entity_manager' => true]])], $container);
-
-        self::assertTrue($container->getParameter(NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_PARAMETER));
-        self::assertSame('', $container->getParameter(NowoContactFormExtension::PRIVATE_SOURCE_MANAGER_PARAMETER), 'resolved by the pass');
-        self::assertFalse($container->getDefinition(ContactFormHostFlushReporter::class)->getArgument(0));
-
-        $private = $container->getDefinition(NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_SERVICE);
-        self::assertSame(PrivateEntityManager::class, $private->getClass());
-        self::assertTrue($private->hasTag(PrivateEntityManager::TAG));
-        self::assertSame([['method' => 'reset']], $private->getTag('kernel.reset'));
-        self::assertSame('doctrine', (string) $private->getArgument(0));
-        self::assertSame('%' . NowoContactFormExtension::PRIVATE_SOURCE_MANAGER_PARAMETER . '%', $private->getArgument(1));
-        self::assertSame(ContactForm::class, $private->getArgument(2));
-        self::assertSame(ContactFormHostFlushReporter::BUNDLE_NAME, $private->getArgument(3));
-
-        $registry = $container->getDefinition(NowoContactFormExtension::PRIVATE_REGISTRY_SERVICE);
-        self::assertSame(PrivateManagerRegistry::class, $registry->getClass());
-        self::assertSame(ContactFormHostFlushReporter::OWN_NAMESPACES, $registry->getArgument(2));
-
-        $middleware = $container->getDefinition(NowoContactFormExtension::PRIVATE_MIDDLEWARE_SERVICE);
-        self::assertSame(PrivateEntityManagerMiddleware::class, $middleware->getClass());
-        self::assertFalse($middleware->hasTag('doctrine.middleware'), 'tagged by ContactFormPrivateEntityManagerPass');
-
-        foreach ([ContactFormRepository::class, ContactFormFieldRepository::class, ContactSubmissionRepository::class, ContactFormEntityManagerResolver::class] as $id) {
-            self::assertSame(NowoContactFormExtension::PRIVATE_REGISTRY_SERVICE, (string) $container->getDefinition($id)->getArgument('$registry'), $id);
-        }
-
-        $resettables = $container->getDefinition(ContactFormEntityManagerClearSubscriber::class)->getArgument('$resettables');
-        self::assertInstanceOf(IteratorArgument::class, $resettables);
-        self::assertSame([ContactFormHostFlushReporter::class, NowoContactFormExtension::PRIVATE_ENTITY_MANAGER_SERVICE], array_map(strval(...), $resettables->getValues()));
     }
 
     /**
@@ -470,9 +417,6 @@ final class NowoContactFormExtensionTest extends TestCase
             'client_user_accessor'   => null,
             'ip_anonymization_salt'  => 'salt',
             'default_retention_days' => 365,
-            'admin_route_prefix'     => '/admin/contact-forms',
-            // 1.13: the private entity manager (the notices have tests of their own).
-            'doctrine' => ['private_entity_manager' => true],
         ];
     }
 

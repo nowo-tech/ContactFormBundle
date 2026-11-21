@@ -39,11 +39,11 @@ final class WebhookContactSubmissionNotifier implements ContactSubmissionNotifie
         $payload = [
             'event'  => 'contact_form.submission.created',
             'form'   => $notification->getFormSlug(),
-            'locale' => $notification->getSubmission()->getLocale(),
+            'locale' => $notification->getLocale(),
             'fields' => $notification->getFieldValues(),
-            'client' => $notification->getSubmission()->isAnonymous()
+            'client' => $notification->isAnonymous()
                 ? null
-                : $notification->getSubmission()->getClientLabel(),
+                : $notification->getClientLabel(),
         ];
 
         $line = '[WEBHOOK] ' . json_encode($payload, JSON_THROW_ON_ERROR) . "\n";
