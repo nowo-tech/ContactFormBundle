@@ -7,7 +7,6 @@
         <id name="id" type="integer">
             <generator strategy="AUTO"/>
         </id>
-        <field name="clientId" column="client_id" type="integer" nullable="true"/>
         <field name="clientReference" column="client_reference" type="string" length="64" nullable="true"/>
         <field name="clientLabel" column="client_label" type="string" length="255" nullable="true"/>
         <field name="locale" type="string" length="10"/>

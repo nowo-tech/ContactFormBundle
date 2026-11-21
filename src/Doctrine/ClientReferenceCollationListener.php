@@ -13,7 +13,6 @@ use Doctrine\DBAL\Schema\ColumnEditor;
 use Doctrine\DBAL\Schema\Schema;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\ORM\Tools\Event\GenerateSchemaEventArgs;
-use Doctrine\ORM\Tools\Event\GenerateSchemaTableEventArgs;
 use Doctrine\ORM\Tools\ToolEvents;
 use Nowo\ContactFormBundle\Entity\ContactSubmission;
 use Nowo\ContactFormBundle\Service\ContactFormEntityManagerResolver;
@@ -43,6 +42,8 @@ use function method_exists;
  * - DBAL 4.5+: the table is rebuilt with its table editor (foreign keys and indexes included) and swapped into a new
  *   schema given back with `GenerateSchemaEventArgs::setSchema()`;
  * - older DBAL: the column's platform options are set in place (no editor exists there).
+ *
+ * 2.0 removed the no-op `postGenerateSchemaTable()` (deprecated since 1.13).
  */
 #[AsDoctrineListener(event: ToolEvents::postGenerateSchema)]
 final readonly class ClientReferenceCollationListener
@@ -103,16 +104,6 @@ final readonly class ClientReferenceCollationListener
         if ($edited instanceof Table) {
             $args->setSchema($schema->edit()->dropTableByUnquotedName($tableName)->addTable($edited)->create());
         }
-    }
-
-    /**
-     * No longer subscribed (1.13, audit XH-1): replacing the table there lost its foreign keys. Kept for BC; does nothing.
-     *
-     * @deprecated since 1.13, the collation is applied on postGenerateSchema ({@see self::postGenerateSchema()})
-     */
-    public function postGenerateSchemaTable(GenerateSchemaTableEventArgs $args): void
-    {
-        unset($args);
     }
 
     /**

@@ -36,9 +36,9 @@ final class FileContactSubmissionNotifier implements ContactSubmissionNotifierIn
 
         $line = json_encode([
             'form'   => $notification->getFormSlug(),
-            'locale' => $notification->getSubmission()->getLocale(),
+            'locale' => $notification->getLocale(),
             'fields' => $notification->getFieldValues(),
-            'at'     => $notification->getSubmission()->getCreatedAt()->format('c'),
+            'at'     => $notification->getCreatedAt()->format('c'),
         ], JSON_THROW_ON_ERROR) . "\n";
 
         file_put_contents($path, $line, FILE_APPEND | LOCK_EX);

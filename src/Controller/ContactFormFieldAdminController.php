@@ -7,7 +7,7 @@ namespace Nowo\ContactFormBundle\Controller;
 use Doctrine\ORM\EntityManagerInterface;
 use Nowo\ContactFormBundle\Concurrency\RowVersionGuard;
 use Nowo\ContactFormBundle\Concurrency\StaleVersionException;
-use Nowo\ContactFormBundle\Doctrine\ContactFormHostFlushReporter;
+use Nowo\ContactFormBundle\Doctrine\ContactFormWrites;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Entity\ContactFormFieldTranslation;
@@ -37,14 +37,14 @@ use function sprintf;
 /**
  * Admin CRUD controller for customizable contact form fields.
  *
- * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
+ * Final since 2.0 (announced with `@final` since 1.5): decorate or replace the service instead of extending it.
  */
 #[Route(
     '/{formId}/fields',
     name: 'nowo_contact_form_fields_',
     requirements: ['formId' => '\d+'],
 )]
-class ContactFormFieldAdminController extends AbstractController
+final class ContactFormFieldAdminController extends AbstractController
 {
     public function __construct(
         private readonly ContactFormRepository $formRepository,
@@ -54,9 +54,12 @@ class ContactFormFieldAdminController extends AbstractController
         private readonly RequestStack $requestStack,
         private readonly ContactFormPageFactory $pages,
         private readonly CsrfOnlyFormFactory $csrfOnlyForms,
-        // 1.13: reports the application's pending changes a flush in host mode writes (see UPGRADING "To 1.13.0").
-        private readonly ?ContactFormHostFlushReporter $hostFlushReporter = null,
+        /**
+         * @deprecated since 2.0, ignored; removed in 3.0 (1.13's host-flush reporter, removed with the host mode)
+         */
+        ?object $hostFlushReporter = null,
     ) {
+        unset($hostFlushReporter);
     }
 
     #[Route('', name: 'index', methods: ['GET'])]
@@ -139,7 +142,7 @@ class ContactFormFieldAdminController extends AbstractController
         }
 
         $entityManager->remove($field);
-        $this->hostFlushReporter?->beforeFlush($entityManager);
+        ContactFormWrites::assertOnlyBundleEntities($entityManager);
         $entityManager->flush();
 
         $this->addFlash('success', $this->translator->trans('nowo_contact_form.admin.field.deleted', [], 'NowoContactFormBundle'));
@@ -182,7 +185,7 @@ class ContactFormFieldAdminController extends AbstractController
                 $entityManager->persist($field);
                 // @igor-ignore - HTTP handler delegates to services; no controller worker state.
                 $field->setFlowStep(null);
-                $this->hostFlushReporter?->beforeFlush($entityManager);
+                ContactFormWrites::assertOnlyBundleEntities($entityManager);
                 $entityManager->flush();
             } else {
                 $expectedVersion = $field->getFlowBaseVersion() ?? RowVersionField::MISSING;
@@ -193,7 +196,6 @@ class ContactFormFieldAdminController extends AbstractController
                 $field->setFlowStep(null);
 
                 try {
-                    $this->hostFlushReporter?->beforeFlush($entityManager);
                     $this->fieldRepository->saveEdit($field, $entityManager, $expectedVersion);
                 } catch (StaleVersionException) {
                     $stale = true;

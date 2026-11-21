@@ -1026,15 +1026,12 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         country_prefix_selector?: bool|Param, // Enable the country prefix selector on PhoneInputBundle fields. // Default: true
  *         show_flag?: bool|Param, // Show country flags in PhoneInputBundle prefix selector. // Default: true
  *     },
- *     admin_route_prefix?: scalar|Param|null, // Deprecated: The "nowo_contact_form.admin_route_prefix" option is deprecated, use "nowo_contact_form.web_ui.path_prefix" instead (REQ-UI-003). // Deprecated since 1.6: use web_ui.path_prefix. // Default: null
  *     web_ui?: array{
  *         enabled?: bool|Param, // When false, admin CRUD routes respond 404 even if the bundle routes are imported. // Default: true
  *         path_prefix?: scalar|Param|null, // URL path prefix of the admin routes (default /admin/contact-forms; host should lock it with security.access_control). // Default: null
- *         layout_template?: scalar|Param|null, // Layout the admin pages extend (REQ-UI-003). Null (default) = nowo_ui_kit.layouts.admin. A 1.x layout without the UiKit canonical blocks is wrapped in a deprecated bridge. // Default: null
+ *         layout_template?: scalar|Param|null, // Layout the admin pages extend (REQ-UI-003). Null (default) = nowo_ui_kit.layouts.admin. It must render the UiKit canonical blocks (nowo_ui_page_header, nowo_ui_content, ...): the 1.x layout bridge was removed in 2.0. // Default: null
  *         public_layout_template?: scalar|Param|null, // Layout of the public contact form page. Null (default) = nowo_ui_kit.layouts.guest. // Default: null
  *         templates?: array<string, scalar|Param|null>,
- *         css_framework?: "bootstrap"|"bootstrap4"|"bootstrap5"|"tailwind"|"foundation"|"custom"|"tabler"|"none"|Param, // Deprecated: The "nowo_contact_form.web_ui.css_framework" option is deprecated, set "nowo_ui_kit.css_framework" instead (REQ-UI-003). // Deprecated since 1.6: the CSS stack is inherited from nowo_ui_kit.css_framework (copied there when the host did not set it). // Default: null
- *         icon_set?: "bootstrap-icons"|"tabler-icons"|"ux_icon"|"svg_inline"|"none"|Param, // Deprecated: The "nowo_contact_form.web_ui.icon_set" option is deprecated, set "nowo_ui_kit.icon_set" instead (REQ-UI-003). // Deprecated since 1.6: inherited from nowo_ui_kit.icon_set (copied there when the host did not set it). // Default: null
  *         list_page_size?: int|Param, // Default page size for admin form and submission lists. // Default: 20
  *     },
  *     security?: array{
@@ -1053,7 +1050,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         },
  *     },
  *     file_upload?: array{
- *         service?: scalar|Param|null, // Service id that stores files submitted through file fields (required for them): implements ContactFormFileUploaderInterface (1.8), or the deprecated ContactFormFileUploadHandlerInterface. // Default: null
+ *         service?: scalar|Param|null, // Service id that stores files submitted through file fields (required for them): implements ContactFormFileUploaderInterface (the only upload port since 2.0). // Default: null
  *         max_size?: scalar|Param|null, // Default maximum upload size for file fields (Symfony File constraint format: 500k, 5M, 2Mi, bytes). Null = no bundle limit (PHP upload_max_filesize still applies). Overridable per field via options.max_size. // Default: "5M"
  *         mime_types?: list<scalar|Param|null>,
  *     },
@@ -1069,8 +1066,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     },
  *     doctrine?: array{
  *         table_prefix?: scalar|Param|null, // Prefix prepended to table names (nowo_contact_form, nowo_contact_submission, …). Empty = no prefix. // Default: ""
- *         entity_manager?: scalar|Param|null, // Doctrine entity manager the contact form entities are mapped on (1.7), e.g. a dedicated "contact_form" manager of a DDD host: the entities are mapped there only (also with auto_mapping on the default one) and every read, write and reset of the bundle uses it. Null (default) = the default entity manager. // Default: null
- *         private_entity_manager?: bool|Param|null, // 1.13 (REQ-ARCH-001 rule 6): true = the bundle reads and writes its entities through a private entity manager of its own, created on the connection, mapping and tables of doctrine.entity_manager (else the default entity manager), so a contact form write never flushes the application's pending changes; nothing else to configure. false (deprecated, removed in 2.0) = the bundle flushes that manager itself (the 1.x behaviour). Null (default) = false. Both trigger a deprecation notice when doctrine.entity_manager is unset or names the default entity manager: the private manager is the only mode in 2.0 unless doctrine.entity_manager is set. // Default: null
+ *         entity_manager?: scalar|Param|null, // Doctrine entity manager the contact form entities are mapped on (1.7), e.g. a dedicated "contact_form" manager of a DDD host: the entities are mapped there only (also with auto_mapping on the default one) and every read, write and reset of the bundle uses it. Null (default) = the default entity manager, through the bundle's private entity manager (2.0: the bundle never flushes your manager). Naming the default manager is the same as null. // Default: null
+ *         private_entity_manager?: bool|Param|null, // Deprecated: The "nowo_contact_form.doctrine.private_entity_manager" option has no effect since 2.0 (the private entity manager is the only mode unless doctrine.entity_manager names a dedicated manager); remove it. It is removed in 3.0. // Deprecated since 2.0, removed in 3.0. // Default: null
  *         mapping_type?: "attribute"|"xml"|Param, // Mapping driver of the bundle entities (1.9): attribute (default, unchanged) or xml (src/Resources/config/doctrine-xml/*.orm.xml, the same tables, columns, indexes and constraints) for hosts whose managers only load XML mapping. Registered on doctrine.entity_manager (or the default entity manager). // Default: "attribute"
  *     },
  *     conflict_response?: array{ // 1.11 (REQ-RUNTIME-003): answer of a lock conflict (deadlock, lock wait timeout, serialization failure) on the bundle's routes. Unset: nowo-tech/transaction-doctrine's conflict_response when that bundle is registered, else 409 with Retry-After 1.

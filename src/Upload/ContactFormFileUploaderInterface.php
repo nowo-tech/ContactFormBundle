@@ -5,14 +5,13 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Upload;
 
 use Nowo\ContactFormBundle\Exception\ContactFormFileException;
-use Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface;
 use Nowo\ContactFormBundle\Service\ContactSubmissionRecorderInterface;
 
 /**
  * Host port that stores a file submitted through a contact form file field (1.8, REQ-ARCH-001 rules 1 and 3).
  *
- * Framework-free twin of the deprecated {@see ContactFormFileUploadHandlerInterface}:
- * the file is a bundle VO ({@see UploadedContactFile}: stream, client name, size, MIME type detected on the server)
+ * The only upload port since 2.0 (`Service\ContactFormFileUploadHandlerInterface`, deprecated since 1.8, was removed).
+ * Framework-free: the file is a bundle VO ({@see UploadedContactFile}: stream, client name, size, MIME type detected on the server)
  * and the form field is referenced by id and name ({@see ContactFormFileTarget}), so no HttpFoundation `UploadedFile`
  * and no bundle entity reach the host.
  *

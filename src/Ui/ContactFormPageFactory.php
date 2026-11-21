@@ -267,7 +267,7 @@ final readonly class ContactFormPageFactory
             new DetailItem(ContactFormPages::label('nowo_contact_form.admin.submission.columns.date'), $submission->getCreatedAt()->format('Y-m-d H:i:s')),
             new DetailItem(
                 ContactFormPages::label('nowo_contact_form.admin.submission.columns.client'),
-                $submission->isAnonymous() ? ContactFormPages::label('nowo_contact_form.admin.submission.anonymous') : ($submission->getClientLabel() ?? $submission->getClientId()),
+                $submission->isAnonymous() ? ContactFormPages::label('nowo_contact_form.admin.submission.anonymous') : ($submission->getClientLabel() ?? $submission->getClientReference()),
             ),
             new DetailItem(ContactFormPages::label('nowo_contact_form.admin.submission.columns.locale'), $submission->getLocale()),
         ];

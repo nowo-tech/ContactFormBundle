@@ -12,6 +12,7 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
 use function array_diff;
+use function array_key_exists;
 use function array_keys;
 use function implode;
 use function in_array;
@@ -24,19 +25,39 @@ use function trim;
 /**
  * Defines the configuration tree for the contact form bundle.
  *
- * @final since 1.5, will be final in 2.0 (not an extension point; decorate or replace the service instead)
+ * Final since 2.0 (announced with `@final` since 1.5).
  */
-class Configuration implements ConfigurationInterface
+final class Configuration implements ConfigurationInterface
 {
     public const ALIAS = 'nowo_contact_form';
 
-    /** Default admin route prefix (web_ui.path_prefix / deprecated admin_route_prefix unset). */
+    /** Default admin route prefix (web_ui.path_prefix unset). */
     public const DEFAULT_PATH_PREFIX = '/admin/contact-forms';
 
     /** 1.x default layout (removed in 1.6; mapped to null = nowo_ui_kit.layouts.admin). */
     public const LEGACY_DEFAULT_LAYOUT = '@NowoContactFormBundle/admin/layout.html.twig';
 
+    /**
+     * Values the removed `web_ui.css_framework` accepted (1.x). Kept as a public constant; nothing reads it since 2.0.
+     */
     public const CSS_FRAMEWORKS = ['bootstrap', 'bootstrap4', 'bootstrap5', 'tailwind', 'foundation', 'custom', 'tabler', 'none'];
+
+    /**
+     * Keys removed in 2.0 (deprecated since 1.6) => what replaces them. A leftover key fails the build with this text
+     * instead of Symfony's generic "Unrecognized option".
+     */
+    public const REMOVED_ROOT_KEYS = [
+        'admin_route_prefix' => 'set "nowo_contact_form.web_ui.path_prefix" instead',
+    ];
+
+    /** `web_ui` keys removed in 2.0 (deprecated since 1.6) => what replaces them. */
+    public const REMOVED_WEB_UI_KEYS = [
+        'css_framework' => 'set "nowo_ui_kit.css_framework" instead (the CSS stack is inherited from UiKit)',
+        'icon_set'      => 'set "nowo_ui_kit.icon_set" instead',
+    ];
+
+    /** Deprecation of `doctrine.private_entity_manager: true` (2.0; the key is removed in 3.0). */
+    public const PRIVATE_ENTITY_MANAGER_DEPRECATION = 'The "%path%" option has no effect since 2.0 (the private entity manager is the only mode unless doctrine.entity_manager names a dedicated manager); remove it. It is removed in 3.0.';
 
     public function getConfigTreeBuilder(): TreeBuilder
     {
@@ -45,6 +66,10 @@ class Configuration implements ConfigurationInterface
 
         $rootNode
             ->addDefaultsIfNotSet()
+            ->beforeNormalization()
+                ->ifArray()
+                ->then(static fn (array $v): array => self::refuseRemovedKeys($v, self::REMOVED_ROOT_KEYS, ''))
+            ->end()
             ->children()
                 ->scalarNode('client_entity_class')
                     ->defaultNull()
@@ -106,16 +131,12 @@ class Configuration implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->end()
-                ->scalarNode('admin_route_prefix')
-                    ->defaultNull()
-                    ->setDeprecated('nowo-tech/contact-form-bundle', '1.6', 'The "%path%" option is deprecated, use "nowo_contact_form.web_ui.path_prefix" instead (REQ-UI-003).')
-                    ->info('Deprecated since 1.6: use web_ui.path_prefix.')
-                ->end()
                 ->arrayNode('web_ui')
                     ->addDefaultsIfNotSet()
                     ->beforeNormalization()
                         ->ifArray()
                         ->then(static function (array $v): array {
+                            $v = self::refuseRemovedKeys($v, self::REMOVED_WEB_UI_KEYS, 'web_ui.');
                             // The 1.x default layout was removed (REQ-UI-003): null = nowo_ui_kit.layouts.admin.
                             if (($v['layout_template'] ?? null) === self::LEGACY_DEFAULT_LAYOUT) {
                                 $v['layout_template'] = null;
@@ -139,7 +160,7 @@ class Configuration implements ConfigurationInterface
                         ->end()
                         ->scalarNode('layout_template')
                             ->defaultNull()
-                            ->info('Layout the admin pages extend (REQ-UI-003). Null (default) = nowo_ui_kit.layouts.admin. A 1.x layout without the UiKit canonical blocks is wrapped in a deprecated bridge.')
+                            ->info('Layout the admin pages extend (REQ-UI-003). Null (default) = nowo_ui_kit.layouts.admin. It must render the UiKit canonical blocks (nowo_ui_page_header, nowo_ui_content, ...): the 1.x layout bridge was removed in 2.0.')
                         ->end()
                         ->scalarNode('public_layout_template')
                             ->defaultNull()
@@ -156,18 +177,6 @@ class Configuration implements ConfigurationInterface
                                     throw new InvalidConfigurationException(sprintf('Unknown web_ui.templates page(s) "%s"; known: %s.', implode('", "', array_diff(array_keys($v), array_keys(ContactFormPages::TEMPLATES))), implode(', ', array_keys(ContactFormPages::TEMPLATES))));
                                 })
                             ->end()
-                        ->end()
-                        ->enumNode('css_framework')
-                            ->values(self::CSS_FRAMEWORKS)
-                            ->defaultNull()
-                            ->setDeprecated('nowo-tech/contact-form-bundle', '1.6', 'The "%path%" option is deprecated, set "nowo_ui_kit.css_framework" instead (REQ-UI-003).')
-                            ->info('Deprecated since 1.6: the CSS stack is inherited from nowo_ui_kit.css_framework (copied there when the host did not set it).')
-                        ->end()
-                        ->enumNode('icon_set')
-                            ->values(['bootstrap-icons', 'tabler-icons', 'ux_icon', 'svg_inline', 'none'])
-                            ->defaultNull()
-                            ->setDeprecated('nowo-tech/contact-form-bundle', '1.6', 'The "%path%" option is deprecated, set "nowo_ui_kit.icon_set" instead (REQ-UI-003).')
-                            ->info('Deprecated since 1.6: inherited from nowo_ui_kit.icon_set (copied there when the host did not set it).')
                         ->end()
                         ->integerNode('list_page_size')
                             ->defaultValue(20)
@@ -234,7 +243,7 @@ class Configuration implements ConfigurationInterface
                     ->children()
                         ->scalarNode('service')
                             ->defaultNull()
-                            ->info('Service id that stores files submitted through file fields (required for them): implements ContactFormFileUploaderInterface (1.8), or the deprecated ContactFormFileUploadHandlerInterface.')
+                            ->info('Service id that stores files submitted through file fields (required for them): implements ContactFormFileUploaderInterface (the only upload port since 2.0).')
                         ->end()
                         ->scalarNode('max_size')
                             ->defaultValue(DynamicContactFormBuilder::DEFAULT_FILE_MAX_SIZE)
@@ -274,6 +283,12 @@ class Configuration implements ConfigurationInterface
                 ->end()
                 ->arrayNode('doctrine')
                     ->addDefaultsIfNotSet()
+                    ->validate()
+                        ->ifTrue(static fn (array $v): bool => ($v['private_entity_manager'] ?? null) === false)
+                        ->then(static function (array $v): never {
+                            throw new InvalidConfigurationException(self::privateEntityManagerFalseMessage(is_string($v['entity_manager'] ?? null) ? $v['entity_manager'] : null));
+                        })
+                    ->end()
                     ->children()
                         ->scalarNode('table_prefix')
                             ->defaultValue('')
@@ -281,7 +296,7 @@ class Configuration implements ConfigurationInterface
                         ->end()
                         ->scalarNode('entity_manager')
                             ->defaultNull()
-                            ->info('Doctrine entity manager the contact form entities are mapped on (1.7), e.g. a dedicated "contact_form" manager of a DDD host: the entities are mapped there only (also with auto_mapping on the default one) and every read, write and reset of the bundle uses it. Null (default) = the default entity manager.')
+                            ->info('Doctrine entity manager the contact form entities are mapped on (1.7), e.g. a dedicated "contact_form" manager of a DDD host: the entities are mapped there only (also with auto_mapping on the default one) and every read, write and reset of the bundle uses it. Null (default) = the default entity manager, through the bundle\'s private entity manager (2.0: the bundle never flushes your manager). Naming the default manager is the same as null.')
                             ->validate()
                                 ->ifTrue(static fn (mixed $value): bool => $value !== null && (!is_string($value) || preg_match('/^[A-Za-z0-9_]+$/', $value) !== 1))
                                 ->thenInvalid('nowo_contact_form.doctrine.entity_manager must be the name of a Doctrine entity manager (letters, digits and underscores).')
@@ -289,7 +304,8 @@ class Configuration implements ConfigurationInterface
                         ->end()
                         ->booleanNode('private_entity_manager')
                             ->defaultNull()
-                            ->info('1.13 (REQ-ARCH-001 rule 6): true = the bundle reads and writes its entities through a private entity manager of its own, created on the connection, mapping and tables of doctrine.entity_manager (else the default entity manager), so a contact form write never flushes the application\'s pending changes; nothing else to configure. false (deprecated, removed in 2.0) = the bundle flushes that manager itself (the 1.x behaviour). Null (default) = false. Both trigger a deprecation notice when doctrine.entity_manager is unset or names the default entity manager: the private manager is the only mode in 2.0 unless doctrine.entity_manager is set.')
+                            ->setDeprecated('nowo-tech/contact-form-bundle', '2.0', self::PRIVATE_ENTITY_MANAGER_DEPRECATION)
+                            ->info('Deprecated since 2.0, removed in 3.0. The private entity manager (same connection, mapping and tables, never flushes your pending changes) is the only mode unless doctrine.entity_manager names a dedicated manager. true: accepted, no effect (with a dedicated doctrine.entity_manager it keeps the 1.13 behaviour: the private manager on that manager). false: refused (the 1.x host mode was removed in 2.0).')
                         ->end()
                         ->enumNode('mapping_type')
                             ->values(['attribute', 'xml'])
@@ -325,5 +341,39 @@ class Configuration implements ConfigurationInterface
             ->end();
 
         return $treeBuilder;
+    }
+
+    /**
+     * Build error of `doctrine.private_entity_manager: false` (2.0 removed the 1.x host mode it kept).
+     */
+    public static function privateEntityManagerFalseMessage(?string $entityManager): string
+    {
+        $message = 'nowo_contact_form.doctrine.private_entity_manager: false is no longer supported: 2.0 removed the mode in which contact form writes flush your application\'s entity manager. Remove the key.';
+        if ($entityManager !== null && $entityManager !== '') {
+            $message .= sprintf(' doctrine.entity_manager "%s" stays: a dedicated manager keeps working as in 1.x; if it names your default entity manager, 2.0 uses the private entity manager on it.', $entityManager);
+        } else {
+            $message .= ' The bundle then writes through its private entity manager (same connection and tables), which never flushes your pending changes; or set doctrine.entity_manager to a dedicated manager.';
+        }
+
+        return $message . ' See UPGRADING.md "To 2.0.0".';
+    }
+
+    /**
+     * Fails on a key removed in 2.0, naming its replacement.
+     *
+     * @param array<mixed> $values
+     * @param array<string, string> $removed key => what replaces it
+     *
+     * @return array<mixed>
+     */
+    private static function refuseRemovedKeys(array $values, array $removed, string $path): array
+    {
+        foreach ($removed as $key => $replacement) {
+            if (array_key_exists($key, $values)) {
+                throw new InvalidConfigurationException(sprintf('The option "nowo_contact_form.%s%s" was removed in 2.0 (deprecated since 1.6): %s. See UPGRADING.md "To 2.0.0".', $path, $key, $replacement));
+            }
+        }
+
+        return $values;
     }
 }
