@@ -103,7 +103,7 @@ final class ContactSubmissionAdminCrudTest extends IntegrationTestCase
             ->setCreatedAt(new DateTimeImmutable('2026-10-27 09:30:00'))
             ->setConsentGivenAt($client !== null ? new DateTimeImmutable('2026-10-27 09:30:00') : null);
         if ($client !== null) {
-            $submission->setClientId(7)->setClientLabel($client);
+            $submission->setClientReference('7')->setClientLabel($client);
         }
         $submission->addValue((new ContactSubmissionValue())->setFieldName('email')->setValue('ada@example.com'));
 

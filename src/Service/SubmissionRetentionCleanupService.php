@@ -31,7 +31,7 @@ final readonly class SubmissionRetentionCleanupService implements SubmissionRete
         private ClockInterface $clock,
         private ?ContactFormEntityManagerResolver $entityManagerResolver = null,
         private ?EventDispatcherInterface $eventDispatcher = null,
-        /**
+        /*
          * @deprecated since 2.0, ignored; removed in 3.0 (1.13's host-flush reporter, removed with the host mode)
          */
         ?object $hostFlushReporter = null,

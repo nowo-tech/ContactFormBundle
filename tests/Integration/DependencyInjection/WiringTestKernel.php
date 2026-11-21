@@ -25,9 +25,7 @@ use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
 use Twig\Extra\TwigExtraBundle\TwigExtraBundle;
 
-use function array_key_exists;
 use function dirname;
-use function is_array;
 use function md5;
 use function serialize;
 use function sys_get_temp_dir;
@@ -131,13 +129,7 @@ final class WiringTestKernel extends Kernel
                 'firewalls' => ['main' => ['security' => false]],
             ]);
         }
-        $contactForm = $this->contactFormConfig;
-        // 1.13: the private entity manager by default (no notice), as in TestKernel.
-        $doctrine = is_array($contactForm['doctrine'] ?? null) ? $contactForm['doctrine'] : [];
-        if (!array_key_exists('private_entity_manager', $doctrine) && !array_key_exists('entity_manager', $doctrine)) {
-            $contactForm['doctrine'] = $doctrine + ['private_entity_manager' => true];
-        }
-        $container->loadFromExtension('nowo_contact_form', $contactForm);
+        $container->loadFromExtension('nowo_contact_form', $this->contactFormConfig);
         // Keep expected 403/404 responses out of the test output (default logger writes to stderr).
         $container->register('logger', NullLogger::class);
     }

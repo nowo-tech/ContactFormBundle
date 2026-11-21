@@ -272,7 +272,7 @@ final class PageFixtures
             ->setCreatedAt(new DateTimeImmutable('2026-10-27 09:30:00'))
             ->setConsentGivenAt(new DateTimeImmutable('2026-10-27 09:30:00'));
         if (!$anonymous) {
-            $submission->setClientId(42)->setClientLabel('ada@example.com');
+            $submission->setClientReference('42')->setClientLabel('ada@example.com');
         }
         self::setId($submission, $id);
         foreach (['email' => 'ada@example.com', 'message' => 'Hello, I would like a demo.'] as $name => $value) {

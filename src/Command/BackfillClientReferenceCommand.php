@@ -5,7 +5,11 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Command;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\DriverException;
+use Doctrine\DBAL\Exception\InvalidFieldNameException;
+use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Nowo\ContactFormBundle\Entity\ContactSubmission;
 use Nowo\ContactFormBundle\Service\ContactFormEntityManagerResolver;
 use Nowo\TransactionDoctrine\TransientFailureClassifier;
@@ -17,11 +21,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Throwable;
 
-use function array_change_key_case;
-use function array_key_exists;
 use function sprintf;
-
-use const CASE_LOWER;
+use function str_contains;
 
 /**
  * Upgrade step of 2.0 (owner decision Q-W4-2): copies the INTEGER `client_id` of submissions written before 1.7 into
@@ -34,7 +35,8 @@ use const CASE_LOWER;
  *
  * - idempotent: a second run finds nothing to copy, a row with a `client_reference` is never overwritten;
  * - safe while the application runs: 2.0 never writes `client_id`, 1.13 writes both columns together;
- * - when the column no longer exists (already dropped, or a schema created by 2.0) there is nothing to do.
+ * - when the column (or the table) does not exist (already dropped, or a schema created by 2.0) there is nothing to do;
+ * - one statement: it changes every pending row or, when it fails, none (a lock conflict is reported, run it again).
  *
  * A lock conflict is reported as such (run it again); any other failure is a real error.
  */
@@ -63,13 +65,14 @@ final class BackfillClientReferenceCommand extends Command
         $io            = new SymfonyStyle($input, $output);
         $entityManager = $this->entityManagerResolver->get();
         $connection    = $entityManager->getConnection();
+        $platform      = $connection->getDatabasePlatform();
         $metadata      = $entityManager->getClassMetadata(ContactSubmission::class);
-        $table         = $metadata->getTableName();
-        $reference     = $metadata->getColumnName('clientReference');
+        $quoting       = $entityManager->getConfiguration()->getQuoteStrategy();
+        $table         = $quoting->getTableName($metadata, $platform);
+        $reference     = $quoting->getColumnName('clientReference', $metadata, $platform);
 
-        $columns = array_change_key_case($connection->createSchemaManager()->listTableColumns($table), CASE_LOWER);
-        if (!array_key_exists(self::LEGACY_COLUMN, $columns)) {
-            $io->success(sprintf('The table "%s" has no "%s" column: nothing to backfill.', $table, self::LEGACY_COLUMN));
+        if (!$this->hasLegacyColumn($connection, $table)) {
+            $io->success(sprintf('The table "%s" has no "%s" column: nothing to backfill.', $metadata->getTableName(), self::LEGACY_COLUMN));
 
             return Command::SUCCESS;
         }
@@ -87,7 +90,7 @@ final class BackfillClientReferenceCommand extends Command
                 $table,
                 $reference,
                 self::LEGACY_COLUMN,
-                $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform ? 'CHAR' : 'VARCHAR(64)',
+                $platform instanceof AbstractMySQLPlatform ? 'CHAR(64)' : 'VARCHAR(64)',
             ));
         } catch (Throwable $exception) {
             if (!(new TransientFailureClassifier())->isTransient($exception)) {
@@ -106,9 +109,31 @@ final class BackfillClientReferenceCommand extends Command
             return Command::FAILURE;
         }
 
-        $io->success(sprintf('%d submission(s) backfilled. Every client_id is now in client_reference: the schema migration may drop "%s.%s".', $updated, $table, self::LEGACY_COLUMN));
+        $io->success(sprintf('%d submission(s) backfilled. Every client_id is now in client_reference: the schema migration may drop "%s.%s".', $updated, $metadata->getTableName(), self::LEGACY_COLUMN));
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Whether the table still has the legacy column (portable on every platform and DBAL 3 / 4, without the schema
+     * introspection API): a missing column or table is "nothing to backfill".
+     */
+    private function hasLegacyColumn(Connection $connection, string $table): bool
+    {
+        try {
+            $connection->fetchOne(sprintf('SELECT %s FROM %s WHERE 1 = 0', self::LEGACY_COLUMN, $table));
+        } catch (InvalidFieldNameException|TableNotFoundException) {
+            return false;
+        } catch (DriverException $exception) {
+            // SQLite reports an unknown column in a SELECT without a dedicated DBAL exception.
+            if ($connection->getDatabasePlatform() instanceof SQLitePlatform && str_contains($exception->getMessage(), 'no such column')) {
+                return false;
+            }
+
+            throw $exception;
+        }
+
+        return true;
     }
 
     private function countPending(Connection $connection, string $table, string $reference): int

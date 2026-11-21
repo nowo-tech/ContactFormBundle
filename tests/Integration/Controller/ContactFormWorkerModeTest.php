@@ -14,10 +14,9 @@ use Nowo\ContactFormBundle\Enum\ContactFieldType;
 use Nowo\ContactFormBundle\EventSubscriber\ContactFormEntityManagerSubscriber;
 use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Service\ContactFormEntityManagerResolver;
-use Nowo\ContactFormBundle\Tests\Integration\HostModeTestKernel;
 use Nowo\ContactFormBundle\Tests\Integration\IntegrationTestCase;
+use Nowo\TransactionDoctrine\PrivateManager\PrivateEntityManager;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use ReflectionMethod;
 use ReflectionProperty;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -26,19 +25,13 @@ use Symfony\Component\HttpKernel\Kernel;
 /**
  * Consecutive requests on the same kernel with services_resetter skipped (FrankenPHP worker mode, scenario B).
  *
- * Host mode (`private_entity_manager: false`, removed in 2.0): the bundle recovers the application's closed manager on
- * its routes. The private manager's recovery is covered by EntityManager\PrivateEntityManagerTest.
+ * 2.0: the bundle writes through its private entity manager (the only mode), dropped at the end of every request and
+ * replaced when closed; the application's manager is never written, closed or cleared by the bundle's routes.
  */
 #[CoversClass(ContactFormEntityManagerSubscriber::class)]
 #[CoversClass(ContactFormEntityManagerResolver::class)]
-#[IgnoreDeprecations]
 final class ContactFormWorkerModeTest extends IntegrationTestCase
 {
-    protected static function getKernelClass(): string
-    {
-        return HostModeTestKernel::class;
-    }
-
     public function testAdminEditMadeElsewhereIsVisibleOnNextRequest(): void
     {
         $client = self::createTestClient();
@@ -73,15 +66,21 @@ final class ContactFormWorkerModeTest extends IntegrationTestCase
         $this->submit($client, 'first@example.com');
         self::assertResponseRedirects('/en/contact/support');
 
+        $private = self::getContainer()->get('nowo_contact_form.entity_manager');
+        self::assertInstanceOf(PrivateEntityManager::class, $private);
+        self::assertFalse($private->isCreated(), 'the private manager is dropped at the end of the request');
         $identityMap = self::getEntityManager()->getUnitOfWork()->getIdentityMap();
-        self::assertSame([], $identityMap[ContactSubmission::class] ?? []);
+        self::assertSame([], $identityMap[ContactSubmission::class] ?? [], 'the application manager never held the submission');
         self::assertSame([], $identityMap[ContactSubmissionValue::class] ?? []);
 
-        self::getEntityManager()->close();
+        // A private manager closed between requests (a failed flush) is replaced on the next one.
+        $closed = $private->live();
+        $closed->close();
 
         $this->submit($client, 'second@example.com');
         self::assertResponseRedirects('/en/contact/support');
         self::assertTrue(self::getEntityManager()->isOpen());
+        self::assertNotSame($closed, $private->live());
         self::assertSame(2, self::getEntityManager()->getRepository(ContactSubmission::class)->count([]));
 
         $formRepository = self::getContainer()->get(ContactFormRepository::class);
@@ -168,5 +167,7 @@ final class ContactFormWorkerModeTest extends IntegrationTestCase
         $em = self::getEntityManager();
         $em->persist($form);
         $em->flush();
+        // Seeding is not part of the unit under test: the application manager keeps nothing of it.
+        $em->clear();
     }
 }

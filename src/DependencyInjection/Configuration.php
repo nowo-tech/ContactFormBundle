@@ -57,7 +57,7 @@ final class Configuration implements ConfigurationInterface
     ];
 
     /** Deprecation of `doctrine.private_entity_manager: true` (2.0; the key is removed in 3.0). */
-    public const PRIVATE_ENTITY_MANAGER_DEPRECATION = 'The "%path%" option has no effect since 2.0 (the private entity manager is the only mode unless doctrine.entity_manager names a dedicated manager); remove it. It is removed in 3.0.';
+    public const PRIVATE_ENTITY_MANAGER_DEPRECATION = 'The "nowo_contact_form.doctrine.private_entity_manager" option has no effect since 2.0 (the private entity manager is the only mode unless doctrine.entity_manager names a dedicated manager); remove it. It is removed in 3.0.';
 
     public function getConfigTreeBuilder(): TreeBuilder
     {

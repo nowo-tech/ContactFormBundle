@@ -20,7 +20,7 @@ final class Version20261121000000 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        $this->addSql('UPDATE nowo_contact_submission SET client_reference = CAST(client_id AS CHAR) WHERE client_id IS NOT NULL AND client_reference IS NULL');
+        $this->addSql('UPDATE nowo_contact_submission SET client_reference = CAST(client_id AS CHAR(64)) WHERE client_id IS NOT NULL AND client_reference IS NULL');
         $this->addSql('ALTER TABLE nowo_contact_submission DROP client_id');
     }
 

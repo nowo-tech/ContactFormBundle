@@ -5,20 +5,16 @@ declare(strict_types=1);
 namespace Nowo\ContactFormBundle\Tests\Integration\Upload;
 
 use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormFileUploaderPass;
+use Nowo\ContactFormBundle\DependencyInjection\Compiler\ContactFormRemovedPortsPass;
 use Nowo\ContactFormBundle\Form\ContactFormFieldDefinitionStepType;
-use Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface;
 use Nowo\ContactFormBundle\Service\ContactFormSubmissionValueNormalizer;
 use Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler;
 use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\DddHost\Infrastructure\ContactFormAttachmentAdapter;
 use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\DecoratingFileUploader;
-use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\DualHostFileStore;
 use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\HostFileUploader;
-use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\LegacyHostFileHandler;
-use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\QuarantineLegacyHandler;
 use Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
@@ -27,46 +23,32 @@ use Symfony\Component\DependencyInjection\ServiceLocator;
 use Symfony\Component\Filesystem\Filesystem;
 
 /**
- * 1.8: `lint:container` (Symfony's `CheckAliasValidityPass` + `CheckTypeDeclarationsPass`) passes for a host on the
- * new port only, on the deprecated port only, on both, with a decorator of the new port, and with `file_upload.service`
- * pointing at each kind of service. Each alias resolves to a service that implements it, the deprecated alias is
- * re-pointed (and marked deprecated) only at a service that implements it, and the bundle's consumers use the host
- * service.
+ * `lint:container` (Symfony's `CheckAliasValidityPass` + `CheckTypeDeclarationsPass`) passes for a host on the upload
+ * port, with a decorator of it, and with `file_upload.service` pointing at a host uploader or a DDD adapter; the
+ * bundle's consumers use the host service. The removed 1.x port fails the build: see RemovedPortsKernelTest.
  */
 #[CoversClass(ContactFormFileUploaderPass::class)]
 final class FileUploadPortsKernelTest extends TestCase
 {
     /**
-     * @return iterable<string, array{string, class-string, array{string, bool}, array{string, bool}}>
+     * @return iterable<string, array{string, class-string}>
      */
     public static function variants(): iterable
     {
-        $null = NullContactFormFileUploadHandler::class;
-
-        // variant, service of both consumers, [new alias target, deprecated], [legacy alias target, deprecated]
-        yield 'bundle defaults' => ['none', $null, [$null, false], [$null, true]];
-        yield 'new port only' => ['new', HostFileUploader::class, [HostFileUploader::class, false], [$null, true]];
-        yield 'deprecated port only' => ['legacy', LegacyHostFileHandler::class, [$null, false], [LegacyHostFileHandler::class, false]];
-        yield 'both ports' => ['both', DualHostFileStore::class, [DualHostFileStore::class, false], [DualHostFileStore::class, false]];
-        yield 'decorator of the new port' => ['decorator', DecoratingFileUploader::class, [DecoratingFileUploader::class, false], [$null, true]];
-        yield 'decorator over a host uploader' => ['decorator-host', DecoratingFileUploader::class, [DecoratingFileUploader::class, false], [$null, true]];
-        yield 'file_upload.service: new port' => ['config-new', HostFileUploader::class, [HostFileUploader::class, false], [$null, true]];
-        yield 'file_upload.service: deprecated port' => ['config-legacy', LegacyHostFileHandler::class, [$null, false], [LegacyHostFileHandler::class, true]];
-        yield 'file_upload.service: both ports' => ['config-both', DualHostFileStore::class, [DualHostFileStore::class, false], [DualHostFileStore::class, true]];
-        // MZ-C-1: a decorator of the deprecated port keeps that port selected, also for a service that implements both.
-        yield 'decorator of the deprecated port' => ['legacy-decorator', QuarantineLegacyHandler::class, [$null, false], [QuarantineLegacyHandler::class, false]];
-        yield 'file_upload.service: both ports + deprecated-port decorator' => ['legacy-decorator-config-both', QuarantineLegacyHandler::class, [DualHostFileStore::class, false], [QuarantineLegacyHandler::class, false]]; // DecoratorServicePass re-creates the alias
-        yield 'file_upload.service: DDD adapter' => ['ddd', ContactFormAttachmentAdapter::class, [ContactFormAttachmentAdapter::class, false], [$null, true]];
+        // variant, service of both consumers
+        yield 'bundle defaults' => ['none', NullContactFormFileUploadHandler::class];
+        yield 'host uploader' => ['new', HostFileUploader::class];
+        yield 'decorator of the port' => ['decorator', DecoratingFileUploader::class];
+        yield 'decorator over a host uploader' => ['decorator-host', DecoratingFileUploader::class];
+        yield 'file_upload.service: host uploader' => ['config-new', HostFileUploader::class];
+        yield 'file_upload.service: DDD adapter' => ['ddd', ContactFormAttachmentAdapter::class];
     }
 
     /**
      * @param class-string $consumerService
-     * @param array{string, bool} $newAlias
-     * @param array{string, bool} $legacyAlias
      */
     #[DataProvider('variants')]
-    #[IgnoreDeprecations]
-    public function testLintContainerPassesAndConsumersUseTheHostService(string $variant, string $consumerService, array $newAlias, array $legacyAlias): void
+    public function testLintContainerPassesAndConsumersUseTheHostService(string $variant, string $consumerService): void
     {
         (new Filesystem())->remove((new UploadPortsKernel($variant))->baseDir());
 
@@ -87,8 +69,6 @@ final class FileUploadPortsKernelTest extends TestCase
 
         try {
             $container = $kernel->getContainer();
-            self::assertSame($newAlias, $container->getParameter('test.cf_port.new'));
-            self::assertSame($legacyAlias, $container->getParameter('test.cf_port.legacy'));
 
             $probe = $container->get(UploadPortsKernel::PROBE);
             self::assertInstanceOf(ServiceLocator::class, $probe);
@@ -114,10 +94,9 @@ final class FileUploadPortsKernelTest extends TestCase
     }
 
     /**
-     * Without any host file service, nothing the bundle wires uses the deprecated alias: no deprecation is triggered
-     * while the container is built (this test runs without #[IgnoreDeprecations]).
+     * The removed port's id is not registered by the bundle any more.
      */
-    public function testDefaultsTriggerNoDeprecation(): void
+    public function testTheRemovedPortIdIsGone(): void
     {
         $kernel = new UploadPortsKernel('none');
         (new Filesystem())->remove($kernel->baseDir());
@@ -125,7 +104,7 @@ final class FileUploadPortsKernelTest extends TestCase
 
         try {
             self::assertTrue($kernel->getContainer()->has(UploadPortsKernel::PROBE));
-            self::assertFalse($kernel->getContainer()->has(ContactFormFileUploadHandlerInterface::class));
+            self::assertFalse($kernel->getContainer()->has(ContactFormRemovedPortsPass::REMOVED_UPLOAD_PORT));
         } finally {
             $kernel->shutdown();
             (new Filesystem())->remove($kernel->baseDir());

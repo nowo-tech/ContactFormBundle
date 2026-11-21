@@ -18,13 +18,10 @@ Extension alias: `nowo_contact_form`.
 | `notifications.mailer.subject` | `New contact submission: {form}` | Mailer subject template |
 | `web_ui.enabled` | `true` | When `false`, admin CRUD routes respond 404 even if the bundle routes are imported; when `true`, admin routes are guarded by the access checker |
 | `web_ui.path_prefix` | `null` (= `/admin/contact-forms`) | URL prefix of the admin routes (lock it with the host `access_control`) |
-| `web_ui.layout_template` | `null` | Layout the admin pages extend; `null` = `nowo_ui_kit.layouts.admin` (REQ-UI-003). A 1.x layout without the UiKit canonical blocks is wrapped in a deprecated bridge |
+| `web_ui.layout_template` | `null` | Layout the admin pages extend; `null` = `nowo_ui_kit.layouts.admin` (REQ-UI-003). It must render the UiKit canonical blocks: since 2.0 a 1.x layout without them fails with a `LogicException` (the 1.x bridge was removed) |
 | `web_ui.public_layout_template` | `null` | Layout of the public contact form; `null` = `nowo_ui_kit.layouts.guest` |
 | `web_ui.templates.<page>` | `{}` | Per-page template overrides (`form_index`, `form_form`, `field_index`, `field_form`, `submission_index`, `submission_show`, `public_form`); unknown ids fail the container compilation. See [Templates](TEMPLATES.md#per-page-overrides) |
 | `web_ui.list_page_size` | `20` | Page size for admin form and submission lists |
-| `admin_route_prefix` | `null` | **Deprecated since 1.6**, use `web_ui.path_prefix` (still applied when `path_prefix` is not set) |
-| `web_ui.css_framework` | `null` | **Deprecated since 1.6**, set `nowo_ui_kit.css_framework` (copied there when UiKit has none) |
-| `web_ui.icon_set` | `null` | **Deprecated since 1.6**, set `nowo_ui_kit.icon_set` (copied there when UiKit has none) |
 | `security.access_roles` | `[ROLE_ADMIN]` | Roles allowed for admin CRUD (empty disables bundle-level role checks) |
 | `security.access_checker` | `null` | Optional custom service id implementing `ContactFormAccessCheckerInterface` |
 | `security.allow_unauthenticated` | `false` | **DEV/DEMO ONLY.** Skip SecurityBundle requirement and admin access subscriber. Never enable in production |
@@ -33,7 +30,7 @@ Extension alias: `nowo_contact_form`.
 | `phone_input.default_country` | `ES` | Default country ISO for phone fields |
 | `phone_input.country_prefix_selector` | `true` | Show prefix selector in PhoneInputBundle |
 | `phone_input.show_flag` | `true` | Show flags in PhoneInputBundle selector |
-| `file_upload.service` | `null` | Service id that stores files (required for file fields): implements `ContactFormFileUploaderInterface` (1.8), or the deprecated `ContactFormFileUploadHandlerInterface` |
+| `file_upload.service` | `null` | Service id that stores files (required for file fields): must implement `ContactFormFileUploaderInterface` (the only upload port since 2.0; anything else fails the container build) |
 | `file_upload.max_size` | `5M` | Default max size for file fields (`File` constraint format: bytes, `500k`, `5M`, `2Mi`). `null` = no bundle limit |
 | `file_upload.mime_types` | PDF, text, Word/ODT, JPEG/PNG/GIF/WebP | Default allowed MIME types for file fields (wildcards such as `image/*` allowed). `[]` = any type |
 | `public_submission_rate_limit.enabled` | `true` | Enable per-IP rate limiting on public POST |
@@ -43,8 +40,8 @@ Extension alias: `nowo_contact_form`.
 | `public_field_max_length.text` | `255` | Max characters of text / email / URL values |
 | `public_field_max_length.textarea` | `10000` | Max characters of textarea values |
 | `doctrine.table_prefix` | `""` | Prefix prepended to entity table names (`nowo_contact_form`, …). Empty = no prefix |
-| `doctrine.entity_manager` | `null` | **1.7.** Doctrine entity manager the bundle entities are mapped on, e.g. a dedicated `contact_form` manager. Mapped on that manager only (also when the default one has `auto_mapping: true` or a default metadata driver: DoctrineBundle 3.4 `auto_discover_entities`, fixed in Unreleased); every read, write, flush and recovery reset of the bundle uses it. Unknown manager = build error. Null = the default entity manager (unchanged) |
-| `doctrine.private_entity_manager` | `null` | **1.13.** `true`: the bundle reads and writes its entities through a private entity manager of its own, created on the connection, mapping and event manager of `doctrine.entity_manager` (else the default manager): same tables, nothing else to configure, and a bundle write never flushes your pending changes. Dropped at every request / message / command boundary, replaced when closed. `false` (deprecated): the bundle flushes the manager that maps its entities (1.x behaviour). `null` = `false`. Without `doctrine.entity_manager` (or with it naming the default manager), both `null` and `false` trigger a deprecation notice and the host-flush probe; 2.0 removes the option (the private manager is the only mode unless `doctrine.entity_manager` is set). See [UPGRADING](UPGRADING.md#to-1130) |
+| `doctrine.entity_manager` | `null` | **1.7.** Doctrine entity manager the bundle entities are mapped on, e.g. a dedicated `contact_form` manager. Mapped on that manager only (also when the default one has `auto_mapping: true` or a default metadata driver: DoctrineBundle 3.4 `auto_discover_entities`, fixed in Unreleased); every read, write, flush and recovery reset of the bundle uses it. Unknown manager = build error. Null (or the default manager's name) = the bundle's private entity manager on the default manager (2.0) |
+| `doctrine.private_entity_manager` | `null` | **Deprecated since 2.0, removed in 3.0.** The private entity manager (created on the connection, mapping and event manager of the default manager: same tables, a bundle write never flushes your pending changes, dropped at every request / message / command boundary, replaced when closed) is the only mode unless `doctrine.entity_manager` names a dedicated manager. `true`: accepted, no effect (a deprecation notice; with a dedicated `doctrine.entity_manager` it keeps the 1.13 behaviour, the private manager on it). `false`: container build error (the 1.x host mode was removed). See [UPGRADING](UPGRADING.md#unreleased) |
 | `doctrine.mapping_type` | `attribute` | **1.9.** Mapping driver of the six bundle entities, registered on `doctrine.entity_manager` (or the default manager): `attribute` (unchanged) or `xml` (`src/Resources/config/doctrine-xml/*.orm.xml`, the same tables, columns, indexes and constraints) for managers that load XML mapping only |
 | `conflict_response.status` | `null` | **Unreleased.** Status of a lock-conflict answer on the bundle's routes: 409 (`CONFLICT_001` / `CONFLICT_002`) or 503. Null = transaction-doctrine's `conflict_response` when its bundle is registered, else 409. See [CONCURRENCY](CONCURRENCY.md) |
 | `conflict_response.retry_after` | `null` | **Unreleased.** `Retry-After` seconds of a `CONFLICT_001` answer (min 0). Null = transaction-doctrine's value, else 1 |
@@ -220,7 +217,7 @@ When a visitor is authenticated and `client_entity_class` is set:
 - If the security user **is** the client entity, the submission is linked automatically.
 - If the user exposes the client via a method (e.g. `getClient()`), set `client_user_accessor: getClient`.
 
-Anonymous visitors remain anonymous (`client_id` and `client_label` null).
+Anonymous visitors remain anonymous (`client_reference` and `client_label` null).
 
 What is stored for a linked client:
 
@@ -229,11 +226,10 @@ What is stored for a linked client:
   never read directly. When nothing readable gives a non-empty string, the client id is used, then `client`.
   Name a non-sensitive field: the label is shown in the admin and mailed to the notification recipient (paths such as
   `profile.email` and `__get()` are followed too).
-- `client_id`: the value of `getId()` when it is an integer or a string holding one (`42`, `"42"`) in the signed
-  32-bit range. `client_id` is an INTEGER column: any other id (UUID, ULID, other strings, objects, bigints) is
-  **not** stored — `client_id` stays null, the submission is linked by `client_label` only and a warning is logged
-  (`logger` service). Do not look submissions up by `client_id` for such clients. Native UUID / string client ids
-  are planned for the next minor version (see [UPGRADING](UPGRADING.md)).
+- `client_reference`: the value of `getId()` as a string, for integer, string and `Stringable` ids (UUID, ULID…) of up
+  to 64 characters, exactly as given. Any other id is not stored: `client_reference` stays null, the submission is
+  linked by `client_label` only and a warning is logged (`logger` service). 2.0 removed the INTEGER `client_id` column
+  (deprecated since 1.7): see [UPGRADING](UPGRADING.md#before-you-upgrade) for the backfill.
 
 ## GDPR retention cleanup
 

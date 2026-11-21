@@ -7,17 +7,23 @@ namespace Nowo\ContactFormBundle\Tests\Unit\Twig;
 use Nowo\ContactFormBundle\Twig\ContactFormAdminTwigExtension;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Twig\Extension\GlobalsInterface;
+use Twig\TwigFunction;
+
+use function array_map;
 
 #[CoversClass(ContactFormAdminTwigExtension::class)]
 final class ContactFormAdminTwigExtensionTest extends TestCase
 {
-    public function testGlobalsExposeLayoutAndCssFramework(): void
+    public function testTheRemovedWebUiGlobalsAreGoneAndTheirArgumentsAreIgnored(): void
     {
         $params = $this->createMock(ParameterBagInterface::class);
         $params->method('get')->with('kernel.enabled_locales')->willReturn(['es', 'en']);
 
+        // 2.0 removed the three 1.6 globals; the constructor still accepts (and ignores) their arguments.
         $extension = new ContactFormAdminTwigExtension(
             $params,
             '@App/layout.html.twig',
@@ -26,11 +32,8 @@ final class ContactFormAdminTwigExtensionTest extends TestCase
         );
 
         self::assertSame(['en', 'es'], $extension->getEnabledLocales());
-        self::assertSame([
-            ContactFormAdminTwigExtension::GLOBAL_LAYOUT_TEMPLATE => '@App/layout.html.twig',
-            ContactFormAdminTwigExtension::GLOBAL_CSS_FRAMEWORK   => 'tailwind',
-            ContactFormAdminTwigExtension::GLOBAL_ICON_SET        => 'svg_inline',
-        ], $extension->getGlobals());
+        self::assertFalse((new ReflectionClass($extension))->implementsInterface(GlobalsInterface::class));
+        self::assertSame(['contact_form_admin_locales', 'contact_form_admin_default_locale'], array_map(static fn (TwigFunction $function): string => $function->getName(), $extension->getFunctions()));
     }
 
     public function testEnabledLocalesFallbackToEnglish(): void

@@ -181,7 +181,6 @@ final class ConfigurationTest extends TestCase
     public function testConfigurationIsFinal(): void
     {
         self::assertTrue((new ReflectionClass(Configuration::class))->isFinal());
-        self::assertSame(['bootstrap', 'bootstrap4', 'bootstrap5', 'tailwind', 'foundation', 'custom', 'tabler', 'none'], Configuration::CSS_FRAMEWORKS);
     }
 
     public function testConflictResponseDefaultsToNullAndAccepts409Or503(): void

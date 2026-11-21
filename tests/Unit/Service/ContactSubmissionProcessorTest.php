@@ -16,10 +16,10 @@ use Nowo\ContactFormBundle\Notification\ContactSubmissionNotifierInterface;
 use Nowo\ContactFormBundle\Repository\ContactFormFieldRepository;
 use Nowo\ContactFormBundle\Service\ClientLabelResolver;
 use Nowo\ContactFormBundle\Service\ContactFormEntityManagerResolver;
-use Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface;
 use Nowo\ContactFormBundle\Service\ContactFormSubmissionValueNormalizer;
 use Nowo\ContactFormBundle\Service\ContactSubmissionProcessor;
 use Nowo\ContactFormBundle\Service\IpAnonymizer;
+use Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -74,7 +74,7 @@ final class ContactSubmissionProcessorTest extends TestCase
         $fieldRepository = $this->createMock(ContactFormFieldRepository::class);
         $fieldRepository->method('findByFormOrdered')->with($contactForm)->willReturn([$field]);
 
-        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager = $this->entityManagerHoldingTheForm();
         $entityManager->expects(self::once())->method('persist')->with(self::isInstanceOf(ContactSubmission::class));
         $entityManager->expects(self::once())->method('flush');
 
@@ -97,7 +97,7 @@ final class ContactSubmissionProcessorTest extends TestCase
             $clientLabelResolver,
             $eventDispatcher,
             $notifier,
-            new ContactFormSubmissionValueNormalizer($this->createMock(ContactFormFileUploadHandlerInterface::class)),
+            new ContactFormSubmissionValueNormalizer($this->createMock(ContactFormFileUploaderInterface::class)),
             new MockClock(),
             'default@example.com',
         );
@@ -120,7 +120,7 @@ final class ContactSubmissionProcessorTest extends TestCase
         self::assertSame($contactForm, $submission->getForm());
         self::assertSame('en', $submission->getLocale());
         self::assertSame($ipAnonymizer->anonymize('127.0.0.1'), $submission->getIpHash());
-        self::assertSame(42, $submission->getClientId());
+        self::assertSame('42', $submission->getClientReference());
         self::assertSame('client@example.com', $submission->getClientLabel());
         self::assertNotNull($submission->getConsentGivenAt());
         self::assertCount(1, $submission->getValues());
@@ -137,7 +137,7 @@ final class ContactSubmissionProcessorTest extends TestCase
         $fieldRepository = $this->createMock(ContactFormFieldRepository::class);
         $fieldRepository->method('findByFormOrdered')->willReturn([$field]);
 
-        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager = $this->entityManagerHoldingTheForm();
         $entityManager->expects(self::once())->method('persist');
         $entityManager->expects(self::once())->method('flush');
 
@@ -148,7 +148,7 @@ final class ContactSubmissionProcessorTest extends TestCase
             new ClientLabelResolver(null, 'email'),
             $this->createMock(EventDispatcherInterface::class),
             $this->createMock(ContactSubmissionNotifierInterface::class),
-            new ContactFormSubmissionValueNormalizer($this->createMock(ContactFormFileUploadHandlerInterface::class)),
+            new ContactFormSubmissionValueNormalizer($this->createMock(ContactFormFileUploaderInterface::class)),
             new MockClock(),
         );
 
@@ -169,7 +169,7 @@ final class ContactSubmissionProcessorTest extends TestCase
         $field       = (new ContactFormField())->setName('email')->setForm($contactForm);
 
         $managed       = [];
-        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager = $this->entityManagerHoldingTheForm();
         $entityManager->method('isOpen')->willReturn(true);
         $entityManager->method('persist')->willReturnCallback(static function (ContactSubmission $submission) use (&$managed): void {
             $managed[spl_object_id($submission)] = $submission;
@@ -184,7 +184,7 @@ final class ContactSubmissionProcessorTest extends TestCase
             unset($managed[spl_object_id($entity)]);
         });
 
-        $injected = $this->createMock(EntityManagerInterface::class);
+        $injected = $this->entityManagerHoldingTheForm();
         $injected->expects(self::never())->method('persist');
 
         $processor = $this->createProcessor($injected, $field, $this->createResolver($entityManager));
@@ -205,7 +205,7 @@ final class ContactSubmissionProcessorTest extends TestCase
         $field       = (new ContactFormField())->setName('email')->setForm($contactForm);
 
         $open          = true;
-        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager = $this->entityManagerHoldingTheForm();
         $entityManager->method('isOpen')->willReturnCallback(static function () use (&$open): bool {
             return $open;
         });
@@ -219,7 +219,7 @@ final class ContactSubmissionProcessorTest extends TestCase
         $registry->method('getManagerForClass')->willReturn($entityManager);
         $registry->method('getManagerNames')->willReturn(['default' => 'doctrine.orm.default_entity_manager']);
         $registry->method('getManager')->with('default')->willReturn($entityManager);
-        $registry->expects(self::once())->method('resetManager')->with('default')->willReturn($this->createMock(EntityManagerInterface::class));
+        $registry->expects(self::once())->method('resetManager')->with('default')->willReturn($this->entityManagerHoldingTheForm());
 
         $processor = $this->createProcessor($entityManager, $field, new ContactFormEntityManagerResolver($registry));
 
@@ -232,7 +232,7 @@ final class ContactSubmissionProcessorTest extends TestCase
         $contactForm = (new ContactForm())->setRequireConsent(false);
         $field       = (new ContactFormField())->setName('email')->setForm($contactForm);
 
-        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager = $this->entityManagerHoldingTheForm();
         $entityManager->method('isOpen')->willReturn(true);
         $entityManager->method('contains')->willReturn(true);
         $entityManager->expects(self::exactly(2))->method('detach');
@@ -251,12 +251,25 @@ final class ContactSubmissionProcessorTest extends TestCase
         $contactForm = (new ContactForm())->setRequireConsent(false);
         $field       = (new ContactFormField())->setName('email')->setForm($contactForm);
 
-        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager = $this->entityManagerHoldingTheForm();
         $entityManager->method('isOpen')->willReturn(false);
         $entityManager->expects(self::never())->method('detach');
 
         $this->createProcessor($entityManager, $field)
             ->process($contactForm, $this->createSymfonyForm('x@example.com'), Request::create('/'), 'en');
+    }
+
+    /**
+     * A manager mock that holds the contact form handed to process() (2.0 re-loads a form only another manager holds).
+     *
+     * @return EntityManagerInterface&MockObject
+     */
+    private function entityManagerHoldingTheForm(): EntityManagerInterface
+    {
+        $entityManager = $this->createMock(EntityManagerInterface::class);
+        $entityManager->method('contains')->willReturn(true);
+
+        return $entityManager;
     }
 
     private function createProcessor(
@@ -275,7 +288,7 @@ final class ContactSubmissionProcessorTest extends TestCase
             new ClientLabelResolver(null, 'email'),
             $this->createMock(EventDispatcherInterface::class),
             $notifier ?? $this->createMock(ContactSubmissionNotifierInterface::class),
-            new ContactFormSubmissionValueNormalizer($this->createMock(ContactFormFileUploadHandlerInterface::class)),
+            new ContactFormSubmissionValueNormalizer($this->createMock(ContactFormFileUploaderInterface::class)),
             new MockClock(),
             null,
             $resolver,
@@ -321,20 +334,20 @@ final class ContactSubmissionProcessorTest extends TestCase
     }
 
     #[DataProvider('integerClientIds')]
-    public function testIntegerClientIdsAreStored(mixed $id, int $expected): void
+    public function testIntegerClientIdsAreStoredAsReference(mixed $id, int $expected): void
     {
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects(self::never())->method('warning');
 
         $submission = $this->processWithClient($this->clientWithId($id), $logger);
 
-        self::assertSame($expected, $submission->getClientId());
+        self::assertSame((string) $expected, $submission->getClientReference());
         self::assertSame('client@example.com', $submission->getClientLabel());
         self::assertFalse($submission->isAnonymous());
     }
 
     /**
-     * 1.7: ids that are not 32-bit integers are kept in client_reference (as given); client_id stays null.
+     * 1.7: ids that are not 32-bit integers are kept in client_reference (as given); 2.0 has no client_id column.
      *
      * @return iterable<string, array{mixed, string}>
      */
@@ -367,7 +380,6 @@ final class ContactSubmissionProcessorTest extends TestCase
 
         $submission = $this->processWithClient($this->clientWithId($id), $logger);
 
-        self::assertNull($submission->getClientId());
         self::assertSame($reference, $submission->getClientReference());
         self::assertSame('client@example.com', $submission->getClientLabel());
         self::assertFalse($submission->isAnonymous());
@@ -391,23 +403,22 @@ final class ContactSubmissionProcessorTest extends TestCase
         $logger->expects(self::once())
             ->method('warning')
             ->with(
-                self::stringContains('is not a 32-bit integer'),
+                self::stringContains('is not an integer nor a string of at most 64 characters'),
                 self::callback(static fn (array $context): bool => $context['id_type'] === get_debug_type($id)),
             );
 
         $submission = $this->processWithClient($this->clientWithId($id), $logger);
 
-        self::assertNull($submission->getClientId());
         self::assertNull($submission->getClientReference());
         self::assertSame('client@example.com', $submission->getClientLabel());
         self::assertFalse($submission->isAnonymous());
     }
 
-    public function testNonIntegerClientIdWithoutLoggerStoresNull(): void
+    public function testUnstorableClientIdWithoutLoggerStoresNull(): void
     {
-        $submission = $this->processWithClient($this->clientWithId('0195e8a4-6d2b-7c3e-9f00-1a2b3c4d5e6f'));
+        $submission = $this->processWithClient($this->clientWithId(new stdClass()));
 
-        self::assertNull($submission->getClientId());
+        self::assertNull($submission->getClientReference());
         self::assertSame('client@example.com', $submission->getClientLabel());
     }
 
@@ -418,7 +429,7 @@ final class ContactSubmissionProcessorTest extends TestCase
 
         $submission = $this->processWithClient($this->clientWithId(null), $logger);
 
-        self::assertNull($submission->getClientId());
+        self::assertNull($submission->getClientReference());
         self::assertSame('client@example.com', $submission->getClientLabel());
     }
 
@@ -440,7 +451,7 @@ final class ContactSubmissionProcessorTest extends TestCase
 
         $submission = $this->processWithClient($client);
 
-        self::assertSame(5, $submission->getClientId());
+        self::assertSame('5', $submission->getClientReference());
         self::assertSame('private@example.com', $submission->getClientLabel());
     }
 
@@ -474,13 +485,13 @@ final class ContactSubmissionProcessorTest extends TestCase
         $fieldRepository->method('findByFormOrdered')->willReturn([]);
 
         $processor = new ContactSubmissionProcessor(
-            $this->createMock(EntityManagerInterface::class),
+            $this->entityManagerHoldingTheForm(),
             $fieldRepository,
             new IpAnonymizer('salt'),
             new ClientLabelResolver(null, 'email'),
             $this->createMock(EventDispatcherInterface::class),
             $this->createMock(ContactSubmissionNotifierInterface::class),
-            new ContactFormSubmissionValueNormalizer($this->createMock(ContactFormFileUploadHandlerInterface::class)),
+            new ContactFormSubmissionValueNormalizer($this->createMock(ContactFormFileUploaderInterface::class)),
             new MockClock(),
             logger: $logger,
         );

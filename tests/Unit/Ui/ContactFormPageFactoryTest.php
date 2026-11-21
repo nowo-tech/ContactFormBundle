@@ -127,6 +127,6 @@ final class ContactFormPageFactoryTest extends TestCase
         $factory = PageFixtures::factory();
         self::assertNull($factory->publicHeader((new ContactFormTranslation())->setTitle('Hi'))->intro);
         self::assertSame(ContactFormPages::TEMPLATES['submission_show'], $factory->template('submission_show'));
-        self::assertSame(['a' => 1, 'nowo_contact_form_legacy_layout' => null, 'nowo_contact_form_legacy_blocks' => []], $factory->context(['a' => 1]));
+        self::assertSame(['a' => 1], $factory->context(['a' => 1]));
     }
 }

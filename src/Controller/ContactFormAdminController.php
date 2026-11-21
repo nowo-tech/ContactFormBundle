@@ -22,6 +22,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -54,7 +55,7 @@ final class ContactFormAdminController extends AbstractController
         private readonly ContactFormEnabledLocales $enabledLocales,
         private readonly ContactFormPageFactory $pages,
         private readonly CsrfOnlyFormFactory $csrfOnlyForms,
-        /**
+        /*
          * @deprecated since 2.0, ignored; removed in 3.0 (1.13's host-flush reporter, removed with the host mode)
          */
         ?object $hostFlushReporter = null,
@@ -89,7 +90,7 @@ final class ContactFormAdminController extends AbstractController
     }
 
     #[Route('/locale/{locale}', name: 'switch_locale', methods: ['GET'], priority: 10)]
-    public function switchLocale(string $locale, Request $request, LocaleSwitcher $localeSwitcher): Response
+    public function switchLocale(string $locale, Request $request, LocaleSwitcher $localeSwitcher): RedirectResponse
     {
         if (!in_array($locale, $this->enabledLocales->all(), true)) {
             throw $this->createNotFoundException();
@@ -129,7 +130,7 @@ final class ContactFormAdminController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function delete(int $id, Request $request, EntityManagerInterface $entityManager): Response
+    public function delete(int $id, Request $request, EntityManagerInterface $entityManager): RedirectResponse
     {
         $form = $this->getContactForm($id);
 

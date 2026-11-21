@@ -22,6 +22,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\Flow\DataStorage\SessionDataStorage;
 use Symfony\Component\Form\Flow\FormFlowInterface;
 use Symfony\Component\Form\FormInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
@@ -54,7 +55,7 @@ final class ContactFormFieldAdminController extends AbstractController
         private readonly RequestStack $requestStack,
         private readonly ContactFormPageFactory $pages,
         private readonly CsrfOnlyFormFactory $csrfOnlyForms,
-        /**
+        /*
          * @deprecated since 2.0, ignored; removed in 3.0 (1.13's host-flush reporter, removed with the host mode)
          */
         ?object $hostFlushReporter = null,
@@ -80,7 +81,7 @@ final class ContactFormFieldAdminController extends AbstractController
     }
 
     #[Route('/new', name: 'new_redirect', methods: ['GET'])]
-    public function newRedirect(int $formId): Response
+    public function newRedirect(int $formId): RedirectResponse
     {
         return $this->redirectToRoute('nowo_contact_form_fields_new', [
             'formId' => $formId,
@@ -104,7 +105,7 @@ final class ContactFormFieldAdminController extends AbstractController
     }
 
     #[Route('/{id}/edit', name: 'edit_redirect', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function editRedirect(int $formId, int $id): Response
+    public function editRedirect(int $formId, int $id): RedirectResponse
     {
         return $this->redirectToRoute('nowo_contact_form_fields_edit', [
             'formId' => $formId,
@@ -132,7 +133,7 @@ final class ContactFormFieldAdminController extends AbstractController
     }
 
     #[Route('/{id}/delete', name: 'delete', requirements: ['id' => '\d+'], methods: ['POST'])]
-    public function delete(int $formId, int $id, Request $request, EntityManagerInterface $entityManager): Response
+    public function delete(int $formId, int $id, Request $request, EntityManagerInterface $entityManager): RedirectResponse
     {
         $form  = $this->getContactForm($formId);
         $field = $this->getField($form, $id);

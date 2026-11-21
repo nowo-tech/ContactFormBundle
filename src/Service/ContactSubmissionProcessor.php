@@ -52,7 +52,7 @@ final readonly class ContactSubmissionProcessor implements ContactSubmissionReco
         private ?ContactFormEntityManagerResolver $entityManagerResolver = null,
         private ?LoggerInterface $logger = null,
         private ?ContactFormRepository $formRepository = null,
-        /**
+        /*
          * @deprecated since 2.0, ignored; removed in 3.0 (1.13's host-flush reporter, removed with the host mode)
          */
         ?object $hostFlushReporter = null,

@@ -31,9 +31,9 @@ use Nowo\ContactFormBundle\Repository\ContactFormRepository;
 use Nowo\ContactFormBundle\Service\ContactSubmissionRecorderInterface;
 use Nowo\ContactFormBundle\Service\SubmissionRetentionCleanupService;
 use Nowo\ContactFormBundle\Tests\Integration\EntityManager\Entity\HostNote;
+use Nowo\TransactionDoctrine\PrivateManager\PrivateEntityManager;
 use Nowo\TransactionDoctrine\WriteUnit\CommitLedger;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
@@ -76,20 +76,23 @@ final class DedicatedEntityManagerTest extends TestCase
     }
 
     /**
-     * Host mode (1.x default; 1.13 notice at container build, 2.0 removes it).
+     * A standard host (no doctrine.entity_manager): the entities stay mapped on the default manager, the bundle writes
+     * through its private entity manager on it (2.0, the only mode; the 1.x host mode was removed).
      */
-    #[IgnoreDeprecations]
-    public function testStandardHostKeepsTheDefaultManager(): void
+    public function testStandardHostMapsOnTheDefaultManagerAndWritesThroughThePrivateOne(): void
     {
         $this->boot([
             'dbal' => ['url' => 'sqlite:///' . $this->database('standard')],
             'orm'  => ['auto_mapping' => true],
-        ], ['doctrine' => ['private_entity_manager' => null]]);
+        ]);
         $default = $this->registry()->getManager();
 
         self::assertSame(['default'], array_keys((array) $this->container()->getParameter('doctrine.entity_managers')));
         self::assertSame($default, $this->registry()->getManagerForClass(ContactSubmission::class));
-        self::assertSame($default, $this->container()->get('nowo_contact_form.entity_manager'));
+        $private = $this->container()->get('nowo_contact_form.entity_manager');
+        self::assertInstanceOf(PrivateEntityManager::class, $private);
+        self::assertInstanceOf(EntityManagerInterface::class, $default);
+        self::assertSame($default->getConnection(), $private->getConnection());
 
         // LI-CF-L2: the collation listener is wired on the schema tool events of the manager.
         self::assertInstanceOf(EntityManagerInterface::class, $default);
@@ -128,8 +131,8 @@ final class DedicatedEntityManagerTest extends TestCase
 
         self::assertSame(0, (int) $host->getConnection()->fetchOne('SELECT COUNT(*) FROM host_note'), 'the host manager is never flushed');
         self::assertTrue($host->contains($note), 'nor cleared');
-        $row = $bundle->getConnection()->fetchAssociative('SELECT client_id, client_reference, client_label FROM nowo_contact_submission WHERE id = ?', [$id]);
-        self::assertSame(['client_id' => null, 'client_reference' => '01890a5d-ac96-774b-bcce-b302099a8057', 'client_label' => 'ACME'], $row);
+        $row = $bundle->getConnection()->fetchAssociative('SELECT client_reference, client_label FROM nowo_contact_submission WHERE id = ?', [$id]);
+        self::assertSame(['client_reference' => '01890a5d-ac96-774b-bcce-b302099a8057', 'client_label' => 'ACME'], $row);
         self::assertSame(['email'], $bundle->getConnection()->fetchFirstColumn('SELECT field_name FROM nowo_contact_submission_value'));
 
         self::assertCount(1, $created);
@@ -366,9 +369,9 @@ final class DedicatedEntityManagerTest extends TestCase
         $recorder = $this->container()->get(ContactSubmissionRecorderInterface::class);
         self::assertInstanceOf(ContactSubmissionRecorderInterface::class, $recorder);
         $id  = $recorder->record('support', ['email' => 'visitor@example.com'], 'en', client: new ClientReference('42', 'ACME'));
-        $row = $bundle->getConnection()->fetchAssociative('SELECT client_id, client_reference, client_label FROM nowo_contact_submission WHERE id = ?', [$id]);
-        // An integer id is also stored in the integer client_id column (1.6.4 rule, unchanged).
-        self::assertSame(['client_id' => 42, 'client_reference' => '42', 'client_label' => 'ACME'], $row);
+        $row = $bundle->getConnection()->fetchAssociative('SELECT client_reference, client_label FROM nowo_contact_submission WHERE id = ?', [$id]);
+        // 2.0: an integer id is stored in client_reference only (the INTEGER client_id column was removed).
+        self::assertSame(['client_reference' => '42', 'client_label' => 'ACME'], $row);
         self::assertSame(['email'], $bundle->getConnection()->fetchFirstColumn('SELECT field_name FROM nowo_contact_submission_value'));
     }
 

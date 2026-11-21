@@ -18,7 +18,7 @@ contact form is a unique page on the guest layout. Contract test: `tests/Integra
 - [Bundle partials](#bundle-partials)
 - [Translation tabs](#translation-tabs)
 - [Admin interface language](#admin-interface-language)
-- [Layout bridge (1.x layouts)](#layout-bridge-1x-layouts)
+- [Layout bridge (1.x layouts)](#admin-layout)
 - [Allowed exceptions](#allowed-exceptions)
 
 ## Pages
@@ -109,7 +109,6 @@ anything.
 | `admin/field/_translation_tabs.html.twig` | Locale tabs of the field translations (content step) |
 | `admin/submission/index.html.twig` | Submissions of a contact form (list scaffold) |
 | `admin/submission/show.html.twig` | Submission detail (show scaffold) |
-| `admin/_legacy_layout.html.twig` | Deprecated 1.x layout bridge |
 | `public/contact_form.html.twig` | Public contact form page |
 | `public/_form_fields.html.twig` | Public form body: child loop + GDPR consent and privacy policy link |
 | `form/contact_phone.html.twig` | Form theme of `ContactPhoneType` (prefix + number in `.nowo-contact-form-phone`, `role="group"`) |
@@ -150,14 +149,14 @@ The 1.x layout rendered a locale switch in its navbar. Since 1.6 the host layout
 by `ContactFormAdminLocaleSubscriber`; it redirects back to a safe admin referer) from your own locale switcher — e.g.
 UiKit's `locale_switcher` partial — with `contact_form_admin_locales()` as the list of locales.
 
-## Layout bridge (1.x layouts)
+## Admin layout
 
-`web_ui.layout_template` may still point at a 1.x layout (no `nowo_ui_page_header` block, e.g. a copy of the removed
-`admin/layout.html.twig` rendering `content`): `ContactFormPages` then wraps it in `admin/_legacy_layout.html.twig`
-(maps the canonical blocks into `content`, `title`, `stylesheets`, `javascripts`) and triggers a deprecation.
-Canonical blocks the 1.x layout renders itself (`nowo_ui_flashes`, `nowo_ui_content`, `nowo_ui_modals`, …) are not
-printed twice; when it renders `nowo_ui_flashes`, the page header is printed there. The value
-`@NowoContactFormBundle/admin/layout.html.twig` (the 1.x default) is mapped to null. The bridge is removed in 2.0.
+`web_ui.layout_template` (null = `nowo_ui_kit.layouts.admin`) must render the UiKit canonical blocks
+(`nowo_ui_page_header`, `nowo_ui_content`, `nowo_ui_flashes`, `nowo_ui_modals`, …), for example by extending
+`@NowoUiKit/layout/admin.html.twig`. The 1.x layout bridge (`admin/_legacy_layout.html.twig`, deprecated since 1.6)
+was removed in 2.0: a layout without `nowo_ui_page_header` (a 1.x layout rendering `content`, or a copy of the removed
+`admin/layout.html.twig`) fails with a `LogicException` naming the layout when the first admin page renders. The value
+`@NowoContactFormBundle/admin/layout.html.twig` (the 1.x default) is still mapped to null.
 
 ## Allowed exceptions
 

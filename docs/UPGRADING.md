@@ -5,6 +5,11 @@ This document describes how to upgrade between versions of Contact Form Bundle.
 ## Table of contents
 
 - [Unreleased](#unreleased)
+  - [Before you upgrade](#before-you-upgrade)
+  - [The private entity manager is the only mode](#the-private-entity-manager-is-the-only-mode)
+  - [Removed](#removed)
+  - [Private manager only](#private-manager-only)
+  - [1.x support](#1x-support)
 - [To 1.13.1](#to-1131)
 - [To 1.13.0](#to-1130)
 - [To 1.13.0](#to-1130-1)
@@ -78,6 +83,156 @@ This document describes how to upgrade between versions of Contact Form Bundle.
   - [Optional integrations](#optional-integrations)
 
 ## Unreleased
+
+From **1.13.x** (2.0.0):
+
+```bash
+composer require nowo-tech/contact-form-bundle:^2.0 -W
+```
+
+2.0 contains only changes that 1.x announced through deprecation notices: an application that runs the last 1.x
+minor without deprecation notices from this bundle upgrades without code changes. After 2.0.0 is released, the 1.x
+line receives security fixes for 6 months: fixes rated Moderate and above are backported to the last 1.x minor;
+Low ones are fixed in 2.x only.
+
+This list corrects the "Preparing for 2.0" list of 1.13.0: it also removes the 1.6 Web UI keys and Twig globals and
+the 1.7 `client_id` column, which 1.x deprecated (with runtime notices and in "To 1.6.0" / "To 1.7.0") but 1.13.0 did
+not list.
+
+### Before you upgrade
+
+On 1.13, with deprecations logged (Symfony profiler, the `deprecation` log channel, PHPUnit's deprecation report),
+clear every notice of this bundle:
+
+1. **Backfill `client_reference` from `client_id`, before any schema migration (data loss otherwise).** 2.0 no longer
+   maps nor reads the INTEGER `client_id` column (deprecated since 1.7), and `doctrine:migrations:diff` proposes
+   `ALTER TABLE nowo_contact_submission DROP client_id`. **A submission written before 1.7 whose client id is only in
+   `client_id` loses its client link for good when that column is dropped without the backfill.** Run the 1.7
+   backfill on 1.13 (table name with your `doctrine.table_prefix`, if any):
+
+   ```sql
+   -- PostgreSQL / SQLite
+   UPDATE nowo_contact_submission SET client_reference = CAST(client_id AS VARCHAR(64)) WHERE client_id IS NOT NULL AND client_reference IS NULL;
+   -- MySQL / MariaDB
+   UPDATE nowo_contact_submission SET client_reference = CAST(client_id AS CHAR(64)) WHERE client_id IS NOT NULL AND client_reference IS NULL;
+   ```
+
+   Or, after `composer require` and **before** running the migration, run the command 2.0 ships for it (on the
+   bundle's connection and table prefix):
+
+   ```bash
+   php bin/console nowo:contact-form:backfill-client-reference --dry-run   # counts the rows to copy
+   php bin/console nowo:contact-form:backfill-client-reference
+   ```
+
+   Both are idempotent: they only fill an empty `client_reference`, never overwrite one, and a second run changes
+   nothing. The command runs one `UPDATE` (all rows or, on a failure, none), reports a lock conflict as "run the
+   command again", and fails if a row is still left (for example a 1.x process still writing `client_id`): run it
+   again before the migration. It does nothing once the column is gone. Then generate and run the migration: the only
+   schema change of 2.0 is the `client_id` drop.
+2. The 1.13 notices, `Not setting "nowo_contact_form.doctrine.private_entity_manager" is deprecated: contact form
+   writes flush the application's entity manager, including its own pending changes. [...]` and `Setting
+   "nowo_contact_form.doctrine.private_entity_manager" to false is deprecated: [...]`, and every probe line
+   `Your pending changes to App\X were flushed by NowoContactFormBundle; 2.0 no longer does.` Each class a probe line
+   names is a change of yours that only reached the database through a contact form write: make that code flush its
+   own changes (see [Reading the host-flush probe](#reading-the-host-flush-probe)), then set
+   `private_entity_manager: true` on 1.13 and check your application. In 2.0 that key is a deprecated no-op; remove it.
+3. The 1.8 upload-port notices, `The "Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface" service
+   alias is deprecated, use "Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface" instead.` and `Storing
+   contact form files through "...\ContactFormFileUploadHandlerInterface" is deprecated, implement
+   "...\ContactFormFileUploaderInterface" instead; removed in 2.0.`: move your uploader (and any decorator of it) to
+   `ContactFormFileUploaderInterface::store(UploadedContactFile, ContactFormFileTarget)` (see [To 1.8.0](#to-180)).
+4. The 1.6 layout notice, `The layout "..." does not render the UiKit canonical blocks (nowo_ui_page_header,
+   nowo_ui_content, ...); it is wrapped in a deprecated bridge. [...]`: render the canonical blocks in your
+   `web_ui.layout_template` (or extend `@NowoUiKit/layout/admin.html.twig`), or set it to `null` to use
+   `nowo_ui_kit.layouts.admin` (see [TEMPLATES.md](TEMPLATES.md)).
+5. The 1.6 key notices, `The "nowo_contact_form.admin_route_prefix" option is deprecated, use
+   "nowo_contact_form.web_ui.path_prefix" instead (REQ-UI-003).`, `The "nowo_contact_form.web_ui.css_framework" option
+   is deprecated, set "nowo_ui_kit.css_framework" instead (REQ-UI-003).` and `The "nowo_contact_form.web_ui.icon_set"
+   option is deprecated, set "nowo_ui_kit.icon_set" instead (REQ-UI-003).`; and any template of yours that reads
+   `nowo_contact_form_layout_template`, `nowo_contact_form_css_framework` or `nowo_contact_form_icon_set` (read
+   `nowo_ui_layout` and `nowo_ui_kit.*` instead).
+6. Code that calls `ContactSubmissionNotification::getSubmission()`, `ContactSubmission::getClientId()` /
+   `setClientId()`, or extends a class marked `@final since 1.5`.
+
+### The private entity manager is the only mode
+
+| 1.13 setting | 2.0 |
+|---|---|
+| neither `doctrine.private_entity_manager` nor `doctrine.entity_manager` (the bundle flushed your default manager) | the private entity manager on your default manager's connection, mapping and listeners; same tables; your manager is never flushed by the bundle |
+| `private_entity_manager: true` | the same; the key is a deprecated no-op (notice `The "nowo_contact_form.doctrine.private_entity_manager" option has no effect since 2.0 [...]`), removed in 3.0 |
+| `private_entity_manager: false` | **container build error**: remove the key |
+| `entity_manager: <a dedicated manager>` (the DDD option) | unchanged: the bundle uses that manager, no notice |
+| `entity_manager: <your default manager's name>` (host mode in 1.x) | the private entity manager on it |
+| `private_entity_manager: true` + `entity_manager: <a dedicated manager>` | unchanged from 1.13: the private manager on the dedicated one (deprecated key) |
+
+There is no option to keep the 1.x behaviour: no 2.0 setting lets a contact form write flush your manager.
+
+### Removed
+
+| Removed | Deprecated since | Replacement |
+|---|---|---|
+| host mode (the bundle flushing your entity manager), its two notices and the host-flush probe; `Doctrine\ContactFormHostFlushReporter` (internal) | 1.13 | the private entity manager (above); `$hostFlushReporter` constructor arguments stay, ignored, until 3.0 |
+| `doctrine.private_entity_manager: false` | 1.13 | remove the key (`true` is a deprecated no-op until 3.0) |
+| `Service\ContactFormFileUploadHandlerInterface`, its service alias, `NullContactFormFileUploadHandler::upload()` | 1.8 | `Upload\ContactFormFileUploaderInterface` (alias, decorate or `file_upload.service`) |
+| `ContactSubmissionNotification::getSubmission()` | 1.8 | `getSubmissionId()`, `getLocale()`, `getClientReference()`, `getClientLabel()`, `getCreatedAt()` |
+| legacy admin layout bridge `@NowoContactFormBundle/admin/_legacy_layout.html.twig`, `ContactFormPages::LEGACY_ADMIN_BRIDGE` | 1.6 | a layout with the UiKit canonical blocks, or `web_ui.layout_template: null` |
+| `admin_route_prefix` | 1.6 | `web_ui.path_prefix` |
+| `web_ui.css_framework`, `web_ui.icon_set` | 1.6 | `nowo_ui_kit.css_framework`, `nowo_ui_kit.icon_set` |
+| Twig globals `nowo_contact_form_layout_template`, `nowo_contact_form_css_framework`, `nowo_contact_form_icon_set`; `ContactFormAdminTwigExtension::GLOBAL_*` | 1.6 | `nowo_ui_layout`, `nowo_ui_kit.*` |
+| `ContactSubmission::$clientId` (INTEGER `client_id` column), `getClientId()`, `setClientId()`, the `client_id` fallback of `getClientReference()` | 1.7 | `client_reference`, `getClientReference()` / `setClientReference()` (backfill first, above) |
+| `ClientReferenceCollationListener::postGenerateSchemaTable()` (internal no-op) | 1.13 | none needed |
+| `@final since 1.5` classes become `final`: `DependencyInjection\Configuration`, the admin and public controllers, the form types | 1.5 | decorate or replace the services |
+
+A leftover removed key fails the container build with what to set instead. A removed upload port fails the build too,
+also when Symfony would drop it silently: a class of yours that still implements
+`ContactFormFileUploadHandlerInterface` (it can no longer be loaded), an alias or `#[AsAlias]` of that id, and an
+`#[AsDecorator]` of it (also with `onInvalid: IGNORE`). The message names the service and the replacement. The hook a
+decorator of the removed port used (antivirus, quarantine) is a decorator of `ContactFormFileUploaderInterface`: it
+receives the validated `UploadedContactFile` and its `ContactFormFileTarget`. A configured `web_ui.layout_template`
+without the UiKit canonical blocks fails when the first admin page renders (`LogicException` naming the layout).
+
+There is no Composer change: same PHP, Symfony, Doctrine and database ranges.
+
+### Private manager only
+
+What 1.13's [Opting in: what changes](#opting-in-what-changes) listed now applies to every host without a dedicated
+`doctrine.entity_manager`:
+
+- **Your pending changes are no longer flushed by the bundle.** A change of yours that was only stored because a
+  contact form write flushed your manager is no longer stored: typically in a listener of
+  `ContactSubmissionCreatedEvent` or `ContactSubmissionsDeletedEvent`, a notifier, file uploader or other port of
+  yours, or code that changes an entity and then calls `record()` or another contact form service. That code must
+  flush (commit) its own change. The 1.13 probe lines are the list of such classes.
+- **The reverse is not reported by any probe:** host code that loads a bundle row through the bundle's repository
+  services (`ContactFormRepository`, `getRepository(ContactForm::class)`, which read through the private manager),
+  changes it and flushes its own manager saves nothing: the private manager drops it at the end of the request,
+  message or command with only a warning. Change bundle rows through the bundle's admin and services, or through
+  `nowo_contact_form.entity_manager` and flush that.
+- Do not `persist()` or `flush()` bundle entities through your manager. A contact form your manager loaded (a route
+  value resolver, `find()`) and handed to `ContactSubmissionProcessor::process()` is re-loaded by id in the private
+  manager (never inserted again); a form that was never stored fails with `ContactFormNotFoundException`.
+- An entity of yours with a to-one association to a bundle entity (for example `ContactForm`) must point at an object
+  of your manager: `$entityManager->getReference(ContactForm::class, $id)` (or an entity your manager loaded), never
+  one returned by the bundle's repositories or services.
+- The private manager only writes the bundle's entities: an entity of yours persisted or loaded through
+  `nowo_contact_form.entity_manager` makes the next contact form write fail with a `LogicException` before anything
+  is written. Persist and flush your entities through your own manager.
+- Listeners of `ContactSubmissionCreatedEvent` receive entities of the private manager: read them, do not persist,
+  remove or flush them through your manager.
+- The connection is shared: a transaction you open around `record()` includes the submission (savepoint), and your
+  rollback undoes it. DBAL 3 with `use_savepoints` off: turn savepoints on.
+- A failed contact form write closes only the private manager (replaced on the next use); your manager stays open. The
+  private manager is dropped at every request, Messenger message and console command boundary and at `kernel.reset`
+  (FrankenPHP worker mode with the kernel reset off included).
+- A port of yours whose correctness depended on the bundle's flush (a custom implementation that only changed a
+  managed row) must commit its own change.
+
+### 1.x support
+
+The 1.x line receives security fixes for 6 months after 2.0.0: Moderate and above are backported to the last 1.x
+minor (1.13) as a patch release; Low ones are fixed in 2.x only, with the advice to upgrade. Advisories name both
+lines ([SECURITY](../.github/SECURITY.md)).
 
 ## To 1.13.1
 
@@ -378,7 +533,7 @@ composer update nowo-tech/contact-form-bundle
   on `doctrine.entity_manager` (or the default manager) instead of the attributes. Same tables, columns, indexes and
   constraints, so `doctrine:migrations:diff` finds nothing. Client ids stay as they are (integer `client_id`,
   string `client_reference`).
-- **Deferred to 2.0** (needs a major, see [ARCHITECTURE.md](ARCHITECTURE.md#deferred-to-20)): without
+- **Deferred to 2.0** (needs a major, see [ARCHITECTURE.md](ARCHITECTURE.md#done-in-20)): without
   `doctrine.entity_manager`, the bundle keeps flushing the default entity manager (REQ-ARCH-001 rule 6). Set
   `doctrine.entity_manager` to a dedicated manager now if the bundle must never commit your pending changes; the
   deprecated `ContactFormFileUploadHandlerInterface` is removed in 2.0.

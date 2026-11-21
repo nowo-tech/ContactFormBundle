@@ -15,7 +15,7 @@ use Doctrine\ORM\ORMSetup;
 use Doctrine\ORM\Tools\SchemaTool;
 use Doctrine\Persistence\ManagerRegistry;
 use LogicException;
-use Nowo\ContactFormBundle\Doctrine\ContactFormHostFlushReporter;
+use Nowo\ContactFormBundle\DependencyInjection\NowoContactFormExtension;
 use Nowo\ContactFormBundle\Entity\ContactForm;
 use Nowo\ContactFormBundle\Entity\ContactFormField;
 use Nowo\ContactFormBundle\Entity\ContactFormTranslation;
@@ -31,8 +31,8 @@ use Nowo\ContactFormBundle\Service\ContactSubmissionProcessor;
 use Nowo\ContactFormBundle\Service\IpAnonymizer;
 use Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler;
 use Nowo\ContactFormBundle\Tests\Integration\EntityManager\Entity\HostNote;
+use Nowo\ContactFormBundle\Tests\Integration\EntityManager\LinkedEntity\HostFormLink;
 use Nowo\TransactionDoctrine\ConflictCode;
-use Nowo\TransactionDoctrine\HostFlushProbe;
 use Nowo\TransactionDoctrine\PrivateManager\PrivateEntityManager;
 use Nowo\TransactionDoctrine\PrivateManager\PrivateEntityManagerMiddleware;
 use Nowo\TransactionDoctrine\PrivateManager\PrivateManagerRegistry;
@@ -43,6 +43,8 @@ use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
 use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Forms;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -53,22 +55,18 @@ use Throwable;
 use function dirname;
 use function getenv;
 use function is_string;
-use function restore_error_handler;
-use function set_error_handler;
-use function sprintf;
 
-use const E_USER_DEPRECATED;
 use const PHP_VERSION_ID;
 
 /**
- * 1.13 (REQ-ARCH-001 rule 6, REQ-RUNTIME-003 rule 6) on real MySQL 8.4, MariaDB 11.4 and PostgreSQL 16 servers.
+ * 2.0 (REQ-ARCH-001 rule 6, REQ-RUNTIME-003 rule 6) on real MySQL 8.4, MariaDB 11.4 and PostgreSQL 16 servers.
  *
- * Private mode (`doctrine.private_entity_manager: true`, transaction-doctrine's kit wired as the bundle wires it: the
+ * The private manager (the only mode since 2.0, transaction-doctrine's kit wired as the bundle wires it: the
  * private manager on the application manager's connection, its DBAL middleware, the private registry for the
  * repositories and the resolver): a host entity left pending stays pending (not written, still managed, its manager
  * open) after a submission, after a lock conflict and after a rollback of the host's own transaction; the conflict
  * answer keeps CONFLICT_001 (+ Retry-After, nothing committed) and CONFLICT_002 (no Retry-After, a commit earlier in
- * the request). Host mode (unset): the bundle flush writes the host's change and the probe reports its class.
+ * the request). W1-2: a form loaded by the host manager is re-resolved, a host reference to it flushes.
  */
 #[Group('database')]
 final class PrivateEntityManagerDatabaseTest extends TestCase
@@ -87,6 +85,11 @@ final class PrivateEntityManagerDatabaseTest extends TestCase
 
     protected function tearDown(): void
     {
+        // host_form_link references nowo_contact_form: drop it, so the other database tests (which drop and create the
+        // bundle tables only) start from a clean schema.
+        if ($this->managers !== []) {
+            $this->managers[0]->getConnection()->executeStatement('DROP TABLE IF EXISTS host_form_link');
+        }
         foreach ($this->managers as $manager) {
             $manager->getConnection()->close();
         }
@@ -193,45 +196,43 @@ final class PrivateEntityManagerDatabaseTest extends TestCase
     }
 
     /**
-     * Host mode (both options unset): the bundle flushes the host's manager, so the host's change is written, and the
-     * probe reports its class once per unit of work; the lock conflict answer is unchanged (CONFLICT_001).
+     * W1-2 on real servers: a contact form loaded by the host manager is re-loaded in the private manager (no duplicate
+     * row, the host's pending change to it not written), and a host entity pointing at it through
+     * `$hostEm->getReference()` is written with its foreign key when the host flushes.
      */
     #[DataProvider('databases')]
-    public function testHostModeWritesTheHostsChangeAndTheProbeReportsIt(?string $url): void
+    public function testAHostLoadedFormIsReResolvedAndAHostReferenceFlushes(?string $url): void
     {
         $this->freshDatabase($url);
-        $host     = $this->hostManager();
-        $admin    = $this->plainManager();
-        $formId   = $this->seedForm($admin);
-        $registry = $this->registryFor(static fn (): EntityManagerInterface => $host);
-        $visitor  = $this->processor($host, new ContactFormEntityManagerResolver($registry), $registry, new ContactFormHostFlushReporter(true, new HostFlushProbe()));
+        [$host, $private, $visitor] = $this->privateMode();
+        $admin                      = $this->plainManager();
+        $formId                     = $this->seedForm($admin);
+        $note                       = new HostNote('pending host change');
+        $host->persist($note);
 
-        $messages = [];
-        // @phpstan-ignore frankenphp.worker.noSetErrorExceptionHandler (test only, restored in the finally below)
-        set_error_handler(static function (int $type, string $message) use (&$messages): bool {
-            $messages[] = $message;
+        $hostForm = $host->find(ContactForm::class, $formId);
+        self::assertInstanceOf(ContactForm::class, $hostForm);
+        $hostForm->setName('Changed by the host, not flushed');
+        $form = Forms::createFormFactory()->createNamedBuilder('form')->add('email', TextType::class)->getForm();
+        $form->submit(['email' => 'visitor@example.com']);
 
-            return true;
-        }, E_USER_DEPRECATED);
-        try {
-            $host->persist(new HostNote('first'));
-            $visitor->record(self::SLUG, ['email' => 'a@example.com'], 'en');
-            $host->persist(new HostNote('second'));
-            $visitor->record(self::SLUG, ['email' => 'b@example.com'], 'en');
-        } finally {
-            restore_error_handler();
-        }
+        $submission = $visitor->process($hostForm, $form, Request::create('/'), 'en');
+        $adopted    = $submission->getForm();
+        self::assertInstanceOf(ContactForm::class, $adopted);
+        self::assertNotSame($hostForm, $adopted);
+        self::assertTrue($private->contains($adopted));
+        self::assertSame(1, $this->rows($admin, 'nowo_contact_form'), 'no duplicate form row');
+        self::assertSame(1, $this->rows($admin, 'nowo_contact_submission'));
+        self::assertSame('Support', $admin->getConnection()->fetchOne('SELECT name FROM nowo_contact_form'));
+        $this->assertHostPending($host, $note, $admin, 'after a submission with a host-loaded form');
 
-        self::assertSame([sprintf('Your pending changes to %s were flushed by NowoContactFormBundle; 2.0 no longer does.', HostNote::class)], $messages);
-        self::assertSame(2, $this->rows($admin, 'host_note'), '1.x: the bundle flush wrote the host changes');
-
-        $admin->getConnection()->beginTransaction();
-        $admin->getConnection()->fetchOne('SELECT id FROM nowo_contact_form WHERE id = ? FOR UPDATE', [$formId]);
-        $failure = $this->failureOf(static fn (): int => $visitor->record(self::SLUG, ['email' => 'locked@example.com'], 'en'));
-        $admin->getConnection()->rollBack();
-        $answer = $this->answer($failure, new ContactFormConflictListener(), $this->request());
-        self::assertSame(['X-Conflict-Code' => ConflictCode::RETRY_SAFE, 'Retry-After' => '1'], $answer->getHeaders());
-        self::assertSame(2, $this->rows($admin, 'nowo_contact_submission'));
+        $reference = $host->getReference(ContactForm::class, $formId);
+        self::assertInstanceOf(ContactForm::class, $reference);
+        $host->persist(new HostFormLink($reference));
+        $host->flush();
+        self::assertSame($formId, (int) $admin->getConnection()->fetchOne('SELECT form_id FROM host_form_link'));
+        self::assertSame('Changed by the host, not flushed', $admin->getConnection()->fetchOne('SELECT name FROM nowo_contact_form'), 'the host writes its own change when it flushes');
+        self::assertSame(1, $this->rows($admin, 'host_note'));
     }
 
     /**
@@ -240,14 +241,14 @@ final class PrivateEntityManagerDatabaseTest extends TestCase
     private function privateMode(?CommitLedger $ledger = null): array
     {
         $applicationRegistry = $this->registryFor(fn (): EntityManagerInterface => $this->host ?? throw new LogicException('No host manager yet.'));
-        $private             = new PrivateEntityManager($applicationRegistry, 'default', ContactForm::class, ContactFormHostFlushReporter::BUNDLE_NAME);
+        $private             = new PrivateEntityManager($applicationRegistry, 'default', ContactForm::class, NowoContactFormExtension::BUNDLE_NAME);
         $host                = $this->hostManager($ledger, new PrivateEntityManagerMiddleware($private, 'nowo_contact_form_'));
-        $privateRegistry     = new PrivateManagerRegistry($applicationRegistry, $private, ContactFormHostFlushReporter::OWN_NAMESPACES, 'default');
+        $privateRegistry     = new PrivateManagerRegistry($applicationRegistry, $private, NowoContactFormExtension::OWN_NAMESPACES, 'default');
 
-        return [$host, $private, $this->processor($private, new ContactFormEntityManagerResolver($privateRegistry), $privateRegistry, new ContactFormHostFlushReporter())];
+        return [$host, $private, $this->processor($private, new ContactFormEntityManagerResolver($privateRegistry), $privateRegistry)];
     }
 
-    private function processor(EntityManagerInterface $manager, ContactFormEntityManagerResolver $resolver, ManagerRegistry $registry, ContactFormHostFlushReporter $reporter): ContactSubmissionProcessor
+    private function processor(EntityManagerInterface $manager, ContactFormEntityManagerResolver $resolver, ManagerRegistry $registry): ContactSubmissionProcessor
     {
         return new ContactSubmissionProcessor(
             $manager,
@@ -262,7 +263,6 @@ final class PrivateEntityManagerDatabaseTest extends TestCase
             $resolver,
             null,
             new ContactFormRepository($registry),
-            $reporter,
         );
     }
 
@@ -330,7 +330,7 @@ final class PrivateEntityManagerDatabaseTest extends TestCase
     private function createManager(array $middlewares): EntityManagerInterface
     {
         $root   = dirname(__DIR__, 3);
-        $config = ORMSetup::createAttributeMetadataConfiguration([$root . '/src/Entity', $root . '/tests/Integration/EntityManager/Entity'], true);
+        $config = ORMSetup::createAttributeMetadataConfiguration([$root . '/src/Entity', $root . '/tests/Integration/EntityManager/Entity', $root . '/tests/Integration/EntityManager/LinkedEntity'], true);
         if (PHP_VERSION_ID >= 80400) {
             $config->enableNativeLazyObjects(true);
         }

@@ -24,7 +24,7 @@ final class ContactFormAdminTwigExtension extends AbstractExtension
      * @param string|null $cssFramework deprecated since 2.0, ignored (it fed a removed global); removed in 3.0
      * @param string|null $iconSet deprecated since 2.0, ignored (it fed a removed global); removed in 3.0
      */
-    public function __construct(
+    public function __construct(// @phpstan-ignore constructor.unusedParameter, constructor.unusedParameter, constructor.unusedParameter (BC: kept until 3.0)
         private readonly ParameterBagInterface $parameterBag,
         ?string $layoutTemplate = null,
         ?string $cssFramework = null,

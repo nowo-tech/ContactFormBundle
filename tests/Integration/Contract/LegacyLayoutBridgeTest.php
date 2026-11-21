@@ -4,21 +4,20 @@ declare(strict_types=1);
 
 namespace Nowo\ContactFormBundle\Tests\Integration\Contract;
 
+use LogicException;
 use Nowo\ContactFormBundle\Tests\Support\PageFixtures;
 use Nowo\ContactFormBundle\Ui\ContactFormPages;
 use Nowo\UiKitBundle\Test\PageContractTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Twig\Environment;
 
-use function substr_count;
-
 /**
- * Deprecated 1.x admin layouts (no UiKit canonical blocks) keep working through the bridge: the page renders inside
- * the host `content` block, once, with title, assets and flashes mapped; canonical blocks the 1.x layout renders itself
- * (a copy of the removed bundle layout) are not printed twice. A layout with the canonical blocks is used as is.
+ * 2.0 removed the 1.x admin layout bridge (deprecated since 1.6): a configured layout without the UiKit canonical
+ * blocks (a 1.x layout, or a copy of the removed 1.x bundle layout) fails with a clear error naming the layout and the
+ * block to add. A layout with the canonical blocks is used as is.
  */
 #[CoversClass(ContactFormPages::class)]
 final class LegacyLayoutBridgeTest extends TestCase
@@ -37,50 +36,29 @@ final class LegacyLayoutBridgeTest extends TestCase
             . '{% block nowo_ui_flashes %}{% endblock %}{% block nowo_ui_content %}{% endblock %}{% block nowo_ui_modals %}{% endblock %}</div>',
     ];
 
-    #[Test]
-    #[IgnoreDeprecations]
-    public function aPlainLegacyLayoutRendersThePageInItsContentBlock(): void
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function legacyLayouts(): iterable
     {
-        $twig    = $this->twig();
-        $pages   = new ContactFormPages('legacy/plain.html.twig', null, [], $twig);
-        $factory = PageFixtures::factory($pages);
-
-        $this->expectUserDeprecationMessageMatches('/legacy\/plain\.html\.twig/');
-        self::assertSame(ContactFormPages::LEGACY_ADMIN_BRIDGE, $pages->layout());
-        $context = $factory->context(PageFixtures::formIndex(false, $factory));
-        self::assertSame('legacy/plain.html.twig', $context['nowo_contact_form_legacy_layout']);
-        self::assertSame([], $context['nowo_contact_form_legacy_blocks']);
-
-        $html = $twig->render('@NowoContactFormBundle/admin/form/index.html.twig', $context);
-
-        self::assertSame(1, substr_count($html, 'data-host="plain"'));
-        self::assertMatchesRegularExpression('/<main data-host-main>.*data-testid="contact-form-forms"/s', $html);
-        self::assertSame(1, substr_count($html, 'data-testid="contact-form-forms"'));
-        self::assertStringContainsString('<title>Contact forms</title>', $html);
-        self::assertStringContainsString('data-host-css', $html);
-        self::assertStringContainsString('nowo-ui.css', $html);
-        self::assertStringContainsString('data-host-js', $html);
-        self::assertStringContainsString('data-nowo-ui-contract-partial="page_header"', $html);
+        yield 'plain 1.x layout' => ['legacy/plain.html.twig'];
+        yield 'copy of the removed 1.x bundle layout' => ['legacy/bundle-copy.html.twig'];
     }
 
     #[Test]
-    #[IgnoreDeprecations]
-    public function aCopyOfTheRemovedBundleLayoutDoesNotPrintBlocksTwice(): void
+    #[DataProvider('legacyLayouts')]
+    public function aLayoutWithoutTheCanonicalBlocksFailsClearly(string $layout): void
     {
-        $twig    = $this->twig();
-        $pages   = new ContactFormPages('legacy/bundle-copy.html.twig', null, [], $twig);
-        $factory = PageFixtures::factory($pages);
+        $pages = new ContactFormPages($layout, null, [], $this->twig());
 
-        $this->expectUserDeprecationMessageMatches('/legacy\/bundle-copy\.html\.twig/');
-        $context = $factory->context(PageFixtures::submissionShow(false, $factory));
-        self::assertSame(['nowo_ui_flashes', 'nowo_ui_content', 'nowo_ui_modals'], $context['nowo_contact_form_legacy_blocks']);
-
-        $html = $twig->render('@NowoContactFormBundle/admin/submission/show.html.twig', $context);
-
-        self::assertSame(1, substr_count($html, 'data-testid="contact-form-submission"'));
-        self::assertMatchesRegularExpression('/<div data-host-content>\s*<div class="nowo-ui-show-page"/', $html);
-        self::assertMatchesRegularExpression('/<div data-host-flashes>.*data-nowo-ui-contract-partial="page_header"/s', $html, 'page header before the content');
-        self::assertSame(1, substr_count($html, 'data-nowo-ui-contract-partial="page_header"'));
+        try {
+            $pages->layout();
+            self::fail('A 1.x layout must be refused since 2.0.');
+        } catch (LogicException $exception) {
+            self::assertStringContainsString($layout, $exception->getMessage());
+            self::assertStringContainsString('nowo_ui_page_header', $exception->getMessage());
+        }
+        self::assertSame(['a' => 1], $pages->context(['a' => 1]), 'no bridge variables any more');
     }
 
     #[Test]
@@ -93,7 +71,7 @@ final class LegacyLayoutBridgeTest extends TestCase
         self::assertSame('guest.html.twig', $pages->publicLayout());
         self::assertSame('host/forms.html.twig', $pages->template('form_index'));
         self::assertSame(ContactFormPages::TEMPLATES['form_form'], $pages->template('form_form'));
-        self::assertSame(['nowo_contact_form_legacy_layout' => null, 'nowo_contact_form_legacy_blocks' => []], $pages->context([]));
+        self::assertSame([], $pages->context([]));
 
         $factory = PageFixtures::factory($pages);
         $html    = $twig->render('@NowoContactFormBundle/admin/form/index.html.twig', $factory->context(PageFixtures::formIndex(false, $factory)));
@@ -109,7 +87,7 @@ final class LegacyLayoutBridgeTest extends TestCase
 
         $noTwig = new ContactFormPages('legacy/plain.html.twig');
         self::assertSame('legacy/plain.html.twig', $noTwig->layout());
-        self::assertSame(['nowo_contact_form_legacy_layout' => null, 'nowo_contact_form_legacy_blocks' => []], $noTwig->context([]));
+        self::assertSame([], $noTwig->context([]));
 
         $default = new ContactFormPages();
         self::assertNull($default->layout());

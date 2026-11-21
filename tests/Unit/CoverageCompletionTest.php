@@ -25,7 +25,6 @@ use Nowo\ContactFormBundle\Phone\ContactFormFieldPhoneOptions;
 use Nowo\ContactFormBundle\Repository\ContactFormFieldRepository;
 use Nowo\ContactFormBundle\Service\ClientLabelResolver;
 use Nowo\ContactFormBundle\Service\ContactFormFieldSelectOptionsSynchronizer;
-use Nowo\ContactFormBundle\Service\ContactFormFileUploadHandlerInterface;
 use Nowo\ContactFormBundle\Service\ContactFormRichTextSanitizer;
 use Nowo\ContactFormBundle\Service\ContactFormSubmissionValueNormalizer;
 use Nowo\ContactFormBundle\Service\ContactPhoneInputAvailability;
@@ -33,8 +32,10 @@ use Nowo\ContactFormBundle\Service\ContactPhoneInputOptionsResolver;
 use Nowo\ContactFormBundle\Service\ContactPhonePrefixResolver;
 use Nowo\ContactFormBundle\Service\ContactPhoneValue;
 use Nowo\ContactFormBundle\Service\DynamicContactFormBuilder;
+use Nowo\ContactFormBundle\Service\NullContactFormFileUploadHandler;
 use Nowo\ContactFormBundle\Service\SecurityClientResolver;
 use Nowo\ContactFormBundle\Tests\Support\FormKitTestSupport;
+use Nowo\ContactFormBundle\Upload\ContactFormFileUploaderInterface;
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
 use stdClass;
@@ -127,7 +128,7 @@ final class CoverageCompletionTest extends TestCase
         self::assertSame('fr', $field->getTranslationForLocale('fr')->getLocale());
 
         $submission = (new ContactSubmission())
-            ->setClientId(7)
+            ->setClientReference('7')
             ->setClientLabel(null);
 
         $this->setEntityId($submission, 4);
@@ -232,7 +233,7 @@ final class CoverageCompletionTest extends TestCase
 
     public function testSubmissionValueNormalizerPhoneValues(): void
     {
-        $handler    = $this->createMock(ContactFormFileUploadHandlerInterface::class);
+        $handler    = $this->createMock(ContactFormFileUploaderInterface::class);
         $normalizer = new ContactFormSubmissionValueNormalizer($handler);
         $field      = (new ContactFormField())->setType(ContactFieldType::Phone);
         $form       = new ContactForm();
@@ -384,7 +385,7 @@ final class CoverageCompletionTest extends TestCase
     {
         $container = new ContainerBuilder();
         $container->register('security.token_storage', stdClass::class);
-        $container->register('app.upload_handler', stdClass::class);
+        $container->register('app.upload_handler', NullContactFormFileUploadHandler::class);
         $container->register('mailer', stdClass::class);
 
         (new NowoContactFormExtension())->load([array_merge($this->extensionBaseConfig(), [
@@ -408,7 +409,7 @@ final class CoverageCompletionTest extends TestCase
         // 1.8: file_upload.service is a parameter; ContactFormFileUploaderPass aliases the port the class implements.
         self::assertSame('app.upload_handler', $container->getParameter(ContactFormFileUploaderPass::SERVICE_PARAMETER));
         (new ContactFormFileUploaderPass())->process($container);
-        self::assertSame('app.upload_handler', (string) $container->getAlias(ContactFormFileUploadHandlerInterface::class));
+        self::assertSame('app.upload_handler', (string) $container->getAlias(ContactFormFileUploaderInterface::class));
         self::assertSame(
             MailerContactSubmissionNotifier::class,
             (string) $container->getAlias(ContactSubmissionNotifierInterface::class),
@@ -435,7 +436,7 @@ final class CoverageCompletionTest extends TestCase
         );
     }
 
-    public function testMailerNotifierIncludesClientIdWhenLabelMissing(): void
+    public function testMailerNotifierIncludesClientReferenceWhenLabelMissing(): void
     {
         $form = (new ContactForm())
             ->setName('Contact')
@@ -444,7 +445,7 @@ final class CoverageCompletionTest extends TestCase
 
         $submission = (new ContactSubmission())
             ->setForm($form)
-            ->setClientId(42)
+            ->setClientReference('42')
             ->setClientLabel(null)
             ->setLocale('en')
             ->addValue((new ContactSubmissionValue())->setFieldName('msg')->setValue('Hi'));
@@ -593,16 +594,14 @@ PHP);
             'ip_anonymization_salt'  => 'salt',
             'default_retention_days' => 365,
             'phone_prefixes'         => ['+34' => 'ES (+34)'],
-            'doctrine'               => ['private_entity_manager' => true],
             'phone_input'            => [
                 'value_format'            => 'CONCATENATED',
                 'default_country'         => 'ES',
                 'country_prefix_selector' => true,
                 'show_flag'               => true,
             ],
-            'admin_route_prefix' => '/admin/contact-forms',
-            'file_upload'        => ['service' => null],
-            'notifications'      => [
+            'file_upload'   => ['service' => null],
+            'notifications' => [
                 'enabled'           => false,
                 'service'           => null,
                 'default_recipient' => null,

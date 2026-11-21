@@ -10,6 +10,7 @@ use Nowo\ContactFormBundle\Entity\ContactSubmissionValue;
 use Nowo\ContactFormBundle\Notification\ContactSubmissionNotification;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 use ReflectionProperty;
 
 #[CoversClass(ContactSubmissionNotification::class)]
@@ -29,7 +30,7 @@ final class ContactSubmissionNotificationTest extends TestCase
 
         $notification = ContactSubmissionNotification::fromSubmission($submission);
 
-        self::assertSame($submission, $notification->getSubmission());
+        self::assertFalse((new ReflectionClass($notification))->hasMethod('getSubmission'), 'getSubmission() was removed in 2.0');
         self::assertSame('Support', $notification->getFormName());
         self::assertSame('support', $notification->getFormSlug());
         self::assertSame(['email' => 'user@example.com'], $notification->getFieldValues());

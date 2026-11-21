@@ -18,8 +18,6 @@ use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\DddHost\Infrastruct
 use Nowo\ContactFormBundle\Tests\Integration\Upload\Fixtures\UploadRecorder;
 use Nowo\ContactFormBundle\Upload\UploadedContactFile;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\Attributes\IgnoreDeprecations;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -30,19 +28,20 @@ use function basename;
 use function count;
 use function file_get_contents;
 use function file_put_contents;
+use function hash;
 use function in_array;
 use function is_file;
 use function str_repeat;
 
 /**
- * 1.8 equivalence: the same submissions through the real public form give the same result with a host on the
- * deprecated `ContactFormFileUploadHandlerInterface` and with a host on the new `ContactFormFileUploaderInterface`.
+ * Submissions through the real public form with a host on `ContactFormFileUploaderInterface` (the only upload port
+ * since 2.0; the 1.8 equivalence with the removed `ContactFormFileUploadHandlerInterface` held until 1.13):
  *
- * - Validation is unchanged: the same files are accepted or rejected (size limit, server-side MIME allowlist,
- *   spoofed extension, script content) and the port is never called for a rejected file.
- * - What the host storage sees is the same: client name (unchanged, traversal included), size, server-detected MIME
- *   type, content, form slug and field name; the move keeps only the last segment of the client name.
- * - The stored submission values are the same.
+ * - validation: files are accepted or rejected (size limit, server-side MIME allowlist, spoofed extension, script
+ *   content) and the port is never called for a rejected file;
+ * - what the host storage sees: client name (traversal included), size, server-detected MIME type, content, form slug
+ *   and field name; the move keeps only the last segment of the client name;
+ * - the stored submission value is what the port returned.
  *
  * Plus a DDD host (`ddd` variant) whose adapter maps the bundle VO to its own framework-free domain port.
  */
@@ -70,64 +69,36 @@ final class FileUploadEquivalenceTest extends TestCase
         ];
     }
 
-    #[IgnoreDeprecations]
-    public function testDeprecatedHandlerAndNewUploaderBehaveTheSame(): void
+    public function testTheUploaderPortSeesOnlyValidatedFiles(): void
     {
-        $legacy = $this->runCases('legacy');
-        $new    = $this->runCases('new');
+        $new = $this->runCases('new');
 
         foreach ($this->cases() as $case => $expected) {
-            $old = $legacy[$case];
             $cur = $new[$case];
 
-            self::assertSame($expected['accepted'] ? 302 : 422, $old['status'], $case . ': legacy status');
-            self::assertSame($old['status'], $cur['status'], $case . ': status');
-            self::assertSame($old['stored'], $cur['stored'], $case . ': stored submission value');
-            self::assertSame($old['movedName'], $cur['movedName'], $case . ': moved file name');
-            self::assertSame($old['movedContent'], $cur['movedContent'], $case . ': moved file content');
-
-            if ($old['seen'] === null) {
-                self::assertNull($cur['seen'], $case . ': the port is not called');
+            self::assertSame($expected['accepted'] ? 302 : 422, $cur['status'], $case . ': status');
+            if ($cur['seen'] === null) {
+                self::assertTrue(!$expected['accepted'] || $expected['content'] === null, $case . ': the port is called for every accepted file');
+                self::assertSame($expected['accepted'] ? '' : null, $cur['stored'], $case . ': nothing stored');
                 continue;
             }
 
-            self::assertNotNull($cur['seen'], $case);
-            unset($old['seen']['storage'], $old['seen']['storedPath'], $cur['seen']['storage'], $cur['seen']['storedPath']);
-            self::assertSame($old['seen'], $cur['seen'], $case . ': what the host storage sees');
+            self::assertTrue($expected['accepted'], $case . ': a rejected file never reaches the port');
+            self::assertSame('new', $cur['seen']['storage'], $case);
+            self::assertSame('stored/support/attachment/' . hash('sha256', (string) $expected['content']), $cur['stored'], $case . ': stored submission value');
+            self::assertSame($expected['content'], $cur['movedContent'], $case . ': moved file content');
+            self::assertSame(hash('sha256', (string) $expected['content']), $cur['seen']['sha256'], $case . ': what the host storage sees');
+            self::assertSame(['support', 'attachment'], [$cur['seen']['formSlug'], $cur['seen']['fieldName']], $case);
             // The client name is the one UploadedFile::getClientOriginalName() gives (HttpFoundation keeps its last segment).
             self::assertSame((new UploadedFile(__FILE__, $expected['name'], null, null, true))->getClientOriginalName(), $cur['seen']['clientName'], $case . ': client name');
         }
 
-        // Rejected files never reach either port; accepted ones always do.
+        // Rejected files never reach the port; accepted ones always do.
         self::assertNull($new['oversized']['seen']);
         self::assertNull($new['html as pdf']['seen']);
         self::assertSame('passwd.txt', $new['traversal name']['movedName']);
         self::assertSame('win.ini.txt', $new['backslash name']['movedName']);
         self::assertSame('application/pdf', $new['pdf']['seen']['mimeType'] ?? null);
-    }
-
-    /**
-     * MZ-C-1: a decorator of the deprecated port (antivirus, quarantine…) still runs when the configured service also
-     * implements the 1.8 port, and with a legacy-only host; rejected files never reach it.
-     *
-     * @return iterable<string, array{string}>
-     */
-    public static function legacyDecoratorVariants(): iterable
-    {
-        yield 'legacy-only host' => ['legacy-decorator'];
-        yield 'dual file_upload.service' => ['legacy-decorator-config-both'];
-    }
-
-    #[IgnoreDeprecations]
-    #[DataProvider('legacyDecoratorVariants')]
-    public function testDeprecatedPortDecoratorKeepsRunning(string $variant): void
-    {
-        $result = $this->runCases($variant, ['pdf', 'traversal name', 'html as pdf']);
-
-        self::assertSame(302, $result['pdf']['status']);
-        self::assertSame('legacy', $result['pdf']['seen']['storage'] ?? null, 'the deprecated upload() path is used');
-        self::assertSame(422, $result['html as pdf']['status']);
-        self::assertSame(['report.pdf', 'passwd.txt'], $result['decorated']);
     }
 
     public function testDddHostAdapterStoresThroughItsOwnDomainPort(): void
@@ -220,8 +191,6 @@ final class FileUploadEquivalenceTest extends TestCase
                     'movedContent' => $moved !== null && is_file($moved) ? file_get_contents($moved) : null,
                 ];
             }
-
-            $results['decorated'] = $recorder->decorated;
 
             if ($variant === 'ddd') {
                 $vault = $container->get(InMemoryAttachmentVault::class);
