@@ -99,8 +99,8 @@ final class BackfillClientReferenceCommandTest extends TestCase
 
     public function testAnotherFailureOfTheColumnProbeIsRethrown(): void
     {
-        $real       = $this->legacySchema();
-        $failure    = new DriverException(new class('disk I/O error', 'HY000', 10) extends AbstractException {
+        $real    = $this->legacySchema();
+        $failure = new DriverException(new class('disk I/O error', 'HY000', 10) extends AbstractException {
         }, null);
         $connection = $this->createMock(Connection::class);
         $connection->method('getDatabasePlatform')->willReturn($real->getConnection()->getDatabasePlatform());
