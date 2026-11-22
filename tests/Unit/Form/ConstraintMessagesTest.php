@@ -7,14 +7,22 @@ namespace Nowo\ContactFormBundle\Tests\Unit\Form;
 use Nowo\ContactFormBundle\Form\ContactPhoneType;
 use Nowo\ContactFormBundle\Tests\Support\FormKitTestSupport;
 use PHPUnit\Framework\Attributes\CoversNothing;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use RegexIterator;
 use Symfony\Component\Form\Extension\Validator\ValidatorExtension;
+use Symfony\Component\Form\FormFactoryInterface;
+use Symfony\Component\Form\Forms;
 use Symfony\Component\Form\Test\TypeTestCase;
 use Symfony\Component\Translation\Loader\YamlFileLoader;
 use Symfony\Component\Translation\Translator;
 use Symfony\Component\Validator\Validation;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Component\Yaml\Yaml;
 
 use function dirname;
+use function is_array;
+use function sprintf;
 
 /**
  * Symfony translates constraint messages in the `validators` domain, never in the bundle's own domain. A dotted key
@@ -28,7 +36,7 @@ final class ConstraintMessagesTest extends TypeTestCase
     /**
      * @return list<string>
      */
-    private static function shippedLocales(): array
+    private function shippedLocales(): array
     {
         $locales = [];
         foreach (glob(dirname(__DIR__, 3) . self::TRANSLATIONS . '/NowoContactFormBundle.*.yaml') ?: [] as $file) {
@@ -42,11 +50,11 @@ final class ConstraintMessagesTest extends TypeTestCase
     /**
      * @return list<string>
      */
-    private static function dottedConstraintMessages(): array
+    private function dottedConstraintMessages(): array
     {
         $found = [];
-        $files = new \RegexIterator(
-            new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(dirname(__DIR__, 3) . '/src')),
+        $files = new RegexIterator(
+            new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname(__DIR__, 3) . '/src')),
             '/\.php$/',
         );
         foreach ($files as $file) {
@@ -63,10 +71,10 @@ final class ConstraintMessagesTest extends TypeTestCase
 
     public function testEveryDottedConstraintMessageExistsInValidatorsForEveryShippedLocale(): void
     {
-        $messages = self::dottedConstraintMessages();
+        $messages = $this->dottedConstraintMessages();
         self::assertContains('nowo_contact_form.public.phone_number_invalid', $messages);
 
-        foreach (self::shippedLocales() as $locale) {
+        foreach ($this->shippedLocales() as $locale) {
             $file = dirname(__DIR__, 3) . self::TRANSLATIONS . '/validators.' . $locale . '.yaml';
             self::assertFileExists($file, $locale);
             $flat = self::flatten(Yaml::parseFile($file));
@@ -80,7 +88,7 @@ final class ConstraintMessagesTest extends TypeTestCase
 
     public function testInvalidPhoneNumberRendersTranslatedTextInEveryShippedLocale(): void
     {
-        foreach (self::shippedLocales() as $locale) {
+        foreach ($this->shippedLocales() as $locale) {
             $translator = new Translator($locale);
             $translator->addLoader('yaml', new YamlFileLoader());
             $translator->addResource('yaml', dirname(__DIR__, 3) . self::TRANSLATIONS . '/validators.' . $locale . '.yaml', $locale, 'validators');
@@ -102,9 +110,9 @@ final class ConstraintMessagesTest extends TypeTestCase
         }
     }
 
-    private function createFormFactoryFor(\Symfony\Component\Validator\Validator\ValidatorInterface $validator): \Symfony\Component\Form\FormFactoryInterface
+    private function createFormFactoryFor(ValidatorInterface $validator): FormFactoryInterface
     {
-        return \Symfony\Component\Form\Forms::createFormFactoryBuilder()
+        return Forms::createFormFactoryBuilder()
             ->addExtension(new ValidatorExtension($validator))
             ->addType(FormKitTestSupport::withMerger(new ContactPhoneType()))
             ->getFormFactory();
