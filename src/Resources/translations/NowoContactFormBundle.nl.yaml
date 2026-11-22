@@ -4,7 +4,6 @@ nowo_contact_form:
     consent_default_label: Ik ga akkoord met de verwerking van mijn persoonsgegevens.
     consent_required: U moet het toestemmingsvakje accepteren om het formulier te verzenden.
     field_required: 'Het veld "%field%" is verplicht.'
-    phone_number_invalid: Voer een geldig telefoonnummer in met alleen cijfers.
     phone_prefix: Landcode
     phone_number: Telefoonnummer
   admin:
