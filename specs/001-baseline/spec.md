@@ -92,6 +92,7 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 ### CLI
 
 - **FR-CLI-001**: `CleanupExpiredSubmissionsCommand`.
+- **FR-CLI-002**: `BackfillClientReferenceCommand` backfills the client reference of existing rows when the client reference mode is switched (2.0).
 
 ### Twig & views
 
@@ -110,11 +111,14 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 - **FR-WORKER-001**: Safe under FrankenPHP worker with kernel **not** reset between requests (scenario B): no mutable service state; closed EntityManager recovered via `ContactFormEntityManagerResolver` + `ContactFormEntityManagerSubscriber`; submissions detached after process; public form/field reads use `HINT_REFRESH`; repositories extend `WorkerSafeServiceEntityRepository` so they always use the current manager after `resetManager()`.
 - **FR-CONC-001**: Safe under concurrent writes (REQ-RUNTIME-003): every write is one flush (one transaction; the purge one per chunk of 500); a lock conflict on a bundle route answers 409 (configurable 503) with `X-Conflict-Code` `CONFLICT_001` + `Retry-After` when nothing was committed in the request, `CONFLICT_002` without `Retry-After` otherwise (`ContactFormConflictListener`, transaction-doctrine commit ledger); admin unique-key refusals answer a domain 409 (`CONTACT_FORM_DUPLICATE_KEY`); unique violations elsewhere and lost connections are not mapped; the purge command exits 1 with "run the command again". See `docs/CONCURRENCY.md`.
 
+- **FR-CONC-002**: Admin edits carry the row version (REQ-RUNTIME-003 rule 4): `RowVersionField` is the hidden base token of the edit form, `VersionedRowInterface` marks the entity, `RowVersionGuard` compare-and-swaps the version column and `StaleVersionException` reports a page that is no longer current; `ContactFormWrites` guards the bundle's writes through its private entity manager (2.0).
+- **FR-PEM-001**: `ContactFormPrivateEntityManagerPass` creates the bundle's private entity manager once the application's Doctrine managers are known (REQ-ARCH-001 rule 6, 2.0).
+- **FR-ARCH-001**: `ContactFormRemovedPortsPass` fails the container build on every trace of the upload port removed in 2.0 (`ContactFormFileUploadHandlerInterface`, deprecated since 1.8).
 ---
 
 ## Success Criteria
 
-- **SC-001**: **122/122** files under `src/` mapped in [`code-inventory.md`](code-inventory.md) (audited 2026-11-16).
+- **SC-001**: **130/130** files under `src/` mapped in [`code-inventory.md`](code-inventory.md) (audited 2026-11-22).
 - **SC-002**: Config matches `docs/CONFIGURATION.md`.
 - **SC-003**: QA/CI green.
 

@@ -2,7 +2,7 @@
 
 **Baseline spec**: [`spec.md`](spec.md)  
 **Package**: `nowo-tech/contact-form-bundle`  
-**Last audited**: 2026-11-16
+**Last audited**: 2026-11-22
 
 ## Symfony config
 
@@ -223,6 +223,19 @@
 | `Upload/UploadedContactFileData.php` | Keeps the file values outside the VO so dumps cannot leak paths / names | FR-SVC-004 |
 | `Upload/ContactFormFileTarget.php` | File field ids, names and admin options (no entity) | FR-SVC-004 |
 
+## Sources added 1.12–2.0 (sweep 2026-11-22)
+
+| Source file | Spec section | Requirement IDs |
+| --- | --- | --- |
+| `Command/BackfillClientReferenceCommand.php` | Backfills the client reference of existing rows when the client reference mode is switched (2.0) | FR-CLI-002 |
+| `Concurrency/RowVersionGuard.php` | Compare-and-swap of the version column of an edited row (REQ-RUNTIME-003 rule 4, optimistic concurrency). | FR-CONC-001 |
+| `Concurrency/StaleVersionException.php` | An admin edit was made on a page that is no longer current: another admin saved the same row after the page was opened (REQ-RUNTIME-003 rule 4, optimistic concu | FR-CONC-001 |
+| `Concurrency/VersionedRowInterface.php` | An entity whose admin edits are checked against a row version (REQ-RUNTIME-003 rule 4). | FR-CONC-001 |
+| `DependencyInjection/Compiler/ContactFormPrivateEntityManagerPass.php` | REQ-ARCH-001 rule 6 (2.0), once the application's Doctrine managers are known. | FR-PEM-001 |
+| `DependencyInjection/Compiler/ContactFormRemovedPortsPass.php` | Refuses, when the container is built, every trace of the upload port removed in 2.0 (`Service\ContactFormFileUploadHandlerInterface`, deprecated since 1.8; REQ- | FR-ARCH-001 |
+| `Doctrine/ContactFormWrites.php` | Guards of the bundle's writes through its private entity manager (2.0, REQ-ARCH-001 rule 6; wave-1 lessons XS and W1-2). | FR-CONC-001 |
+| `Form/RowVersionField.php` | The hidden base token of an admin edit form (REQ-RUNTIME-003 rule 4): the row version of the page, unmapped. | FR-CONC-001 |
+
 ## Coverage summary
 
 | Category | Files | Mapped |
@@ -246,6 +259,7 @@
 | Twig views — public | 3 | 3 |
 | Client references | 3 | 3 |
 | File upload ports | 4 | 4 |
-| **Total production sources** | **124** | **124** |
+| Sources added 1.12–2.0 (sweep 2026-11-22) | 8 | 8 |
+| **Total production sources** | **130** | **130** |
 
-Audit command: `git ls-files src | wc -l` → 124.
+Audit command: `git ls-files src | wc -l` → 130 (2026-11-22). The category rows above were over-counted by 2 before this audit; the total is the verified file count and every file under `src/` is named in this inventory.
