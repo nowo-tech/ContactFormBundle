@@ -4,7 +4,6 @@ nowo_contact_form:
     consent_default_label: J'accepte le traitement de mes données personnelles.
     consent_required: Vous devez accepter la case de consentement pour envoyer le formulaire.
     field_required: 'Le champ « %field% » est obligatoire.'
-    phone_number_invalid: Saisissez un numéro de téléphone valide en utilisant uniquement des chiffres.
     phone_prefix: Indicatif du pays
     phone_number: Numéro de téléphone
   admin:

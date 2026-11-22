@@ -66,6 +66,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- The public contact form showed the raw key `nowo_contact_form.public.phone_number_invalid` when a visitor typed an invalid phone number: Symfony translates constraint messages in the `validators` domain, and the text only existed in `NowoContactFormBundle.<locale>.yaml`. It now ships in `validators.<locale>.yaml` for every locale (de, en, es, fr, it, nl, pt) and is removed from the bundle domain, where nothing read it.
+
+### Tests
+
+- Regression test: every dotted constraint message used in `src/` exists in the `validators` catalogue of every shipped locale, and an invalid phone number renders translated text in each locale.
+
 ## [2.0.1] - 2026-11-21
 
 ### Fixed
