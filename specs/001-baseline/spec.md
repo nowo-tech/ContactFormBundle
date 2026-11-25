@@ -76,7 +76,7 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 - **FR-SVC-001**: Submission processor, dynamic builder, value normalizer, rate limiter, sanitizer.
 - **FR-SVC-002**: Client resolver interface + security implementation, label resolver; since 1.7 the submission stores a `ClientReference` (id + label) from `ClientReferenceResolverInterface` (default `ObjectClientReferenceResolver`).
 - **FR-SVC-003**: Phone prefix/options resolvers, availability, `ContactPhoneValue`.
-- **FR-SVC-004**: Select options synchronizer, file upload handler interface + null impl; since 1.8 the framework-free `ContactFormFileUploaderInterface` port with `UploadedContactFile` / `ContactFormFileTarget` value objects.
+- **FR-SVC-004**: Select options synchronizer, `NullContactFormFileUploadHandler`; the 1.x `ContactFormFileUploadHandlerInterface` is removed in 2.0; since 1.8 the framework-free `ContactFormFileUploaderInterface` port with `UploadedContactFile` / `ContactFormFileTarget` value objects.
 - **FR-SVC-005**: `IpAnonymizer`, `SubmissionRetentionCleanupService`.
 - **FR-SVC-006**: `ContactFormEnabledLocales` (admin content locales, `en` fallback).
 - **FR-SVC-007**: `ContactSubmissionRecorderInterface` records a submission from plain values without a Symfony form or request (throws `ContactFormNotFoundException` for an unknown slug).
@@ -99,8 +99,9 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 - **FR-TWIG-001**: `ContactFormAdminTwigExtension`.
 - **FR-TWIG-002**: Admin and public Twig templates.
 - **FR-TWIG-003**: CSP — inline `<script>`/`<style>` in bundle templates emit `nonce` from request attribute `csp_nonce` when set; no inline event handlers and no `confirm()` (deletes use the UiKit confirm `<dialog>`); enforced by `InlineBlocksDeclareNonceTest` and the page contract test.
-- **FR-UI-001**: UiKit page contract (REQ-UI-003) — admin pages extend the UiKit list / form / wizard / show scaffolds with view models built by `Ui\ContactFormPageFactory`; the public form is a unique page on the guest layout; `Ui\ContactFormPages` resolves `web_ui.layout_template` / `public_layout_template` (null = `nowo_ui_kit.layouts`), `web_ui.templates.<page>` and the deprecated 1.x layout bridge; `tests/Integration/Contract/PageContractTest.php`.
+- **FR-UI-001**: UiKit page contract (REQ-UI-003) — admin pages extend the UiKit list / form / wizard / show scaffolds with view models built by `Ui\ContactFormPageFactory`; the public form is a unique page on the guest layout; `Ui\ContactFormPages` resolves `web_ui.layout_template` / `public_layout_template` (null = `nowo_ui_kit.layouts`), `web_ui.templates.<page>` (2.0 removed the 1.x layout bridge `admin/_legacy_layout.html.twig`); `tests/Integration/Contract/PageContractTest.php`.
 - **FR-I18N-001**: Seven locale YAML files.
+- **FR-I18N-002**: The constraint message of `ContactPhoneType` (`nowo_contact_form.public.phone_number_invalid`) lives in the Symfony `validators` domain (`validators.{en,es,de,fr,it,nl,pt}.yaml`; fix #95), not in the bundle domain, because Symfony translates constraint messages there.
 
 ### DI
 
@@ -118,7 +119,7 @@ Multilingual **dynamic contact forms**: admin CRUD for forms/fields with transla
 
 ## Success Criteria
 
-- **SC-001**: **130/130** files under `src/` mapped in [`code-inventory.md`](code-inventory.md) (audited 2026-11-22).
+- **SC-001**: **137/137** files under `src/` mapped in [`code-inventory.md`](code-inventory.md) (audited 2026-11-27, 2.0.2).
 - **SC-002**: Config matches `docs/CONFIGURATION.md`.
 - **SC-003**: QA/CI green.
 
