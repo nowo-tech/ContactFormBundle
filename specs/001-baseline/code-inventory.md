@@ -2,7 +2,7 @@
 
 **Baseline spec**: [`spec.md`](spec.md)  
 **Package**: `nowo-tech/contact-form-bundle`  
-**Last audited**: 2026-11-22
+**Last audited**: 2026-11-27 (2.0.2)
 
 ## Symfony config
 
@@ -128,7 +128,6 @@
 | `Service/ContactPhoneInputAvailability.php` | PhoneInput check | FR-SVC-003 |
 | `Service/ContactPhoneValue.php` | Phone value VO | FR-SVC-003 |
 | `Service/ContactFormFieldSelectOptionsSynchronizer.php` | Select sync | FR-SVC-004 |
-| `Service/ContactFormFileUploadHandlerInterface.php` | Upload contract | FR-SVC-004 |
 | `Service/NullContactFormFileUploadHandler.php` | Null upload | FR-SVC-004 |
 | `Service/IpAnonymizer.php` | GDPR IP mask | FR-SVC-005 |
 | `Service/SubmissionRetentionCleanupService.php` | Retention purge | FR-SVC-005 |
@@ -176,6 +175,13 @@
 
 | Source file | Spec section | Requirement IDs |
 | --- | --- | --- |
+| `Resources/translations/validators.en.yaml` | `validators` domain (English): phone-number constraint message of `ContactPhoneType` | FR-I18N-002 |
+| `Resources/translations/validators.es.yaml` | `validators` domain (Spanish): phone-number constraint message of `ContactPhoneType` | FR-I18N-002 |
+| `Resources/translations/validators.de.yaml` | `validators` domain (German): phone-number constraint message of `ContactPhoneType` | FR-I18N-002 |
+| `Resources/translations/validators.fr.yaml` | `validators` domain (French): phone-number constraint message of `ContactPhoneType` | FR-I18N-002 |
+| `Resources/translations/validators.it.yaml` | `validators` domain (Italian): phone-number constraint message of `ContactPhoneType` | FR-I18N-002 |
+| `Resources/translations/validators.nl.yaml` | `validators` domain (Dutch): phone-number constraint message of `ContactPhoneType` | FR-I18N-002 |
+| `Resources/translations/validators.pt.yaml` | `validators` domain (Portuguese): phone-number constraint message of `ContactPhoneType` | FR-I18N-002 |
 | `Resources/translations/NowoContactFormBundle.en.yaml` | English | FR-I18N-001 |
 | `Resources/translations/NowoContactFormBundle.es.yaml` | Spanish | FR-I18N-001 |
 | `Resources/translations/NowoContactFormBundle.de.yaml` | German | FR-I18N-001 |
@@ -188,7 +194,6 @@
 
 | Source file | Spec section | Requirement IDs |
 | --- | --- | --- |
-| `Resources/views/admin/_legacy_layout.html.twig` | Deprecated 1.x layout bridge | FR-UI-001 |
 | `Resources/views/admin/form/index.html.twig` | Form list (list scaffold) | FR-TWIG-002, FR-UI-001 |
 | `Resources/views/admin/form/form.html.twig` | Form edit (form scaffold) | FR-TWIG-002, FR-UI-001 |
 | `Resources/views/admin/form/_translation_tabs.html.twig` | Form i18n tabs | FR-TWIG-002 |
@@ -248,18 +253,18 @@
 | Enums & events | 9 | 9 |
 | Controllers | 5 | 5 |
 | Forms | 11 | 11 |
-| Services | 23 | 23 |
+| Services | 22 | 22 |
 | Notifications | 4 | 4 |
 | Phone | 1 | 1 |
 | CLI | 1 | 1 |
 | Twig PHP | 1 | 1 |
 | UI view models | 2 | 2 |
-| Translations | 7 | 7 |
-| Twig views — admin | 9 | 9 |
+| Translations | 14 | 14 |
+| Twig views — admin | 8 | 8 |
 | Twig views — public | 3 | 3 |
 | Client references | 3 | 3 |
 | File upload ports | 4 | 4 |
 | Sources added 1.12–2.0 (sweep 2026-11-22) | 8 | 8 |
-| **Total production sources** | **130** | **130** |
+| **Total production sources** | **137** | **137** |
 
-Audit command: `git ls-files src | wc -l` → 130 (2026-11-22). The category rows above were over-counted by 2 before this audit; the total is the verified file count and every file under `src/` is named in this inventory.
+Audit command: `git ls-files src | wc -l` → 137 (2026-11-27). The 2026-11-22 total of 130 counted two rows of files removed in 2.0.0 (`ContactFormFileUploadHandlerInterface`, `admin/_legacy_layout.html.twig`), now removed; the total is the verified file count and every file under `src/` is named in this inventory.
